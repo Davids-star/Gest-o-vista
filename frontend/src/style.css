@@ -11,6 +11,43 @@
   }
 }
 
+/*
+ * Tema claro/escuro — só para as telas mobile que optam por usar as classes
+ * .gp-* abaixo (MobileSelectorView, ConfigMobileView). O resto do app
+ * (Dashboard, Totem, TV) usa cores fixas e não lê essas variáveis, então
+ * alternar o tema aqui não muda nada fora dessas telas. Controlado por
+ * useTheme.js, que escreve [data-gp-theme] em <html>.
+ */
+:root,
+[data-gp-theme='dark'] {
+  --gp-bg: #0b0f17;
+  --gp-surface: #0f1420;
+  --gp-surface-2: #121824;
+  --gp-border: #1e293b;
+  --gp-text: #f8fafc;
+  --gp-text-muted: #94a3b8;
+  --gp-banner-from: rgba(2, 44, 34, 0.8);
+  --gp-code-bg: rgba(2, 6, 15, 0.8);
+}
+
+[data-gp-theme='light'] {
+  --gp-bg: #f1f5f9;
+  --gp-surface: #ffffff;
+  --gp-surface-2: #f8fafc;
+  --gp-border: #e2e8f0;
+  --gp-text: #0f172a;
+  --gp-text-muted: #64748b;
+  --gp-banner-from: rgba(209, 250, 229, 0.8);
+  --gp-code-bg: #eef2f7;
+}
+
+.gp-bg { background-color: var(--gp-bg); }
+.gp-surface { background-color: var(--gp-surface); }
+.gp-surface-2 { background-color: var(--gp-surface-2); }
+.gp-border { border-color: var(--gp-border); }
+.gp-text { color: var(--gp-text); }
+.gp-text-muted { color: var(--gp-text-muted); }
+
 /* Glassmorphism & Industrial Dark Card Styles */
 .dark-panel {
   background-color: #121824;

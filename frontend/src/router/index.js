@@ -13,6 +13,7 @@ import LoginPinView from '../views/totem/LoginPinView.vue';
 import ProducaoView from '../views/totem/ProducaoView.vue';
 import TvView from '../views/TvView.vue';
 import MobileSelectorView from '../views/mobile/MobileSelectorView.vue';
+import ConfigMobileView from '../views/mobile/ConfigMobileView.vue';
 
 const routes = [
   // Rota raiz → Celular e Desktop vão DIRETO para a Supervisão / Dashboard
@@ -95,6 +96,12 @@ const routes = [
     path: '/mobile',
     name: 'MobileSelector',
     component: MobileSelectorView,
+    meta: { requiresAuth: false },
+  },
+  {
+    path: '/mobile/config',
+    name: 'MobileConfig',
+    component: ConfigMobileView,
     meta: { requiresAuth: false },
   },
 
