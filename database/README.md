@@ -1,5 +1,7 @@
 # Banco de dados do GP
 
+> Visão geral do projeto todo: [`../README.md`](../README.md).
+
 Postgres **dedicado** ao sistema GP — container e volume próprios (`gp_postgres_db` /
 `gp_postgres_data`), sem nenhuma relação com o Postgres do projeto "Batedor de Ponto"
 (que antes hospedava o banco `sistema_producao` junto com bancos de outros projetos).

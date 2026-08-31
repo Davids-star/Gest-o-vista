@@ -1,5 +1,7 @@
 # 🤖 Simulador ESP32 (MQTT) — Sistema GP
 
+> Visão geral do projeto todo: [`../README.md`](../README.md).
+
 Este simulador simula o envio de pulsos de contagem de produção de um sensor óptico acoplado a uma máquina física via MQTT.
 
 ## 🚀 Como Executar
