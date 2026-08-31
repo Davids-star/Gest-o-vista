@@ -7,6 +7,7 @@
 /.agents/
 /.claude/
 /.codex_home/
+/.codex-plugin-antigravity/
 
 # Node
 node_modules/

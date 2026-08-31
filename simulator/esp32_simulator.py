@@ -86,9 +86,9 @@ def main():
                     send_mqtt_publish(args.host, args.port, heartbeat_topic, json.dumps({
                         "ts": datetime.now(timezone.utc).isoformat(),
                     }))
-                    print(f"💓 [{datetime.now().strftime('%H:%M:%S')}] Heartbeat enviado")
+                    print(f" [{datetime.now().strftime('%H:%M:%S')}] Heartbeat enviado")
                 except Exception as e:
-                    print(f"❌ [{datetime.now().strftime('%H:%M:%S')}] Erro no heartbeat: {e}")
+                    print(f" [{datetime.now().strftime('%H:%M:%S')}] Erro no heartbeat: {e}")
                 last_heartbeat = time.time()
 
             event_uid = f"{args.device}-{int(time.time())}-{seq:06d}"
@@ -105,7 +105,7 @@ def main():
                 send_mqtt_publish(args.host, args.port, topic, payload_str)
                 print(f"⚡ [{datetime.now().strftime('%H:%M:%S')}] Evento #{seq} publicado -> {event_uid} (1 peça)")
             except Exception as e:
-                print(f"❌ [{datetime.now().strftime('%H:%M:%S')}] Erro ao publicar: {e}")
+                print(f" [{datetime.now().strftime('%H:%M:%S')}] Erro ao publicar: {e}")
 
             seq += 1
             if args.count > 0 and seq > args.count:
@@ -115,7 +115,7 @@ def main():
             time.sleep(args.interval)
 
     except KeyboardInterrupt:
-        print("\n🛑 Simulador encerrado pelo usuário.")
+        print("\n Simulador encerrado pelo usuário.")
 
 if __name__ == "__main__":
     main()
