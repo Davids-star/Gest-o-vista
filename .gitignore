@@ -1,6 +1,6 @@
 # Cada um destes já é seu próprio projeto/repositório independente — a raiz
 # não versiona o conteúdo deles, só coordena via README.
-/api/
+
 /codex-plugin-antigravity/
 
 # Tooling de agentes (Claude Code / Codex), não faz parte do produto GP
