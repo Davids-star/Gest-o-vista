@@ -1,0 +1,32 @@
+# Cada um destes já é seu próprio projeto/repositório independente — a raiz
+# não versiona o conteúdo deles, só coordena via README.
+/api/
+/codex-plugin-antigravity/
+
+# Tooling de agentes (Claude Code / Codex), não faz parte do produto GP
+/.agents/
+/.claude/
+/.codex_home/
+
+# Node
+node_modules/
+dist/
+dist-ssr/
+dev-dist/
+npm-debug.log*
+
+# Python
+__pycache__/
+*.pyc
+
+# Segredos e dados locais
+*.env
+.env
+.env.*
+!*.env.example
+
+# Editor / SO
+.DS_Store
+.vscode/*
+!.vscode/extensions.json
+.idea/

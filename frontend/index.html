@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <!-- rel="manifest" é injetado automaticamente pelo vite-plugin-pwa
+         (manifest.webmanifest, gerado a partir de vite.config.js) -->
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <meta name="theme-color" content="#0b0f17" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="GP Mobile" />
+    <meta name="description" content="Sistema PWA para monitoramento industrial, totens operacionais e gestão em tempo real." />
+
+    <title>GP Industrial Mobile</title>
+  </head>
+  <body class="bg-[#0b0f17] text-slate-100 antialiased selection:bg-emerald-500 selection:text-black">
+    <div id="app"></div>
+    <!-- Registro do Service Worker: ver registerSW() em src/main.js
+         (virtual:pwa-register, gerado pelo vite-plugin-pwa) -->
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>

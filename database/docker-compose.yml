@@ -1,0 +1,33 @@
+# Postgres DEDICADO ao sistema GP — volume e container próprios.
+# Mosquitto Broker DEDICADO ao sistema GP na porta 1883.
+services:
+  gp_postgres:
+    image: postgres:16-alpine
+    container_name: gp_postgres_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DB_USERNAME}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
+    ports:
+      - "${DB_PORT}:5432"
+    volumes:
+      - gp_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME} -d ${DB_NAME}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  mosquitto:
+    image: eclipse-mosquitto:2
+    container_name: gp_mosquitto
+    restart: unless-stopped
+    ports:
+      - "1883:1883"
+    volumes:
+      - ../mqtt/config/mosquitto.conf:/mosquitto/config/mosquitto.conf
+
+volumes:
+  gp_postgres_data:
+    name: gp_postgres_data
