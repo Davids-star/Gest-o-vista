@@ -1,4 +1,4 @@
-import { ApontamentoService, formatarDataLocal, limitesDoDia, duracaoParada } from './apontamento.service';
+import { ApontamentoService, formatarDataLocal, limitesDoDia, limitesDoMes, duracaoParada } from './apontamento.service';
 import { StopStatus } from '../database/entities/stop.entity';
 import { SessionStatus } from '../database/entities/production-session.entity';
 
@@ -14,6 +14,31 @@ describe('formatarDataLocal / limitesDoDia (horário de fábrica, America/Fortal
     // 00:00:00 -03:00 == 03:00:00 UTC
     expect(inicio.toISOString()).toBe('2026-08-31T03:00:00.000Z');
     expect(fim.toISOString()).toBe('2026-09-01T02:59:59.999Z');
+  });
+});
+
+describe('limitesDoMes', () => {
+  it('cobre do dia 1 00:00 ao último dia 23:59:59.999 locais — mês de 31 dias', () => {
+    const { inicio, fim } = limitesDoMes(2026, 8);
+    expect(inicio.toISOString()).toBe('2026-08-01T03:00:00.000Z');
+    expect(fim.toISOString()).toBe('2026-09-01T02:59:59.999Z');
+  });
+
+  it('mês de 30 dias (setembro)', () => {
+    const { inicio, fim } = limitesDoMes(2026, 9);
+    expect(inicio.toISOString()).toBe('2026-09-01T03:00:00.000Z');
+    expect(fim.toISOString()).toBe('2026-10-01T02:59:59.999Z');
+  });
+
+  it('fevereiro em ano bissexto (2028 → 29 dias)', () => {
+    const { fim } = limitesDoMes(2028, 2);
+    expect(fim.toISOString()).toBe('2028-03-01T02:59:59.999Z');
+  });
+
+  it('dezembro vira o ano corretamente', () => {
+    const { inicio, fim } = limitesDoMes(2026, 12);
+    expect(inicio.toISOString()).toBe('2026-12-01T03:00:00.000Z');
+    expect(fim.toISOString()).toBe('2027-01-01T02:59:59.999Z');
   });
 });
 
@@ -128,6 +153,38 @@ describe('ApontamentoService.obter — exemplo da seção 9 do briefing (tempo p
     expect(porMotivo['Falta de material']).toBe(12 * 60);
   });
 
+  it('calcula produção por hora do dia, preenchendo horas sem eventos com 0', async () => {
+    const sessionRepo = { createQueryBuilder: jest.fn().mockReturnValue(fakeQb([sessao])) };
+    const producaoPorSessaoResultado = [{ session_id: 'sessao-1', total: '650' }];
+    const producaoPorHoraResultado = [
+      { hora: '08', total: '400' },
+      { hora: '09', total: '250' },
+    ];
+    let chamadaEvent = 0;
+    const eventRepo = {
+      createQueryBuilder: jest.fn().mockImplementation(() => {
+        chamadaEvent += 1;
+        return fakeQb(chamadaEvent === 1 ? producaoPorSessaoResultado : producaoPorHoraResultado);
+      }),
+    };
+    const stopRepo = {
+      find: jest.fn().mockResolvedValue([parada1, parada2]),
+      createQueryBuilder: jest.fn().mockReturnValue(fakeQb([])),
+    };
+    const auditRepo = { find: jest.fn().mockResolvedValue([]) };
+    const userRepo = { find: jest.fn().mockResolvedValue([]) };
+    const service = new ApontamentoService(sessionRepo as any, eventRepo as any, stopRepo as any, auditRepo as any, userRepo as any);
+
+    const resultado = await service.obter('empresa-1', { date: '2026-08-31' });
+
+    expect(resultado.producao_por_hora).toHaveLength(24);
+    const porHora = Object.fromEntries(resultado.producao_por_hora.map((h: any) => [h.hora, h.quantidade]));
+    expect(porHora['08']).toBe(400);
+    expect(porHora['09']).toBe(250);
+    expect(porHora['00']).toBe(0); // hora sem produção não some do gráfico, aparece zerada
+    expect(resultado.producao_por_hora.reduce((a: number, h: any) => a + h.quantidade, 0)).toBe(650);
+  });
+
   it('sem sessões no dia filtrado, devolve resumo zerado (sem inventar dado nenhum)', async () => {
     const sessionRepo = { createQueryBuilder: jest.fn().mockReturnValue(fakeQb([])) };
     const eventRepo = { createQueryBuilder: jest.fn().mockReturnValue(fakeQb([])) };
@@ -141,5 +198,97 @@ describe('ApontamentoService.obter — exemplo da seção 9 do briefing (tempo p
     expect(resultado.sessoes).toHaveLength(0);
     expect(resultado.resumo.producao).toBe(0);
     expect(resultado.resumo.sessoes).toBe(0);
+  });
+});
+
+describe('ApontamentoService.obterMensal — exemplo de consistência do briefing (seção 46)', () => {
+  // Máquina 01: dia 01 → 100, dia 02 → 200, dia 03 → 400 (total 700)
+  // Máquina 02: dia 02 → 300
+  // Total do mês esperado: 1000 | Máquina 01: 700 | Máquina 02: 300
+  // Números só de fixture de teste — não são seed nem dado do app.
+  function sessaoFixture(id: string, machineId: string, machineCode: string, dia: string) {
+    return {
+      id,
+      machine_id: machineId,
+      product_id: 'produto-1',
+      lot_id: 'lote-1',
+      operator_id: 'operador-1',
+      shift_id: null,
+      started_at: new Date(`2026-08-${dia}T08:00:00.000-03:00`),
+      ended_at: new Date(`2026-08-${dia}T12:00:00.000-03:00`),
+      status: SessionStatus.CLOSED,
+      machine: { id: machineId, code: machineCode, name: `Máquina ${machineCode}` },
+      product: { id: 'produto-1', name: 'Biscoito' },
+      lot: { id: 'lote-1', code: 'LT-0001' },
+      operator: { id: 'operador-1', name: 'João' },
+      shift: null,
+    };
+  }
+
+  const s1 = sessaoFixture('s1', 'maquina-1', '01', '01');
+  const s2 = sessaoFixture('s2', 'maquina-1', '01', '02');
+  const s3 = sessaoFixture('s3', 'maquina-1', '01', '03');
+  const s4 = sessaoFixture('s4', 'maquina-2', '02', '02');
+
+  function montarService() {
+    const sessionRepo = { createQueryBuilder: jest.fn().mockReturnValue(fakeQb([s1, s2, s3, s4])) };
+    const eventRepo = {
+      createQueryBuilder: jest.fn().mockReturnValue(fakeQb([
+        { session_id: 's1', total: '100' },
+        { session_id: 's2', total: '200' },
+        { session_id: 's3', total: '400' },
+        { session_id: 's4', total: '300' },
+      ])),
+    };
+    const stopRepo = {
+      find: jest.fn().mockResolvedValue([]), // sem paradas neste cenário
+      createQueryBuilder: jest.fn().mockReturnValue(fakeQb([])),
+    };
+    const auditRepo = { find: jest.fn().mockResolvedValue([]) };
+    const userRepo = { find: jest.fn().mockResolvedValue([]) };
+    return new ApontamentoService(sessionRepo as any, eventRepo as any, stopRepo as any, auditRepo as any, userRepo as any);
+  }
+
+  it('soma produção total do mês corretamente', async () => {
+    const service = montarService();
+    const resultado = await service.obterMensal('empresa-1', { year: 2026, month: 8 });
+    expect(resultado.resumo.producao).toBe(1000);
+    expect(resultado.resumo.sessoes).toBe(4);
+    expect(resultado.resumo.maquinas_utilizadas).toBe(2);
+  });
+
+  it('agrupa produção por máquina corretamente (700 / 300)', async () => {
+    const service = montarService();
+    const resultado = await service.obterMensal('empresa-1', { year: 2026, month: 8 });
+    const porMaquina = Object.fromEntries(resultado.por_maquina.map((m: any) => [m.machine_code, m.producao]));
+    expect(porMaquina['01']).toBe(700);
+    expect(porMaquina['02']).toBe(300);
+  });
+
+  it('agrupa produção por dia corretamente e preenche o mês inteiro (31 dias)', async () => {
+    const service = montarService();
+    const resultado = await service.obterMensal('empresa-1', { year: 2026, month: 8 });
+    expect(resultado.producao_por_dia).toHaveLength(31);
+    const porDia = Object.fromEntries(resultado.producao_por_dia.map((d: any) => [d.data, d.producao]));
+    expect(porDia['2026-08-01']).toBe(100);
+    expect(porDia['2026-08-02']).toBe(500); // 200 (máquina 01) + 300 (máquina 02)
+    expect(porDia['2026-08-03']).toBe(400);
+    expect(porDia['2026-08-15']).toBe(0); // dia sem produção aparece zerado, não some
+  });
+
+  it('sem sessões no mês filtrado, devolve resumo zerado com os 31 dias presentes', async () => {
+    const sessionRepo = { createQueryBuilder: jest.fn().mockReturnValue(fakeQb([])) };
+    const eventRepo = { createQueryBuilder: jest.fn().mockReturnValue(fakeQb([])) };
+    const stopRepo = { find: jest.fn(), createQueryBuilder: jest.fn().mockReturnValue(fakeQb([])) };
+    const auditRepo = { find: jest.fn() };
+    const userRepo = { find: jest.fn() };
+    const service = new ApontamentoService(sessionRepo as any, eventRepo as any, stopRepo as any, auditRepo as any, userRepo as any);
+
+    const resultado = await service.obterMensal('empresa-1', { year: 2099, month: 1 });
+
+    expect(resultado.resumo.producao).toBe(0);
+    expect(resultado.resumo.sessoes).toBe(0);
+    expect(resultado.producao_por_dia).toHaveLength(31);
+    expect(resultado.producao_por_dia.every((d: any) => d.producao === 0)).toBe(true);
   });
 });
