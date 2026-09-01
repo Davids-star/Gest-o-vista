@@ -190,10 +190,7 @@
               <label class="block text-xs uppercase text-slate-400 font-semibold mb-1">Data Início *</label>
               <input
                 v-model="metaForm.period_start"
-                type="text"
-                inputmode="numeric"
-                placeholder="AAAA-MM-DD"
-                maxlength="10"
+                type="date"
                 class="w-full bg-slate-900 border border-slate-700 text-white rounded-lg p-3 text-sm focus:border-emerald-500 focus:outline-none"
               />
             </div>
@@ -201,10 +198,8 @@
               <label class="block text-xs uppercase text-slate-400 font-semibold mb-1">Data Fim *</label>
               <input
                 v-model="metaForm.period_end"
-                type="text"
-                inputmode="numeric"
-                placeholder="AAAA-MM-DD"
-                maxlength="10"
+                type="date"
+                :min="metaForm.period_start || undefined"
                 class="w-full bg-slate-900 border border-slate-700 text-white rounded-lg p-3 text-sm focus:border-emerald-500 focus:outline-none"
               />
             </div>
