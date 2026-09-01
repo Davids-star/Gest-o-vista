@@ -116,6 +116,28 @@
         </div>
       </section>
 
+      <!-- ══════════════════════════════════════════════════════════════
+           RESUMO DO MÊS — produção, tempo produzido/parado, paradas e
+           gráficos reais do mês inteiro (GET /apontamento/mensal)
+           ══════════════════════════════════════════════════════════════ -->
+      <MonthlySummaryPanel
+        :data="store.apontamentoMensal"
+        :loading="store.loading.apontamentoMensal"
+        :error="store.errors.apontamentoMensal"
+        :shifts="store.shifts"
+        :machines="store.machines"
+        @consultar="consultarMes"
+      />
+
+      <!-- ══════════════════════════════════════════════════════════════
+           PRODUÇÃO POR HORA (hoje) + DISTRIBUIÇÃO DO TEMPO
+           Distribuição do Tempo ainda não foi conectada — adiado (ver plano).
+           ══════════════════════════════════════════════════════════════ -->
+      <div class="dark-panel p-4">
+        <h4 class="text-xs font-bold uppercase tracking-wider text-slate-300 mb-2">Produção por Hora (Hoje)</h4>
+        <HourlyProductionChart :data="producaoPorHoraChart" />
+      </div>
+
       <!-- Painel de Máquinas Cadastradas -->
       <div class="dark-panel p-6">
         <h3 class="text-xs font-bold uppercase tracking-widest text-white mb-4 border-b border-slate-800 pb-3 flex items-center gap-2">
@@ -223,6 +245,8 @@ import { useProductionStore } from '../stores/productionStore';
 import { apontamentoApi } from '../services/api';
 import AppSidebar from './AppSidebar.vue';
 import DayDetailsModal from './DayDetailsModal.vue';
+import MonthlySummaryPanel from './MonthlySummaryPanel.vue';
+import HourlyProductionChart from './HourlyProductionChart.vue';
 
 const store = useProductionStore();
 
@@ -297,6 +321,17 @@ const carregarProducaoHoje = async () => {
   }
 };
 
+// "Produção por Hora" — HourlyProductionChart.vue espera {hour, amount};
+// o backend devolve {hora, quantidade} (mesma convenção do resto da API).
+// Primeira montagem real desse componente — nunca esteve em nenhuma tela.
+const producaoPorHoraChart = computed(() =>
+  (hojeApontamento.value?.producao_por_hora || []).map((h) => ({ hour: h.hora, amount: h.quantidade })),
+);
+
+const consultarMes = (filtros) => {
+  store.fetchApontamentoMensal(filtros);
+};
+
 const acknowledgeAlert = async (alertId) => {
   try {
     await store.acknowledgeAlert(alertId);
@@ -312,10 +347,12 @@ onMounted(async () => {
     liveTime.value = new Date().toLocaleTimeString('pt-BR');
   }, 1000);
 
+  const agora = new Date();
   await Promise.allSettled([
     store.bootstrap(),
     store.fetchShifts(),
     carregarProducaoHoje(),
+    store.fetchApontamentoMensal({ year: agora.getFullYear(), month: agora.getMonth() + 1 }),
   ]);
   store.startPolling(6000);
 

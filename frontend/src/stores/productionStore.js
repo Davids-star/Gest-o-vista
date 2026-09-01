@@ -46,6 +46,9 @@ export const useProductionStore = defineStore('production', {
     // Resposta pronta de GET /apontamento (resumo + sessões + paradas do
     // dia/turno/máquina selecionados) — null até o primeiro fetchApontamento.
     apontamento: null,
+    // Resposta pronta de GET /apontamento/mensal (Resumo do Mês) — null até
+    // o primeiro fetchApontamentoMensal.
+    apontamentoMensal: null,
 
     // ── Estado da UI ─────────────────────────────────────────────────
     selectedStationId: null,
@@ -62,6 +65,7 @@ export const useProductionStore = defineStore('production', {
       stops: false,
       metas: false,
       apontamento: false,
+      apontamentoMensal: false,
     },
     errors: {
       machines: null,
@@ -74,6 +78,7 @@ export const useProductionStore = defineStore('production', {
       stops: null,
       metas: null,
       apontamento: null,
+      apontamentoMensal: null,
     },
   }),
 
@@ -395,6 +400,22 @@ export const useProductionStore = defineStore('production', {
         this.apontamento = null;
       } finally {
         this.loading.apontamento = false;
+      }
+    },
+
+    // ── RESUMO MENSAL: GET /apontamento/mensal?year&month&... ──────
+    // Resposta já vem pronta pra tela (resumo + quebras por dia/máquina/
+    // turno/motivo do mês filtrado) — ver ApontamentoService.obterMensal.
+    async fetchApontamentoMensal(filtros = {}) {
+      this.loading.apontamentoMensal = true;
+      this.errors.apontamentoMensal = null;
+      try {
+        this.apontamentoMensal = await apontamentoApi.mensal(filtros);
+      } catch (err) {
+        this.errors.apontamentoMensal = err.message || 'Não foi possível carregar o resumo.';
+        this.apontamentoMensal = null;
+      } finally {
+        this.loading.apontamentoMensal = false;
       }
     },
 

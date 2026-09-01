@@ -207,6 +207,13 @@ export const apontamentoApi = {
     ).toString();
     return request(`/apontamento${params ? '?' + params : ''}`);
   },
+  // GET /apontamento/mensal?year=&month=&... — resumo agregado do mês.
+  mensal: (filtros = {}) => {
+    const params = new URLSearchParams(
+      Object.fromEntries(Object.entries(filtros).filter(([, v]) => v)),
+    ).toString();
+    return request(`/apontamento/mensal${params ? '?' + params : ''}`);
+  },
 };
 
 // ─── ESTAÇÕES ──────────────────────────────────────────────────────────────
