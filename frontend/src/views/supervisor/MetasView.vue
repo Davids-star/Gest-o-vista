@@ -21,8 +21,12 @@
         </button>
       </div>
 
-      <!-- Loading -->
-      <div v-if="store.loading.metas" class="space-y-4">
+      <!-- Loading — só na carga inicial (sem metas ainda). O polling de
+           fundo (a cada 6s, ver store.startPolling) também liga
+           store.loading.metas; sem o "&& !store.metas.length" a tela
+           inteira piscava pro esqueleto a cada ciclo de polling, mesmo já
+           tendo dado na tela. -->
+      <div v-if="store.loading.metas && !store.metas.length" class="space-y-4">
         <div v-for="i in 3" :key="i" class="dark-panel p-6 animate-pulse">
           <div class="h-4 bg-slate-800 rounded w-1/4 mb-3"></div>
           <div class="h-3 bg-slate-800 rounded w-1/2"></div>

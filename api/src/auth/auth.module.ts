@@ -26,7 +26,12 @@ import { JwtStrategy } from './jwt.strategy';
         // getOrThrow: sem fallback fraco em texto puro no repo — ver
         // jwt.strategy.ts pro motivo.
         secret: configService.getOrThrow<string>('JWT_SECRET'),
-        signOptions: { expiresIn: '8h' },
+        // 8h expirava o login de quem ficava com a aba aberta de um dia pro
+        // outro (ou parado no totem/dashboard sem F5) — toda escrita
+        // começava a voltar 401 sem aviso nenhum. 30 dias cobre o uso
+        // normal sem token nenhum "eterno" tipo o de dispositivo (10 anos,
+        // ver AuthService.gerarTokenDispositivo, que é só pra Totem/TV).
+        signOptions: { expiresIn: '30d' },
       }),
     }),
   ],
