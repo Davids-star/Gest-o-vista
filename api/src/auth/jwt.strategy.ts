@@ -9,7 +9,11 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
-      secretOrKey: configService.get<string>('JWT_SECRET', 'chave-secreta-dev'),
+      // getOrThrow (não get com fallback): um valor-padrão aqui ficaria em
+      // texto puro no repositório público — se JWT_SECRET não estiver
+      // definido em algum deploy, é melhor a API recusar subir do que
+      // assinar tokens com uma chave que qualquer um pode ler no GitHub.
+      secretOrKey: configService.getOrThrow<string>('JWT_SECRET'),
     });
   }
 

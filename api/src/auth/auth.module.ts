@@ -23,7 +23,9 @@ import { JwtStrategy } from './jwt.strategy';
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => ({
-        secret: configService.get<string>('JWT_SECRET', 'chave-secreta-dev'),
+        // getOrThrow: sem fallback fraco em texto puro no repo — ver
+        // jwt.strategy.ts pro motivo.
+        secret: configService.getOrThrow<string>('JWT_SECRET'),
         signOptions: { expiresIn: '8h' },
       }),
     }),

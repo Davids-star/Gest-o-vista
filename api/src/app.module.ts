@@ -41,7 +41,11 @@ import { ALL_ENTITIES } from './database/all-entities';
         host: configService.get<string>('DB_HOST', 'localhost'),
         port: configService.get<number>('DB_PORT', 5432),
         username: configService.get<string>('DB_USERNAME', 'postgres'),
-        password: configService.get<string>('DB_PASSWORD', 'postgres'),
+        // getOrThrow: host/username/porta/nome do banco não são segredo,
+        // tanto faz ter um valor-padrão pra dev. A senha é diferente — um
+        // fallback fraco em texto puro no repo público é a mesma armadilha
+        // do JWT_SECRET (ver jwt.strategy.ts).
+        password: configService.getOrThrow<string>('DB_PASSWORD'),
         database: configService.get<string>('DB_NAME', 'sistema_producao'),
         entities: ALL_ENTITIES,
         migrations: [__dirname + '/database/migrations/*{.ts,.js}'],
