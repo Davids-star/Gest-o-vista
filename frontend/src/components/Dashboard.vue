@@ -73,19 +73,40 @@
       </div>
 
       <!-- ══════════════════════════════════════════════════════════════
-           CONSULTA DE APONTAMENTOS POR DIA + TURNO
+           APONTAMENTO — o usuário escolhe: consulta pontual de Um Dia, ou
+           o Resumo Mensal (produção, tempo, paradas e gráficos do mês).
            ══════════════════════════════════════════════════════════════ -->
-      <section class="dark-panel p-6 space-y-5">
-        <div>
-          <h2 class="text-sm font-bold uppercase tracking-widest text-white flex items-center gap-2">
-            <span class="text-emerald-400">📅</span> CONSULTAR APONTAMENTOS
-          </h2>
-          <p class="text-xs text-slate-400 mt-0.5">
-            Escolha o dia e o turno para ver produção, sessões e paradas daquele período
-          </p>
+      <section class="dark-panel p-4 sm:p-6 space-y-5">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <h2 class="text-sm font-bold uppercase tracking-widest text-white flex items-center gap-2">
+              <span class="text-emerald-400">📅</span> APONTAMENTO
+            </h2>
+            <p class="text-xs text-slate-400 mt-0.5">
+              {{ apontamentoTab === 'diario'
+                ? 'Escolha o dia e o turno para ver produção, sessões e paradas daquele período'
+                : 'Produção, tempo produzido/parado e paradas do mês inteiro — dados reais do banco' }}
+            </p>
+          </div>
+
+          <div class="flex gap-1 bg-slate-950 border border-slate-800 rounded-xl p-1 self-start sm:self-auto">
+            <button
+              @click="apontamentoTab = 'diario'"
+              class="px-4 py-1.5 rounded-lg text-[11px] font-extrabold uppercase tracking-wider transition-all"
+              :class="apontamentoTab === 'diario' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40' : 'text-slate-400 hover:text-white'">
+              Diário
+            </button>
+            <button
+              @click="apontamentoTab = 'mensal'"
+              class="px-4 py-1.5 rounded-lg text-[11px] font-extrabold uppercase tracking-wider transition-all"
+              :class="apontamentoTab === 'mensal' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40' : 'text-slate-400 hover:text-white'">
+              Resumo Mensal
+            </button>
+          </div>
         </div>
 
-        <div class="flex flex-col sm:flex-row sm:items-end gap-3">
+        <!-- ── Diário ─────────────────────────────────────────────── -->
+        <div v-if="apontamentoTab === 'diario'" class="flex flex-col sm:flex-row sm:items-end gap-3">
           <div class="flex-1 min-w-[160px]">
             <label class="text-[10px] text-slate-400 font-bold uppercase tracking-wider block mb-1.5">Dia</label>
             <input
@@ -114,20 +135,18 @@
             Consultar →
           </button>
         </div>
-      </section>
 
-      <!-- ══════════════════════════════════════════════════════════════
-           RESUMO DO MÊS — produção, tempo produzido/parado, paradas e
-           gráficos reais do mês inteiro (GET /apontamento/mensal)
-           ══════════════════════════════════════════════════════════════ -->
-      <MonthlySummaryPanel
-        :data="store.apontamentoMensal"
-        :loading="store.loading.apontamentoMensal"
-        :error="store.errors.apontamentoMensal"
-        :shifts="store.shifts"
-        :machines="store.machines"
-        @consultar="consultarMes"
-      />
+        <!-- ── Resumo Mensal ──────────────────────────────────────── -->
+        <MonthlySummaryPanel
+          v-else
+          :data="store.apontamentoMensal"
+          :loading="store.loading.apontamentoMensal"
+          :error="store.errors.apontamentoMensal"
+          :shifts="store.shifts"
+          :machines="store.machines"
+          @consultar="consultarMes"
+        />
+      </section>
 
       <!-- ══════════════════════════════════════════════════════════════
            PRODUÇÃO POR HORA (hoje) + DISTRIBUIÇÃO DO TEMPO
@@ -262,6 +281,10 @@ const hojeIso = computed(() => {
   const day = String(d.getDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
 });
+
+// Aba ativa do bloco de Apontamento: consulta pontual de um dia, ou o
+// Resumo Mensal — só um dos dois fica visível por vez.
+const apontamentoTab = ref('diario');
 
 // Seletores da consulta (dia + turno)
 const consultaData = ref(hojeIso.value);

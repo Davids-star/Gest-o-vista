@@ -1,16 +1,8 @@
 <template>
-  <section class="dark-panel p-6 space-y-5">
-    <!-- Header + filtros do mês -->
-    <div class="flex flex-col lg:flex-row lg:items-end justify-between gap-4">
-      <div>
-        <h2 class="text-sm font-bold uppercase tracking-widest text-white flex items-center gap-2">
-          <span class="text-emerald-400">📊</span> RESUMO DO MÊS
-        </h2>
-        <p class="text-xs text-slate-400 mt-0.5">
-          Produção, tempo produzido/parado e paradas do mês inteiro — dados reais do banco
-        </p>
-      </div>
-
+  <div class="space-y-5">
+    <!-- Filtros do mês (título/subtítulo já ficam no Dashboard, que hospeda
+         a aba Diário/Resumo Mensal) -->
+    <div class="flex justify-end">
       <div class="flex flex-wrap items-end gap-3">
         <div class="min-w-[150px]">
           <label class="text-[10px] text-slate-400 font-bold uppercase tracking-wider block mb-1.5">Mês</label>
@@ -106,16 +98,8 @@
       <!-- Gráficos -->
       <div class="grid lg:grid-cols-2 gap-6">
         <div class="dark-panel p-4">
-          <h4 class="text-xs font-bold uppercase tracking-wider text-slate-300 mb-2">Produção por Dia</h4>
-          <SimpleBarChart :data="producaoPorDiaChart" unidade="peças" />
-        </div>
-        <div class="dark-panel p-4">
           <h4 class="text-xs font-bold uppercase tracking-wider text-slate-300 mb-2">Produção por Máquina</h4>
           <SimpleBarChart :data="producaoPorMaquinaChart" color-from="#3b82f6" color-to="#1d4ed8" unidade="peças" />
-        </div>
-        <div class="dark-panel p-4">
-          <h4 class="text-xs font-bold uppercase tracking-wider text-slate-300 mb-2">Tempo Parado por Máquina</h4>
-          <SimpleBarChart :data="tempoParadoPorMaquinaChart" color-from="#f87171" color-to="#b91c1c" unidade="min" />
         </div>
         <div class="dark-panel p-4">
           <h4 class="text-xs font-bold uppercase tracking-wider text-slate-300 mb-2">Produção por Turno</h4>
@@ -147,7 +131,7 @@
         </div>
       </div>
     </div>
-  </section>
+  </div>
 </template>
 
 <script setup>
@@ -193,17 +177,8 @@ const formatDuracao = (segundos) => {
   return `${m}min`;
 };
 
-// Formata "2026-08-15" → "15" pro eixo X do gráfico de produção por dia.
-const producaoPorDiaChart = computed(() =>
-  (props.data?.producao_por_dia || []).map((d) => ({ name: d.data.slice(8, 10), value: d.producao })),
-);
-
 const producaoPorMaquinaChart = computed(() =>
   (props.data?.por_maquina || []).map((m) => ({ name: m.machine_code, value: m.producao })),
-);
-
-const tempoParadoPorMaquinaChart = computed(() =>
-  (props.data?.por_maquina || []).map((m) => ({ name: m.machine_code, value: Math.round(m.tempo_parado_segundos / 60) })),
 );
 
 const producaoPorTurnoChart = computed(() =>
