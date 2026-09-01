@@ -176,15 +176,23 @@ export class ApontamentoService {
     for (const r of producaoRows) producaoPorSessao[r.session_id] = Number(r.total);
 
     // Produção por hora do dia — mesma base de eventos corrigidos (respeita
-    // production_corrections), agrupada pela hora local (fuso fixo -03:00,
-    // mesma convenção do resto do arquivo) do occurred_at de cada evento.
+    // production_corrections), agrupada pela hora local (America/Fortaleza)
+    // do occurred_at de cada evento.
+    //
+    // CUIDADO: `AT TIME ZONE '-03:00'` (offset literal) NÃO funciona como
+    // se espera — o Postgres inverte o sinal e soma 3h em vez de subtrair
+    // (verificado: '2026-08-31T10:14:18Z' AT TIME ZONE '-03:00' devolve
+    // 13:14, quando o horário local correto é 07:14). Por isso aqui é o
+    // nome do fuso ('America/Fortaleza'), não o offset numérico usado em
+    // limitesDoDia/limitesDoMes (que são strings ISO em JS, sem essa
+    // armadilha — inversão é só do operador SQL AT TIME ZONE com offset).
     const horaRows = await this.eventRepo
       .createQueryBuilder('event')
       .leftJoin('production_corrections', 'correction', 'correction.event_id = event.id')
-      .select("to_char(event.occurred_at AT TIME ZONE '-03:00', 'HH24')", 'hora')
+      .select("to_char(event.occurred_at AT TIME ZONE 'America/Fortaleza', 'HH24')", 'hora')
       .addSelect('COALESCE(SUM(COALESCE(correction.corrected_quantity, event.quantity)), 0)', 'total')
       .where('event.session_id IN (:...sessionIds)', { sessionIds })
-      .groupBy("to_char(event.occurred_at AT TIME ZONE '-03:00', 'HH24')")
+      .groupBy("to_char(event.occurred_at AT TIME ZONE 'America/Fortaleza', 'HH24')")
       .getRawMany<{ hora: string; total: string }>();
     const producaoPorHora = horasVazias();
     for (const r of horaRows) {
