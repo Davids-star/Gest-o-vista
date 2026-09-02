@@ -73,7 +73,11 @@
 
           <!-- Large Progress Bar — largura satura em 100%, mas o % mostrado
                (dentro da barra e no texto abaixo) continua subindo de verdade
-               quando a meta é batida, não trava. -->
+               quando a meta é batida, não trava.
+               Texto de dentro é só a % (curto de propósito): "PRODUÇÃO/META"
+               já aparece acima — com produção/meta ali dentro também, um
+               progresso baixo deixava a cápsula mais estreita que o texto,
+               cortando ele pela metade (mesmo ajuste do Totem). -->
           <div v-if="st.targetProduction !== null" class="w-full bg-slate-950 rounded-full h-5 p-1 border border-slate-800 overflow-hidden">
             <div
               class="h-full rounded-full transition-all duration-500 flex items-center justify-end px-2 min-w-[2.5rem]"
@@ -81,7 +85,7 @@
               :style="{ width: st.progressBarWidth + '%' }"
             >
               <span class="text-[10px] font-black text-slate-950 leading-none whitespace-nowrap">
-                {{ st.currentProduction }}/{{ st.targetProduction }} · {{ st.progress }}%
+                {{ st.progress }}%
               </span>
             </div>
           </div>

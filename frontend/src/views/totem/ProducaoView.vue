@@ -135,8 +135,12 @@
         </div>
 
         <!-- Progress Bar Capsule — a largura satura em 100% (não tem como uma
-             div passar disso), mas o número dentro dela e o texto acima
-             continuam subindo de verdade. Vira âmbar quando bate a meta. -->
+             div passar disso), mas o número acima (produção/meta) continua
+             subindo de verdade. Vira âmbar quando bate a meta.
+             Texto de dentro é só a % (curto de propósito): "26/2000" já
+             aparece no cabeçalho acima — com produção/meta ali dentro
+             também, um progresso baixo (ex.: 1%) deixava a cápsula mais
+             estreita que o texto, cortando ele pela metade. -->
         <div v-if="activeTarget" class="w-full bg-[#0b0f17] border border-slate-800 rounded-full h-5 p-1 overflow-hidden">
           <div
             class="h-full rounded-full transition-all duration-500 flex items-center justify-end px-2 min-w-[2.5rem]"
@@ -144,7 +148,7 @@
             :style="{ width: `${targetProgressBarWidth}%` }"
           >
             <span class="text-[10px] font-black text-slate-950 leading-none whitespace-nowrap">
-              {{ productionCount }}/{{ activeTarget.quantity }} · {{ targetProgressRaw }}%
+              {{ targetProgressRaw }}%
             </span>
           </div>
         </div>
