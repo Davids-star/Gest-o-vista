@@ -23,18 +23,26 @@ Ou com argumentos customizados:
 python3 esp32_simulator.py --device ESP32-MQ-01-SENSOR-01 --interval 2 --production-time 30 --stop-time 150
 ```
 
+**Mais de uma máquina ao mesmo tempo** — repita `--device`, uma vez por máquina. Cada uma roda na sua própria thread, com o mesmo ciclo PRODUZINDO/PARADO, totalmente independente das outras (parar uma não afeta as demais):
+```bash
+python3 esp32_simulator.py --device ESP32-MQ-01-SENSOR-01 --device ESP32-MQ-02-SENSOR-01
+```
+Os campos de tempo (`--interval`, `--production-time`, `--stop-time`, `--heartbeat-interval`, `--count`) valem igual pra todos os devices passados — não dá pra configurar um tempo diferente por máquina numa mesma execução (rode o script duas vezes, em terminais separados, se precisar disso).
+
 ### Argumentos
 
 | Flag | Padrão | O que faz |
 |---|---|---|
 | `--host` | `localhost` | Host do broker MQTT |
 | `--port` | `1883` | Porta do broker MQTT |
-| `--device` | `ESP32-MQ-01-SENSOR-01` | Identificador do dispositivo |
+| `--device` | `ESP32-MQ-01-SENSOR-01` | Identificador do dispositivo. Repetível — uma thread por `--device` |
 | `--interval` | `2.0` | Segundos entre cada pulso de produção (enquanto PRODUZINDO) |
 | `--production-time` | `30.0` | Quantos segundos fica PRODUZINDO antes de parar |
 | `--stop-time` | `150.0` | Quantos segundos fica PARADO (sem produção) antes de voltar a produzir |
 | `--heartbeat-interval` | `10.0` | Segundos entre heartbeats (`0` desliga) |
 | `--count` | `0` | Limite de eventos de produção (`0` = infinito) |
+
+**⚠️ Pré-requisito — o `--device` precisa já existir no banco:** o backend só aceita eventos de um `Device` já cadastrado e vinculado a uma `Machine` (tabela `devices`) — sem isso, os eventos chegam via MQTT mas são descartados em silêncio (fica só um aviso no log da API, `Device inativo ou não encontrado`). E pra a produção realmente contar em algum lugar, essa máquina também precisa ter uma **sessão ativa** (iniciada pelo Totem, ou via `POST /totem/sessions`).
 
 **⚠️ Sobre `--stop-time` e o alerta de "possível parada":** o backend (`STOP_DETECTION_SECONDS`, ver [`../api/src/common/constants/stop-detection.constants.ts`](../api/src/common/constants/stop-detection.constants.ts)) usa **120 segundos** como padrão pra considerar que uma máquina parou de produzir. Um `--stop-time` menor que isso nunca vai gerar o alerta — o padrão do simulador (150s) já dá uma folga confortável acima do limite.
 

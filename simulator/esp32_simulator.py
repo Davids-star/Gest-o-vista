@@ -31,6 +31,14 @@ Exemplo:
         --production-time 30 \
         --stop-time 150
 
+Mais de uma máquina ao mesmo tempo — repita --device (cada uma roda
+em sua própria thread, com o mesmo ciclo PRODUZINDO/PARADO,
+independente das outras):
+
+    python3 esp32_simulator.py \
+        --device ESP32-MQ-01-SENSOR-01 \
+        --device ESP32-MQ-02-SENSOR-01
+
 NOTA — pra ver um "possível parada" nascer de verdade no sistema:
 o backend (STOP_DETECTION_SECONDS, ver
 api/src/common/constants/stop-detection.constants.ts) usa 120s como
@@ -44,10 +52,11 @@ teste — só "parado" mesmo, que é o cenário que gera o alerta.
 import argparse
 import json
 import socket
+import threading
 import time
 import uuid
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import datetime, timezone
 from enum import Enum
 
@@ -344,11 +353,17 @@ class Esp32Simulator:
     def __init__(
         self,
         config: SimulatorConfig,
-        mqtt: MqttClient
+        mqtt: MqttClient,
+        stop_event: threading.Event = None
     ):
 
         self.config = config
         self.mqtt = mqtt
+        # Compartilhado entre todas as threads (uma por --device) — permite
+        # um Ctrl+C único no processo principal avisar todo mundo de uma
+        # vez, já que só a thread principal recebe o KeyboardInterrupt do
+        # sistema operacional (ver main()).
+        self.stop_event = stop_event or threading.Event()
 
         self.event_generator = (
             ProductionEventGenerator(
@@ -383,7 +398,7 @@ class Esp32Simulator:
 
         try:
 
-            while True:
+            while not self.stop_event.is_set():
 
                 self._process_heartbeat()
 
@@ -393,7 +408,12 @@ class Esp32Simulator:
 
         except KeyboardInterrupt:
 
-            self._print_shutdown()
+            # Só acontece rodando um único device (thread principal recebe
+            # o Ctrl+C direto). Com múltiplos devices, quem trata o Ctrl+C
+            # é o main() — ver stop_event acima.
+            pass
+
+        self._print_shutdown()
 
     # --------------------------------------------------------
     # HEARTBEAT
@@ -589,7 +609,7 @@ class Esp32Simulator:
             print(
                 "\n"
                 "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
-                "▶️  PRODUÇÃO RETOMADA\n"
+                f"▶️  [{self.config.device}] PRODUÇÃO RETOMADA\n"
                 "    Sensor voltou a enviar pulsos.\n"
                 "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
             )
@@ -599,7 +619,7 @@ class Esp32Simulator:
             print(
                 "\n"
                 "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
-                "⏸️  PARADA SIMULADA\n"
+                f"⏸️  [{self.config.device}] PARADA SIMULADA\n"
                 f"    Sem produção por "
                 f"{self.config.stop_time}s\n"
                 "    Heartbeat continuará ativo.\n"
@@ -620,8 +640,10 @@ class Esp32Simulator:
             "%H:%M:%S"
         )
 
+        # Prefixo do device — com várias threads rodando junto, sem isso
+        # não dá pra saber de qual máquina veio cada linha do log.
         print(
-            f"{icon} [{timestamp}] {message}"
+            f"{icon} [{timestamp}] [{self.config.device}] {message}"
         )
 
     # --------------------------------------------------------
@@ -693,11 +715,11 @@ class Esp32Simulator:
 
         print()
         print(
-            "🛑 Simulador encerrado pelo usuário."
+            f"🛑 [{self.config.device}] Simulador encerrado."
         )
 
         print(
-            f"📊 Total de eventos enviados: "
+            f"📊 [{self.config.device}] Total de eventos enviados: "
             f"{self.total_events}"
         )
 
@@ -707,7 +729,16 @@ class Esp32Simulator:
 # ============================================================
 
 
-def parse_arguments() -> SimulatorConfig:
+def parse_arguments():
+    """
+    Retorna (config, devices):
+        config  -> SimulatorConfig "modelo", com config.device = devices[0]
+                   (os campos compartilhados — interval, production-time,
+                   stop-time, heartbeat, count — valem pra todos os
+                   devices igual).
+        devices -> lista de identificadores, um por --device repetido
+                   (ou só o padrão, se nenhum --device foi passado).
+    """
 
     parser = argparse.ArgumentParser(
         description="Simulador ESP32 - Sistema GP"
@@ -728,8 +759,14 @@ def parse_arguments() -> SimulatorConfig:
 
     parser.add_argument(
         "--device",
-        default="ESP32-MQ-01-SENSOR-01",
-        help="ID do dispositivo"
+        action="append",
+        default=None,
+        help=(
+            "ID do dispositivo. Pode repetir pra simular várias máquinas "
+            "ao mesmo tempo, cada uma em sua própria thread: "
+            "--device ESP32-MQ-01-SENSOR-01 --device ESP32-MQ-02-SENSOR-01 "
+            "(padrão: ESP32-MQ-01-SENSOR-01, se nenhum for passado)"
+        )
     )
 
     parser.add_argument(
@@ -773,16 +810,20 @@ def parse_arguments() -> SimulatorConfig:
 
     args = parser.parse_args()
 
-    return SimulatorConfig(
+    devices = args.device or ["ESP32-MQ-01-SENSOR-01"]
+
+    config = SimulatorConfig(
         host=args.host,
         port=args.port,
-        device=args.device,
+        device=devices[0],
         production_interval=args.interval,
         production_time=args.production_time,
         stop_time=args.stop_time,
         heartbeat_interval=args.heartbeat_interval,
         count=args.count
     )
+
+    return config, devices
 
 
 # ============================================================
@@ -792,19 +833,53 @@ def parse_arguments() -> SimulatorConfig:
 
 def main():
 
-    config = parse_arguments()
+    config, devices = parse_arguments()
 
-    mqtt = MqttClient(
-        config.host,
-        config.port
+    # Um único device: comportamento de sempre, sem thread nenhuma —
+    # Ctrl+C vai direto pro try/except KeyboardInterrupt de run().
+    if len(devices) == 1:
+        mqtt = MqttClient(config.host, config.port)
+        simulator = Esp32Simulator(config, mqtt)
+        simulator.run()
+        return
+
+    # Vários devices: cada um em sua própria thread, cada um com seu
+    # próprio MqttClient (sem estado compartilhado entre eles — cada
+    # publish() abre e fecha a própria conexão TCP) e sua própria cópia
+    # de config (só o --device muda entre elas).
+    print(
+        f"\n🔀 Rodando {len(devices)} dispositivos em paralelo: "
+        f"{', '.join(devices)}\n"
     )
 
-    simulator = Esp32Simulator(
-        config,
-        mqtt
-    )
+    stop_event = threading.Event()
+    simulators = []
+    threads = []
 
-    simulator.run()
+    for device_id in devices:
+        device_config = replace(config, device=device_id)
+        mqtt = MqttClient(device_config.host, device_config.port)
+        simulator = Esp32Simulator(device_config, mqtt, stop_event)
+        simulators.append(simulator)
+
+        thread = threading.Thread(target=simulator.run, daemon=True)
+        threads.append(thread)
+        thread.start()
+
+    try:
+        # A thread principal fica só esperando — é ela quem recebe o
+        # Ctrl+C do sistema operacional (as outras, sendo threads
+        # secundárias, nunca recebem SIGINT diretamente).
+        while any(t.is_alive() for t in threads):
+            time.sleep(0.5)
+    except KeyboardInterrupt:
+        print("\n🛑 Encerrando todos os dispositivos...")
+        stop_event.set()
+        for thread in threads:
+            thread.join(timeout=3)
+
+    total = sum(s.total_events for s in simulators)
+    print(f"\n📊 Total geral de eventos enviados: {total}")
 
 
 # ============================================================
