@@ -157,10 +157,11 @@
         <HourlyProductionChart :data="producaoPorHoraChart" />
       </div>
 
-      <!-- Painel de Máquinas Cadastradas -->
+      <!-- Painel de Máquinas Cadastradas — clique numa pra ver o detalhe dela -->
       <div class="dark-panel p-6">
         <h3 class="text-xs font-bold uppercase tracking-widest text-white mb-4 border-b border-slate-800 pb-3 flex items-center gap-2">
           <span class="text-emerald-400">🏭</span> ESTAÇÕES DA FÁBRICA
+          <span class="text-[10px] font-medium normal-case text-slate-500 ml-auto">clique numa máquina pra ver o detalhe</span>
         </h3>
 
         <div v-if="store.loading.machines" class="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -176,7 +177,10 @@
             v-for="m in store.machines"
             :key="m.id"
             @click="store.selectStation(m.id)"
-            class="p-4 rounded-xl cursor-pointer transition-all border bg-slate-900/60 border-slate-800 hover:border-slate-700"
+            class="p-4 rounded-xl cursor-pointer transition-all border"
+            :class="store.selectedStationId === m.id
+              ? 'bg-emerald-500/10 border-emerald-500 shadow-lg shadow-emerald-500/10'
+              : 'bg-slate-900/60 border-slate-800 hover:border-slate-700'"
           >
             <div class="flex items-center gap-3 mb-2">
               <span class="w-9 h-9 rounded-lg border border-emerald-500/40 bg-emerald-500/10 text-emerald-400 flex items-center justify-center font-mono font-extrabold text-sm">
@@ -196,6 +200,67 @@
               <span class="w-1.5 h-1.5 rounded-full" :class="m.active !== false ? 'bg-emerald-400 animate-pulse' : 'bg-slate-500'"/>
               {{ m.active !== false ? 'OPERANDO' : 'INATIVO' }}
             </span>
+          </div>
+        </div>
+
+        <!-- Detalhe da máquina selecionada (produção/paradas de hoje) -->
+        <div v-if="maquinaSelecionada" class="mt-5 pt-5 border-t border-slate-800 space-y-4">
+          <div class="flex items-center justify-between">
+            <h4 class="text-xs font-extrabold uppercase tracking-wider text-emerald-400">
+              Máquina {{ getMachineNumber(maquinaSelecionada) }} — {{ maquinaSelecionada.name || maquinaSelecionada.code }}
+            </h4>
+            <span
+              class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase border"
+              :class="sessaoAtivaSelecionada ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' : 'bg-slate-800 border-slate-700 text-slate-400'"
+            >
+              <span class="w-1.5 h-1.5 rounded-full" :class="sessaoAtivaSelecionada ? 'bg-emerald-400 animate-pulse' : 'bg-slate-500'" />
+              {{ sessaoAtivaSelecionada ? 'EM PRODUÇÃO' : 'SEM SESSÃO ATIVA' }}
+            </span>
+          </div>
+
+          <div v-if="sessaoAtivaSelecionada" class="grid grid-cols-3 gap-3 text-xs">
+            <div><span class="text-slate-400 block">Produto</span><span class="font-bold text-white">{{ sessaoAtivaSelecionada.product?.name || '—' }}</span></div>
+            <div><span class="text-slate-400 block">Lote</span><span class="font-bold text-white">{{ sessaoAtivaSelecionada.lot?.code || '—' }}</span></div>
+            <div><span class="text-slate-400 block">Operador</span><span class="font-bold text-white">{{ sessaoAtivaSelecionada.operator?.name || '—' }}</span></div>
+          </div>
+
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div class="dark-panel p-3 space-y-0.5">
+              <span class="text-[10px] font-bold uppercase text-slate-400">Produção Hoje</span>
+              <p class="font-mono text-lg font-black text-emerald-400">{{ resumoMaquinaSelecionada.producao.toLocaleString('pt-BR') }}</p>
+            </div>
+            <div class="dark-panel p-3 space-y-0.5">
+              <span class="text-[10px] font-bold uppercase text-slate-400">T. Produzido</span>
+              <p class="font-mono text-lg font-black text-white">{{ formatDuracao(resumoMaquinaSelecionada.tempo_produzido_segundos) }}</p>
+            </div>
+            <div class="dark-panel p-3 space-y-0.5">
+              <span class="text-[10px] font-bold uppercase text-slate-400">T. Parado</span>
+              <p class="font-mono text-lg font-black text-red-400">{{ formatDuracao(resumoMaquinaSelecionada.tempo_parado_segundos) }}</p>
+            </div>
+            <div class="dark-panel p-3 space-y-0.5">
+              <span class="text-[10px] font-bold uppercase text-slate-400">Paradas</span>
+              <p class="font-mono text-lg font-black text-amber-400">{{ resumoMaquinaSelecionada.paradas }}</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Resumo das 4 máquinas — produção e paradas de hoje, lado a lado -->
+        <div v-if="store.machines.length" class="mt-5 pt-5 border-t border-slate-800">
+          <h4 class="text-xs font-extrabold uppercase tracking-wider text-slate-300 mb-3">Resumo das Máquinas (Hoje)</h4>
+          <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            <div
+              v-for="m in store.machines"
+              :key="'resumo-' + m.id"
+              class="dark-panel p-3 space-y-1 cursor-pointer transition-all"
+              :class="store.selectedStationId === m.id ? 'border-emerald-500/50' : ''"
+              @click="store.selectStation(m.id)"
+            >
+              <p class="text-[10px] font-bold uppercase text-slate-400">Máquina {{ getMachineNumber(m) }}</p>
+              <p class="font-mono text-base font-black text-emerald-400">
+                {{ (resumoPorMaquina[m.id]?.producao || 0).toLocaleString('pt-BR') }} <span class="text-[10px] text-slate-400 font-normal">un.</span>
+              </p>
+              <p class="text-[10px] text-slate-400">{{ resumoPorMaquina[m.id]?.paradas || 0 }} parada{{ (resumoPorMaquina[m.id]?.paradas || 0) !== 1 ? 's' : '' }}</p>
+            </div>
           </div>
         </div>
       </div>
@@ -278,6 +343,44 @@ const getMachineNumber = (m) => {
   const match = m.code?.match(/\d+/);
   return match ? parseInt(match[0], 10) : (idx >= 0 ? idx + 1 : 1);
 };
+
+// Máquina escolhida no painel "ESTAÇÕES DA FÁBRICA" (store.selectedStationId,
+// setado por store.selectStation ao clicar num card).
+const maquinaSelecionada = computed(() =>
+  store.machines.find((m) => m.id === store.selectedStationId) || null,
+);
+
+// Sessão ativa da máquina selecionada, se houver (mesmo padrão do
+// ApontamentoView: procura em store.sessions, não depende de nenhuma
+// chamada nova — store.sessions já é mantido fresco pelo polling).
+const sessaoAtivaSelecionada = computed(() => {
+  if (!maquinaSelecionada.value) return null;
+  return store.sessions.find((s) => s.machine_id === maquinaSelecionada.value.id && s.status === 'active') || null;
+});
+
+// Agrega produção/tempo/paradas de HOJE por máquina, a partir de
+// hojeApontamento.sessoes (já vem com machine + producao + tempo + paradas
+// por sessão — GET /apontamento, já buscado a cada 6s pro card "Produção
+// Hoje" acima). Uma máquina pode ter mais de uma sessão no dia (ex.:
+// encerrou e começou outra) — soma tudo.
+const resumoPorMaquina = computed(() => {
+  const acc = {};
+  for (const sessao of hojeApontamento.value?.sessoes || []) {
+    const id = sessao.machine?.id;
+    if (!id) continue;
+    const atual = acc[id] || { producao: 0, tempo_produzido_segundos: 0, tempo_parado_segundos: 0, paradas: 0 };
+    atual.producao += sessao.producao || 0;
+    atual.tempo_produzido_segundos += sessao.tempo_produzido_segundos || 0;
+    atual.tempo_parado_segundos += sessao.tempo_parado_segundos || 0;
+    atual.paradas += sessao.paradas?.length || 0;
+    acc[id] = atual;
+  }
+  return acc;
+});
+
+const resumoMaquinaSelecionada = computed(() =>
+  resumoPorMaquina.value[maquinaSelecionada.value?.id] || { producao: 0, tempo_produzido_segundos: 0, tempo_parado_segundos: 0, paradas: 0 },
+);
 
 const liveTime = ref(new Date().toLocaleTimeString('pt-BR'));
 let timer = null;
