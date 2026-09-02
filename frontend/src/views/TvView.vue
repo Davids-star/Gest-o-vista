@@ -131,11 +131,15 @@
           </div>
         </div>
 
-        <!-- Progresso da meta -->
+        <!-- Progresso da meta — x/x e % ficam no cabeçalho, FORA da barra
+             (dentro dela, com progresso baixo, o texto ficava mais largo
+             que a cápsula e cortava — mesmo ajuste já feito no Totem). -->
         <div v-if="st.targetProduction !== null" class="space-y-2">
           <div class="flex justify-between items-center text-xs font-bold text-slate-400 uppercase tracking-wider">
             <span>{{ st.metaBatida ? '✅ Meta Batida' : 'Progresso da meta' }}</span>
-            <span class="font-mono text-sm" :class="st.metaBatida ? 'text-amber-400' : 'text-emerald-400'">{{ st.progress }}%</span>
+            <span class="font-mono text-sm" :class="st.metaBatida ? 'text-amber-400' : 'text-emerald-400'">
+              {{ st.currentProduction.toLocaleString('pt-BR') }}/{{ st.targetProduction.toLocaleString('pt-BR') }} · {{ st.progress }}%
+            </span>
           </div>
           <div class="w-full bg-slate-950 rounded-full h-3 border border-slate-800 overflow-hidden">
             <div
@@ -144,6 +148,11 @@
               :style="{ width: st.progressBarWidth + '%' }"
             />
           </div>
+          <p class="text-[11px] text-slate-500 text-right">
+            {{ st.metaBatida
+              ? `Superou a meta em ${(st.currentProduction - st.targetProduction).toLocaleString('pt-BR')} un.`
+              : `Faltam ${st.remaining.toLocaleString('pt-BR')} un. (${st.remainingPercent}% restante)` }}
+          </p>
         </div>
       </div>
     </main>
@@ -220,6 +229,8 @@ const stations = computed(() => {
     const targetProduction = target?.quantity ?? null;
     const progressRaw = targetProduction ? Math.round((currentProduction / targetProduction) * 100) : 0;
     const metaBatida = targetProduction !== null && currentProduction >= targetProduction;
+    const remaining = targetProduction !== null ? Math.max(0, targetProduction - currentProduction) : null;
+    const remainingPercent = targetProduction !== null ? Math.max(0, 100 - progressRaw) : null;
 
     let statusType = 'waiting';
     let statusLabel = 'Aguardando';
@@ -257,6 +268,8 @@ const stations = computed(() => {
       progress: progressRaw,
       progressBarWidth: Math.min(100, progressRaw),
       metaBatida,
+      remaining,
+      remainingPercent,
       statusType,
       statusLabel,
       cardBorderClass,
