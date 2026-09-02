@@ -25,6 +25,61 @@
         </div>
       </div>
 
+      <!-- Possíveis paradas pendentes (GET /possible-stops?status=pending) —
+           detectadas automaticamente (sem produção há tempo demais), mas
+           ainda sem decisão de alguém: confirmar como parada real ou
+           descartar como falso alarme. Mesma decisão que já existia só no
+           Totem — agora visível aqui também (inclusive no celular).
+           Chain própria (v-if isolado), independente do bloco de alertas
+           reais abaixo. -->
+      <div v-if="store.possibleStops.length" class="space-y-4 mb-6 md:mb-8">
+        <p class="text-xs text-amber-400 uppercase tracking-wider font-bold flex items-center gap-1.5">
+          ⚠️ {{ store.possibleStops.length }} possível{{ store.possibleStops.length > 1 ? 'is' : '' }} parada{{ store.possibleStops.length > 1 ? 's' : '' }} — aguardando confirmação
+        </p>
+
+        <div
+          v-for="p in store.possibleStops"
+          :key="p.id"
+          class="dark-panel p-4 sm:p-6 border-2 border-orange-500/50 bg-orange-500/5 space-y-4"
+        >
+          <div class="flex items-start gap-3">
+            <div class="w-10 h-10 rounded-xl bg-orange-500/10 border-2 border-orange-500 text-orange-400 flex items-center justify-center text-lg shrink-0">⚠️</div>
+            <div>
+              <p class="text-orange-400 font-black text-sm uppercase tracking-wider">
+                {{ p.machine?.name || p.machine?.code || 'Máquina' }}
+              </p>
+              <p class="text-white text-sm mt-0.5">
+                Sem produção detectada há {{ Math.round(p.duration_seconds / 60) }} min. É uma parada de verdade?
+              </p>
+            </div>
+          </div>
+
+          <div class="flex flex-col sm:flex-row gap-3">
+            <select
+              v-model="reasonByPossibleStop[p.id]"
+              class="flex-1 bg-slate-950 border border-slate-700 rounded-lg px-3 py-3 text-sm text-white focus:border-orange-500 focus:outline-none"
+            >
+              <option value="" disabled>Selecione o motivo...</option>
+              <option v-for="reason in store.stopReasons" :key="reason.id" :value="reason.id">{{ reason.label }}</option>
+            </select>
+            <button
+              @click="handleConfirmarPossivel(p.id)"
+              :disabled="!reasonByPossibleStop[p.id] || p._resolving"
+              class="px-6 py-3 bg-orange-500 hover:bg-orange-400 disabled:opacity-40 disabled:cursor-not-allowed text-slate-950 font-black text-sm uppercase tracking-wider rounded-xl transition-all active:scale-95 shrink-0"
+            >
+              Confirmar parada
+            </button>
+            <button
+              @click="handleDescartarPossivel(p.id)"
+              :disabled="p._resolving"
+              class="px-6 py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-sm uppercase tracking-wider rounded-xl transition-all active:scale-95 shrink-0 disabled:opacity-40"
+            >
+              Não é parada
+            </button>
+          </div>
+        </div>
+      </div>
+
       <!-- Loading -->
       <div v-if="store.loading.alerts" class="dark-panel p-10 text-center">
         <div class="w-8 h-8 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
@@ -105,11 +160,15 @@
 </template>
 
 <script setup>
-import { onMounted } from 'vue';
+import { reactive, onMounted } from 'vue';
 import { useProductionStore } from '../../stores/productionStore';
 import AppSidebar from '../../components/AppSidebar.vue';
 
 const store = useProductionStore();
+
+// Motivo selecionado por possível parada (várias podem estar pendentes ao
+// mesmo tempo, em máquinas diferentes — cada uma com seu próprio select).
+const reasonByPossibleStop = reactive({});
 
 const formatDateTime = (dt) => {
   if (!dt) return '—';
@@ -122,6 +181,8 @@ const formatDateTime = (dt) => {
 
 onMounted(() => {
   store.fetchAlerts();
+  store.fetchPossibleStops({ status: 'pending' });
+  if (!store.stopReasons.length) store.fetchStopReasons();
 });
 
 // PATCH /alertas/:id/visto → PostgreSQL
@@ -135,6 +196,36 @@ const handleAcknowledge = async (alertId) => {
     // Reativa o botão sem bloquear a UI com alert() nativo
     if (alert) alert._acknowledging = false;
     console.warn('[AlertasView] Erro ao reconhecer alerta:', err.message);
+  }
+};
+
+// PATCH /possible-stops/:id/confirmar → vira parada real (ver
+// PossibleStopsService.confirmar no backend)
+const handleConfirmarPossivel = async (id) => {
+  const reasonId = reasonByPossibleStop[id];
+  if (!reasonId) return;
+  const item = store.possibleStops.find((p) => p.id === id);
+  if (item) item._resolving = true;
+  try {
+    await store.confirmarPossibleStop(id, { reason_id: reasonId });
+    delete reasonByPossibleStop[id];
+    // store.confirmarPossibleStop já remove da lista local após sucesso
+  } catch (err) {
+    if (item) item._resolving = false;
+    console.warn('[AlertasView] Erro ao confirmar possível parada:', err.message);
+  }
+};
+
+// PATCH /possible-stops/:id/descartar → marca como falso alarme
+const handleDescartarPossivel = async (id) => {
+  const item = store.possibleStops.find((p) => p.id === id);
+  if (item) item._resolving = true;
+  try {
+    await store.descartarPossibleStop(id);
+    delete reasonByPossibleStop[id];
+  } catch (err) {
+    if (item) item._resolving = false;
+    console.warn('[AlertasView] Erro ao descartar possível parada:', err.message);
   }
 };
 </script>
