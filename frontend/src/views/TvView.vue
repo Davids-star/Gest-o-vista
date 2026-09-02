@@ -109,10 +109,15 @@
           </div>
         </div>
 
-        <!-- Motivo da parada, se houver -->
-        <div v-if="st.statusType === 'stopped'" class="bg-red-500/10 border border-red-500/40 rounded-xl p-3 text-xs flex justify-between items-center">
-          <span class="text-red-300 font-bold uppercase">⏸ {{ st.openStopReason }}</span>
-          <span v-if="st.openStopDuration" class="font-mono text-white bg-red-950 px-2 py-0.5 rounded border border-red-800">{{ st.openStopDuration }}</span>
+        <!-- Motivo da parada, se houver — cor segue o mesmo nível do pill
+             (vermelho = parada grave, laranja = atenção/planejada). -->
+        <div
+          v-if="st.statusType.startsWith('stopped')"
+          class="rounded-xl p-3 text-xs flex justify-between items-center border"
+          :class="st.statusType === 'stopped' ? 'bg-red-500/10 border-red-500/40' : 'bg-amber-500/10 border-amber-500/40'"
+        >
+          <span class="font-bold uppercase" :class="st.statusType === 'stopped' ? 'text-red-300' : 'text-amber-300'">⏸ {{ st.openStopReason }}</span>
+          <span v-if="st.openStopDuration" class="font-mono text-white px-2 py-0.5 rounded border" :class="st.statusType === 'stopped' ? 'bg-red-950 border-red-800' : 'bg-amber-950 border-amber-800'">{{ st.openStopDuration }}</span>
         </div>
 
         <!-- Produção atual × Meta -->
@@ -240,12 +245,39 @@ const stations = computed(() => {
     let dotClass = 'bg-amber-400';
 
     if (openStop) {
-      statusType = 'stopped';
-      statusLabel = 'Parada';
-      cardBorderClass = 'border-red-500/50';
-      badgeClass = 'border-red-500/50 bg-red-500/10 text-red-400';
-      pillClass = 'border-red-500/50 bg-red-500/10 text-red-400';
-      dotClass = 'bg-red-400 animate-pulse';
+      // Gestão à vista: nem toda parada é uma emergência.
+      // - reason.planned (Fim de turno, Pausa, Troca de produto, Outros):
+      //   evento esperado, não é alerta — mesmo campo que já existe no
+      //   schema pra decidir se cria Alert (ver ParadasRegistrosService).
+      // - Manutenção / Falta de material: precisa de atenção, mas não é
+      //   uma parada "grave" de equipamento — fica laranja, não vermelho.
+      // - o resto (ex.: Problema no equipamento): parada de verdade,
+      //   vermelho.
+      const motivoLabel = (openStop.reason?.label || '').toLowerCase();
+      const isAtencao = motivoLabel.includes('manuten') || motivoLabel.includes('falta de material');
+
+      if (openStop.reason?.planned) {
+        statusType = 'stopped-planned';
+        statusLabel = openStop.reason?.label || 'Parada Planejada';
+        cardBorderClass = 'border-amber-500/40';
+        badgeClass = 'border-amber-500/50 bg-amber-500/10 text-amber-400';
+        pillClass = 'border-amber-500/40 bg-amber-500/10 text-amber-400';
+        dotClass = 'bg-amber-400';
+      } else if (isAtencao) {
+        statusType = 'stopped-atencao';
+        statusLabel = 'Atenção';
+        cardBorderClass = 'border-amber-500/50';
+        badgeClass = 'border-amber-500/50 bg-amber-500/10 text-amber-400';
+        pillClass = 'border-amber-500/50 bg-amber-500/10 text-amber-400';
+        dotClass = 'bg-amber-400 animate-pulse';
+      } else {
+        statusType = 'stopped';
+        statusLabel = 'Parada';
+        cardBorderClass = 'border-red-500/50';
+        badgeClass = 'border-red-500/50 bg-red-500/10 text-red-400';
+        pillClass = 'border-red-500/50 bg-red-500/10 text-red-400';
+        dotClass = 'bg-red-400 animate-pulse';
+      }
     } else if (session) {
       statusType = 'running';
       statusLabel = 'Operacional';
@@ -292,13 +324,12 @@ const kpis = computed(() => ({
   // acumula pra sempre. O que a TV precisa é "quantas máquinas estão
   // paradas AGORA" — mesmo critério já usado no pill vermelho "PARADA"
   // de cada card, sem precisar buscar alertas de novo.
+  // Só o nível vermelho conta como alerta — laranja (atenção/planejada)
+  // não é emergência, não deve inflar esse número.
   alertas: stations.value.filter((s) => s.statusType === 'stopped').length,
-  // "Manutenção" = parada aberta cujo motivo é especificamente Manutenção
-  // (StopReason.label) — não é um estado à parte no schema, é um motivo
-  // de parada como outro qualquer (ver ../../api/src/database/entities/stop-reason.entity.ts).
-  manutencao: stations.value.filter(
-    (s) => s.statusType === 'stopped' && s.openStopReason?.toLowerCase().includes('manuten'),
-  ).length,
+  // "Manutenção" = nível laranja (Manutenção ou Falta de material —
+  // "soa como manutenção"), o mesmo critério do pill/banner do card.
+  manutencao: stations.value.filter((s) => s.statusType === 'stopped-atencao').length,
 }));
 
 onMounted(async () => {
