@@ -144,8 +144,8 @@
               v-model="selectedStationId"
               class="w-full bg-[var(--gp-code-bg)] border gp-border gp-text rounded-xl p-3 text-sm font-semibold focus:border-emerald-500 focus:outline-none">
               <option value="" disabled>Selecione uma estação...</option>
-              <option v-for="(m, idx) in store.machines" :key="m.id" :value="m.id">
-                Máquina {{ (m.code && parseInt(m.code, 10) < 100) ? parseInt(m.code, 10) : (idx + 1) }} — {{ m.name || 'Estação' }}
+              <option v-for="m in store.machines" :key="m.id" :value="m.id">
+                Máquina {{ getMachineNumber(m) }} — {{ m.name || 'Estação' }}
               </option>
             </select>
 
@@ -236,6 +236,16 @@ import { usePwaInstall } from '../../composables/usePwaInstall';
 const router = useRouter();
 const store = useProductionStore();
 const { isLoggedIn, user, clearSession } = useAuth();
+
+// Número de exibição da máquina — extrai o dígito do code (ex.: "MQ-02" → 2).
+// parseInt(m.code, 10) sozinho sempre dava NaN (code começa com letra
+// "MQ-"), então nunca usava o código real, só a posição no array —
+// "Máquina 2" podia mostrar uma máquina de teste qualquer, não a MQ-02.
+const getMachineNumber = (m) => {
+  const idx = store.machines.findIndex((item) => item.id === m.id);
+  const match = m.code?.match(/\d+/);
+  return match ? parseInt(match[0], 10) : (idx >= 0 ? idx + 1 : 1);
+};
 const { isStandalone, isIos, canInstallDirectly, promptInstall } = usePwaInstall();
 
 const activeMode = ref('');

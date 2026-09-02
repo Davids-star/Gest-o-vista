@@ -421,12 +421,13 @@ onBeforeUnmount(() => {
 });
 
 const currentMachine = computed(() => store.selectedMachine);
+// Número de exibição da máquina — extrai o dígito do code (ex.: "MQ-02" → 2).
+// parseInt(code, 10) sozinho sempre dava NaN (code começa com letra "MQ-").
 const currentMachineDisplayName = computed(() => {
   if (!currentMachine.value) return '—';
   const idx = store.machines.findIndex((m) => m.id === currentMachine.value.id);
-  const num = (currentMachine.value.code && parseInt(currentMachine.value.code, 10) < 100)
-    ? parseInt(currentMachine.value.code, 10)
-    : (idx >= 0 ? idx + 1 : 1);
+  const match = currentMachine.value.code?.match(/\d+/);
+  const num = match ? parseInt(match[0], 10) : (idx >= 0 ? idx + 1 : 1);
   return `Máquina ${num}`;
 });
 

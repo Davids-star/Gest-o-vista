@@ -33,8 +33,8 @@
             class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl p-3 focus:border-emerald-500 focus:outline-none text-sm font-semibold"
           >
             <option value="" disabled>Selecione...</option>
-            <option v-for="(m, idx) in store.machines" :key="m.id" :value="m.id">
-              Máquina {{ (m.code && parseInt(m.code, 10) < 100) ? parseInt(m.code, 10) : (idx + 1) }}
+            <option v-for="m in store.machines" :key="m.id" :value="m.id">
+              Máquina {{ getMachineNumber(m) }}
             </option>
           </select>
         </div>
@@ -77,6 +77,16 @@ import { useProductionStore } from '../../stores/productionStore';
 
 const router = useRouter();
 const store = useProductionStore();
+
+// Número de exibição da máquina — extrai o dígito do code (ex.: "MQ-02" → 2).
+// parseInt(m.code, 10) sozinho sempre dava NaN (code começa com letra
+// "MQ-"), então nunca usava o código real, só a posição no array —
+// "Máquina 2" podia mostrar uma máquina de teste qualquer, não a MQ-02.
+const getMachineNumber = (m) => {
+  const idx = store.machines.findIndex((item) => item.id === m.id);
+  const match = m.code?.match(/\d+/);
+  return match ? parseInt(match[0], 10) : (idx >= 0 ? idx + 1 : 1);
+};
 
 const selectedStationId = ref('');
 const operatorName = ref('');

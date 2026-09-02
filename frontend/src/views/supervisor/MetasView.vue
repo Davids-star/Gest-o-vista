@@ -139,8 +139,8 @@
               class="w-full bg-slate-900 border border-slate-700 text-white rounded-lg p-3 text-sm focus:border-emerald-500 focus:outline-none"
             >
               <option value="" disabled>Selecione uma máquina...</option>
-              <option v-for="(m, idx) in store.machines" :key="m.id" :value="m.id">
-                Máquina {{ (m.code && parseInt(m.code, 10) < 100) ? parseInt(m.code, 10) : (idx + 1) }}
+              <option v-for="m in store.machines" :key="m.id" :value="m.id">
+                Máquina {{ getMachineNumber(m.id) }}
               </option>
             </select>
           </div>
@@ -271,11 +271,16 @@ const formatDate = (dateStr) => {
   return new Date(dateStr).toLocaleDateString('pt-BR');
 };
 
+// Número de exibição da máquina — extrai o dígito do code (ex.: "MQ-02" → 2).
+// parseInt(m.code, 10) sozinho sempre dava NaN (code começa com letra
+// "MQ-"), então nunca usava o código real, só a posição no array —
+// "Máquina 2" podia mostrar uma máquina de teste qualquer, não a MQ-02.
 const getMachineNumber = (machineId) => {
   const idx = store.machines.findIndex((m) => m.id === machineId);
   if (idx < 0) return '—';
   const m = store.machines[idx];
-  return (m.code && parseInt(m.code, 10) < 100) ? parseInt(m.code, 10) : (idx + 1);
+  const match = m.code?.match(/\d+/);
+  return match ? parseInt(match[0], 10) : (idx + 1);
 };
 
 onMounted(async () => {

@@ -45,22 +45,22 @@
 
         <div v-else class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
           <div
-            v-for="(st, idx) in store.machines"
+            v-for="st in store.machines"
             :key="st.id"
             @click="store.selectStation(st.id)"
             class="p-4 rounded-xl cursor-pointer transition-all duration-200 border"
-            :class="st.id === store.selectedStationId 
-              ? 'bg-emerald-950/40 border-emerald-500/80 shadow-lg shadow-emerald-500/10 ring-1 ring-emerald-500/50' 
+            :class="st.id === store.selectedStationId
+              ? 'bg-emerald-950/40 border-emerald-500/80 shadow-lg shadow-emerald-500/10 ring-1 ring-emerald-500/50'
               : 'bg-slate-900/60 border-slate-800 hover:border-slate-700'"
           >
             <div class="flex items-center justify-between gap-2 mb-1">
               <div class="flex items-center gap-2.5 min-w-0">
                 <span class="w-8 h-8 rounded-lg border border-emerald-500/40 bg-emerald-500/10 text-emerald-400 flex items-center justify-center font-mono font-extrabold text-xs shrink-0">
-                  {{ (st.code && parseInt(st.code, 10) < 100) ? parseInt(st.code, 10) : (idx + 1) }}
+                  {{ getMachineNumber(st) }}
                 </span>
                 <div class="min-w-0">
                   <p class="text-xs font-extrabold uppercase tracking-wider text-white truncate">
-                    Máquina {{ (st.code && parseInt(st.code, 10) < 100) ? parseInt(st.code, 10) : (idx + 1) }}
+                    {{ getMachineDisplayName(st) }}
                   </p>
                   <p class="text-[10px] text-slate-400 truncate">{{ st.name || st.location || 'Chão de Fábrica' }}</p>
                 </div>
@@ -94,7 +94,7 @@
         <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-4 md:p-5 mb-6 flex flex-wrap items-center justify-between gap-4">
           <div class="flex items-center gap-3">
             <div class="w-12 h-12 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 font-mono font-black text-lg">
-              {{ (selectedMachine.code && parseInt(selectedMachine.code, 10) < 100) ? parseInt(selectedMachine.code, 10) : 'M' }}
+              {{ getMachineNumber(selectedMachine) }}
             </div>
             <div>
               <h2 class="text-lg font-extrabold text-white uppercase tracking-wider flex items-center gap-2">
@@ -370,12 +370,18 @@ const isMachineOperating = (machineId) => {
   return store.sessions.some(s => s.machine_id === machineId && s.status === 'active');
 };
 
-const getMachineDisplayName = (m) => {
+// Número de exibição da máquina — extrai o dígito do code (ex.: "MQ-02" → 2).
+// parseInt(m.code, 10) sozinho sempre dava NaN (code começa com letra
+// "MQ-"), então nunca usava o código real, só a posição no array —
+// "Máquina 2" podia mostrar uma máquina de teste qualquer, não a MQ-02.
+const getMachineNumber = (m) => {
   if (!m) return '—';
   const idx = store.machines.findIndex((item) => item.id === m.id);
-  const num = (m.code && parseInt(m.code, 10) < 100) ? parseInt(m.code, 10) : (idx >= 0 ? idx + 1 : 1);
-  return `Máquina ${num}`;
+  const match = m.code?.match(/\d+/);
+  return match ? parseInt(match[0], 10) : (idx >= 0 ? idx + 1 : 1);
 };
+
+const getMachineDisplayName = (m) => `Máquina ${getMachineNumber(m)}`;
 
 const selectedSession = computed(() => {
   if (!selectedMachine.value) return null;

@@ -124,7 +124,10 @@ const formatTimeAgo = (startedAt) => {
 const stations = computed(() => {
   const today = new Date().toISOString().slice(0, 10);
   return store.machines.map((machine, index) => {
-    const parsedNum = (machine.code && parseInt(machine.code, 10) < 100) ? parseInt(machine.code, 10) : (index + 1);
+    // parseInt(machine.code, 10) sozinho sempre dava NaN (code começa com
+    // letra "MQ-") — extrai o dígito de dentro do code em vez disso.
+    const codeMatch = machine.code?.match(/\d+/);
+    const parsedNum = codeMatch ? parseInt(codeMatch[0], 10) : (index + 1);
     const displayCode = String(parsedNum);
     const displayName = `Máquina ${displayCode}`;
 

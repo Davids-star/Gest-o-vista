@@ -173,18 +173,18 @@
 
         <div v-else class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
           <div
-            v-for="(m, idx) in store.machines"
+            v-for="m in store.machines"
             :key="m.id"
             @click="store.selectStation(m.id)"
             class="p-4 rounded-xl cursor-pointer transition-all border bg-slate-900/60 border-slate-800 hover:border-slate-700"
           >
             <div class="flex items-center gap-3 mb-2">
               <span class="w-9 h-9 rounded-lg border border-emerald-500/40 bg-emerald-500/10 text-emerald-400 flex items-center justify-center font-mono font-extrabold text-sm">
-                {{ (m.code && parseInt(m.code, 10) < 100) ? parseInt(m.code, 10) : (idx + 1) }}
+                {{ getMachineNumber(m) }}
               </span>
               <div class="min-w-0">
                 <p class="text-xs font-extrabold uppercase tracking-wider text-white truncate">
-                  Máquina {{ (m.code && parseInt(m.code, 10) < 100) ? parseInt(m.code, 10) : (idx + 1) }}
+                  Máquina {{ getMachineNumber(m) }}
                 </p>
                 <p class="text-[10px] text-slate-400 truncate">{{ m.location || m.description || 'Chão de Fábrica' }}</p>
               </div>
@@ -268,6 +268,16 @@ import MonthlySummaryPanel from './MonthlySummaryPanel.vue';
 import HourlyProductionChart from './HourlyProductionChart.vue';
 
 const store = useProductionStore();
+
+// Número de exibição da máquina — extrai o dígito do code (ex.: "MQ-02" → 2).
+// parseInt(m.code, 10) sozinho sempre dava NaN (code começa com letra
+// "MQ-"), então nunca usava o código real, só a posição no array —
+// "Máquina 2" podia mostrar uma máquina de teste qualquer, não a MQ-02.
+const getMachineNumber = (m) => {
+  const idx = store.machines.findIndex((item) => item.id === m.id);
+  const match = m.code?.match(/\d+/);
+  return match ? parseInt(match[0], 10) : (idx >= 0 ? idx + 1 : 1);
+};
 
 const liveTime = ref(new Date().toLocaleTimeString('pt-BR'));
 let timer = null;

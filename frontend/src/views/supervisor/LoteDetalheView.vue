@@ -40,7 +40,7 @@
             <div v-if="showLotForm" class="grid gap-3">
               <select v-model="lotForm.machine_id" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-3 text-sm">
                 <option value="" disabled>Escolha a máquina</option>
-                <option v-for="(machine, idx) in store.machines" :key="machine.id" :value="machine.id">Máquina {{ (machine.code && parseInt(machine.code, 10) < 100) ? parseInt(machine.code, 10) : (idx + 1) }}</option>
+                <option v-for="machine in store.machines" :key="machine.id" :value="machine.id">Máquina {{ getMachineNumber(machine) }}</option>
               </select>
               <select v-model="lotForm.product_id" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-3 text-sm">
                 <option value="" disabled>Escolha o produto</option>
@@ -183,13 +183,16 @@ onMounted(async () => {
 onUnmounted(() => clearInterval(clockInterval));
 
 const currentMachine = computed(() => store.selectedMachine);
+// Número de exibição da máquina — extrai o dígito do code (ex.: "MQ-02" → 2).
+// parseInt(code, 10) sozinho sempre dava NaN (code começa com letra "MQ-").
+const getMachineNumber = (m) => {
+  const idx = store.machines.findIndex((item) => item.id === m.id);
+  const match = m.code?.match(/\d+/);
+  return match ? parseInt(match[0], 10) : (idx >= 0 ? idx + 1 : 1);
+};
 const currentMachineDisplayName = computed(() => {
   if (!currentMachine.value) return '—';
-  const idx = store.machines.findIndex((m) => m.id === currentMachine.value.id);
-  const num = (currentMachine.value.code && parseInt(currentMachine.value.code, 10) < 100)
-    ? parseInt(currentMachine.value.code, 10)
-    : (idx >= 0 ? idx + 1 : 1);
-  return `Máquina ${num}`;
+  return `Máquina ${getMachineNumber(currentMachine.value)}`;
 });
 const showLotForm = ref(false);
 const creatingLot = ref(false);

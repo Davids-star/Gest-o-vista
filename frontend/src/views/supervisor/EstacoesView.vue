@@ -177,8 +177,10 @@ const stationCards = computed(() => store.machines.map((machine, index) => {
     observation: ['border-amber-500/30', 'border-amber-500/40 bg-amber-500/10 text-amber-400', 'bg-amber-400', machine.active === false ? 'INATIVA' : 'OBSERVAÇÃO'],
   }[state];
 
-  // Extrai apenas o número simplificado (1, 2, 3...) por ordem/índice
-  const parsedNum = (machine.code && parseInt(machine.code, 10) < 100) ? parseInt(machine.code, 10) : (index + 1);
+  // Extrai o número de dentro do code (ex.: "MQ-02" → 2). parseInt(code, 10)
+  // sozinho sempre dava NaN (code começa com letra "MQ-").
+  const codeMatch = machine.code?.match(/\d+/);
+  const parsedNum = codeMatch ? parseInt(codeMatch[0], 10) : (index + 1);
   const displayNumber = String(parsedNum);
   const displayName = `Máquina ${displayNumber}`;
 
