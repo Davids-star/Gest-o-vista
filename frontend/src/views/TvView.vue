@@ -1,98 +1,148 @@
 <template>
-  <div class="min-h-screen bg-[#070a0f] text-white p-8 select-none flex flex-col justify-between">
-    <!-- Header TV -->
-    <header class="flex items-center justify-between border-b border-slate-800 pb-6">
+  <div class="min-h-screen bg-[#070a0f] text-white p-8 select-none flex flex-col">
+    <!-- Header -->
+    <header class="flex items-center justify-between border-b border-slate-800 pb-6 mb-8">
       <div class="flex items-center gap-4">
-        <div class="w-12 h-12 rounded-xl bg-emerald-500/20 border-2 border-emerald-400 text-emerald-400 flex items-center justify-center font-bold text-2xl">
-          ⚙️
+        <div class="w-14 h-14 rounded-2xl bg-emerald-500/10 border-2 border-emerald-400 text-emerald-400 flex items-center justify-center">
+          <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+          </svg>
         </div>
         <div>
-          <h1 class="text-3xl font-black uppercase tracking-widest text-emerald-400">PAINEL INDUSTRIAL DE PRODUÇÃO</h1>
-          <p class="text-sm font-bold text-slate-400 uppercase tracking-wider">Monitoramento em Tempo Real - Chão de Fábrica</p>
+          <h1 class="text-4xl font-black uppercase tracking-widest text-white leading-none">Monitoramento</h1>
+          <p class="text-sm text-slate-400 mt-1">de produção</p>
         </div>
       </div>
 
-      <div class="text-right font-mono">
-        <div class="text-3xl font-extrabold text-white">{{ currentTime }}</div>
-        <div class="text-xs text-slate-400 uppercase tracking-widest">Atualização Contínua</div>
+      <div class="flex items-center gap-3 font-mono">
+        <div class="w-10 h-10 rounded-xl bg-slate-900 border border-slate-800 text-emerald-400 flex items-center justify-center shrink-0">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        </div>
+        <div class="text-right">
+          <div class="text-2xl font-extrabold text-white leading-none">{{ currentTime }}</div>
+          <div class="text-xs text-slate-500 uppercase tracking-widest mt-1">{{ currentDate }}</div>
+        </div>
       </div>
     </header>
 
-    <!-- Machines Grid (Big Cards for TV) -->
-    <main class="grid grid-cols-1 md:grid-cols-2 gap-8 my-8 flex-1">
+    <!-- KPIs gerais — dados reais (nada fixo) -->
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-5 mb-8">
+      <div class="dark-panel border-2 border-emerald-500/40 p-5 flex items-center gap-4">
+        <div class="w-12 h-12 rounded-xl bg-emerald-500/10 border border-emerald-500/40 text-emerald-400 flex items-center justify-center shrink-0">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M22 12h-4l-3 9L9 3l-3 9H2" />
+          </svg>
+        </div>
+        <div>
+          <p class="text-xs font-bold uppercase tracking-wider text-slate-400">Operacionais</p>
+          <p class="text-4xl font-black text-emerald-400 font-mono leading-tight">{{ kpis.operacionais }}</p>
+          <p class="text-[11px] text-slate-500 uppercase tracking-wider">{{ kpis.totalAtivas }} estações ativas</p>
+        </div>
+      </div>
+
+      <div class="dark-panel border-2 p-5 flex items-center gap-4" :class="kpis.alertas > 0 ? 'border-red-500/50' : 'border-slate-800'">
+        <div class="w-12 h-12 rounded-xl border flex items-center justify-center shrink-0" :class="kpis.alertas > 0 ? 'bg-red-500/10 border-red-500/40 text-red-400' : 'bg-slate-900 border-slate-700 text-slate-500'">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+          </svg>
+        </div>
+        <div>
+          <p class="text-xs font-bold uppercase tracking-wider text-slate-400">Alertas</p>
+          <p class="text-4xl font-black font-mono leading-tight" :class="kpis.alertas > 0 ? 'text-red-400' : 'text-slate-600'">{{ kpis.alertas }}</p>
+          <p class="text-[11px] text-slate-500 uppercase tracking-wider">{{ kpis.alertas > 0 ? 'em aberto' : 'nenhum alerta' }}</p>
+        </div>
+      </div>
+
+      <div class="dark-panel border-2 p-5 flex items-center gap-4" :class="kpis.manutencao > 0 ? 'border-amber-500/50' : 'border-slate-800'">
+        <div class="w-12 h-12 rounded-xl border flex items-center justify-center shrink-0" :class="kpis.manutencao > 0 ? 'bg-amber-500/10 border-amber-500/40 text-amber-400' : 'bg-slate-900 border-slate-700 text-slate-500'">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.42 15.17L17.25 21A2.652 2.652 0 0021 17.25l-5.877-5.877M11.42 15.17l2.496-3.03c.317-.384.74-.626 1.208-.766M11.42 15.17l-4.655 5.653a2.548 2.548 0 11-3.586-3.586l6.837-5.63m5.108-.233c.55-.164 1.163-.188 1.743-.14a4.5 4.5 0 004.486-6.336l-3.276 3.277a3.004 3.004 0 01-2.25-2.25l3.276-3.276a4.5 4.5 0 00-6.336 4.486c.091 1.076-.071 2.264-.904 2.95l-.102.085m-1.745 1.437L5.909 7.5H4.5L1.5 3l1.5-1.5L7.5 4.5v1.409l4.26 4.26" />
+          </svg>
+        </div>
+        <div>
+          <p class="text-xs font-bold uppercase tracking-wider text-slate-400">Manutenção</p>
+          <p class="text-4xl font-black font-mono leading-tight" :class="kpis.manutencao > 0 ? 'text-amber-400' : 'text-slate-600'">{{ kpis.manutencao }}</p>
+          <p class="text-[11px] text-slate-500 uppercase tracking-wider">{{ kpis.manutencao > 0 ? 'em manutenção' : 'nenhuma parada' }}</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Grid de estações -->
+    <main class="grid grid-cols-1 md:grid-cols-2 gap-6 flex-1">
       <div
         v-for="st in stations"
         :key="st.id"
-        class="dark-panel p-8 space-y-6 border-2 flex flex-col justify-between"
-        :class="st.statusColorClass"
+        class="dark-panel p-6 border-2 space-y-5"
+        :class="st.cardBorderClass"
       >
-        <!-- Card Header -->
-        <div class="flex items-center justify-between border-b border-slate-800 pb-4">
+        <!-- Cabeçalho do card -->
+        <div class="flex items-center justify-between">
           <div class="flex items-center gap-4">
-            <span class="w-14 h-14 rounded-2xl bg-emerald-500/10 border-2 border-emerald-500 text-emerald-400 font-mono font-extrabold text-3xl flex items-center justify-center">
-              {{ st.displayCode }}
+            <span class="w-12 h-12 rounded-xl border-2 flex items-center justify-center font-mono font-extrabold text-lg shrink-0" :class="st.badgeClass">
+              {{ st.displayCode.padStart(2, '0') }}
             </span>
-            <div>
-              <h2 class="text-2xl font-black uppercase text-white">{{ st.displayName }}</h2>
-              <p class="text-sm text-slate-400 font-semibold">Operador: <span class="text-white">{{ st.operator }}</span></p>
-            </div>
+            <h2 class="text-xl font-black uppercase text-white tracking-wide">Estação {{ st.displayCode.padStart(2, '0') }}</h2>
           </div>
 
-          <span class="px-4 py-1.5 rounded-xl font-black font-mono text-sm tracking-wider border shadow-md" :class="st.statusColorClass">
-            {{ st.statusBadge }}
+          <span class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-black uppercase tracking-wider border" :class="st.pillClass">
+            <span class="w-2 h-2 rounded-full" :class="st.dotClass" />
+            {{ st.statusLabel }}
           </span>
         </div>
 
-        <!-- Stop info banner if stopped -->
-        <div v-if="st.statusType === 'stopped'" class="bg-red-500/20 border border-red-500/40 rounded-xl p-3 text-xs space-y-1">
-          <div class="flex justify-between items-center text-red-300 font-bold uppercase">
-            <span>Motivo da Parada: {{ st.openStopReason }}</span>
-            <span v-if="st.openStopDuration" class="font-mono text-white bg-red-950 px-2 py-0.5 rounded border border-red-800">⏱ {{ st.openStopDuration }}</span>
+        <!-- Produto / Lote / Operador -->
+        <div class="grid grid-cols-3 gap-3 text-xs border-t border-b border-slate-800/80 py-3">
+          <div>
+            <span class="text-slate-500 block uppercase font-bold tracking-wide">Produto</span>
+            <span class="font-bold text-white">{{ st.product }}</span>
+          </div>
+          <div>
+            <span class="text-slate-500 block uppercase font-bold tracking-wide">Lote</span>
+            <span class="font-mono font-bold text-emerald-400">{{ st.lot }}</span>
+          </div>
+          <div>
+            <span class="text-slate-500 block uppercase font-bold tracking-wide">Operador</span>
+            <span class="font-bold text-white truncate block">{{ st.operator }}</span>
           </div>
         </div>
 
-        <!-- Middle Info Grid -->
-        <div class="grid grid-cols-2 gap-6 text-base">
-          <div>
-            <span class="text-xs text-slate-400 block uppercase font-bold">PRODUTO</span>
-            <span class="font-bold text-white text-lg">{{ st.product }}</span>
-          </div>
+        <!-- Motivo da parada, se houver -->
+        <div v-if="st.statusType === 'stopped'" class="bg-red-500/10 border border-red-500/40 rounded-xl p-3 text-xs flex justify-between items-center">
+          <span class="text-red-300 font-bold uppercase">⏸ {{ st.openStopReason }}</span>
+          <span v-if="st.openStopDuration" class="font-mono text-white bg-red-950 px-2 py-0.5 rounded border border-red-800">{{ st.openStopDuration }}</span>
+        </div>
 
+        <!-- Produção atual × Meta -->
+        <div class="grid grid-cols-2 gap-6">
           <div>
-            <span class="text-xs text-slate-400 block uppercase font-bold">LOTE</span>
-            <span class="font-mono font-bold text-emerald-400 text-lg">{{ st.lot }}</span>
+            <span class="text-xs text-slate-400 uppercase tracking-wider">produção atual</span>
+            <p class="text-3xl font-black text-white font-mono mt-0.5">{{ st.currentProduction.toLocaleString('pt-BR') }}</p>
+            <span class="text-[11px] text-slate-500 uppercase tracking-wider">unidades</span>
+          </div>
+          <div>
+            <span class="text-xs text-slate-400 uppercase tracking-wider">meta</span>
+            <p class="text-3xl font-black font-mono mt-0.5" :class="st.metaBatida ? 'text-amber-400' : 'text-emerald-400'">
+              {{ st.targetProduction === null ? '—' : st.targetProduction.toLocaleString('pt-BR') }}
+            </p>
+            <span class="text-[11px] text-slate-500 uppercase tracking-wider">{{ st.targetProduction === null ? 'sem meta definida' : 'unidades' }}</span>
           </div>
         </div>
 
-        <!-- Production KPI -->
-        <div class="space-y-3 bg-slate-900/60 p-6 rounded-2xl border border-slate-800">
-          <div class="flex items-baseline justify-between">
-            <span class="text-xs text-slate-400 font-bold uppercase tracking-wider">PRODUÇÃO / META</span>
-            <span class="text-3xl font-black font-mono text-emerald-400">{{ st.currentProduction }} / {{ st.targetProduction === null ? 'Sem meta definida' : `${st.targetProduction} un.` }}</span>
+        <!-- Progresso da meta -->
+        <div v-if="st.targetProduction !== null" class="space-y-2">
+          <div class="flex justify-between items-center text-xs font-bold text-slate-400 uppercase tracking-wider">
+            <span>{{ st.metaBatida ? '✅ Meta Batida' : 'Progresso da meta' }}</span>
+            <span class="font-mono text-sm" :class="st.metaBatida ? 'text-amber-400' : 'text-emerald-400'">{{ st.progress }}%</span>
           </div>
-
-          <!-- Large Progress Bar — largura satura em 100%, mas o % mostrado
-               (dentro da barra e no texto abaixo) continua subindo de verdade
-               quando a meta é batida, não trava.
-               Texto de dentro é só a % (curto de propósito): "PRODUÇÃO/META"
-               já aparece acima — com produção/meta ali dentro também, um
-               progresso baixo deixava a cápsula mais estreita que o texto,
-               cortando ele pela metade (mesmo ajuste do Totem). -->
-          <div v-if="st.targetProduction !== null" class="w-full bg-slate-950 rounded-full h-5 p-1 border border-slate-800 overflow-hidden">
+          <div class="w-full bg-slate-950 rounded-full h-3 border border-slate-800 overflow-hidden">
             <div
-              class="h-full rounded-full transition-all duration-500 flex items-center justify-end px-2 min-w-[2.5rem]"
+              class="h-full rounded-full transition-all duration-500"
               :class="st.metaBatida ? 'bg-amber-400' : 'bg-emerald-400'"
               :style="{ width: st.progressBarWidth + '%' }"
-            >
-              <span class="text-[10px] font-black text-slate-950 leading-none whitespace-nowrap">
-                {{ st.progress }}%
-              </span>
-            </div>
-          </div>
-
-          <div class="flex justify-between items-center text-xs font-bold text-slate-400 pt-1">
-            <span>{{ st.targetProduction === null ? 'META' : (st.metaBatida ? '✅ META BATIDA' : 'PERCENTUAL ATINGIDO') }}</span>
-            <span class="font-mono text-base" :class="st.metaBatida ? 'text-amber-400' : 'text-emerald-400'">{{ st.targetProduction === null ? 'Sem meta definida' : `${st.progress}%` }}</span>
+            />
           </div>
         </div>
       </div>
@@ -106,10 +156,13 @@ import { useProductionStore } from '../stores/productionStore';
 
 const store = useProductionStore();
 const currentTime = ref('');
+const currentDate = ref('');
 let clockInterval = null;
 
 const updateTime = () => {
-  currentTime.value = new Date().toLocaleTimeString('pt-BR');
+  const now = new Date();
+  currentTime.value = now.toLocaleTimeString('pt-BR');
+  currentDate.value = now.toLocaleDateString('pt-BR');
 };
 
 const formatTimeAgo = (startedAt) => {
@@ -129,14 +182,12 @@ const stations = computed(() => {
     const codeMatch = machine.code?.match(/\d+/);
     const parsedNum = codeMatch ? parseInt(codeMatch[0], 10) : (index + 1);
     const displayCode = String(parsedNum);
-    const displayName = `Máquina ${displayCode}`;
 
-    // 1. Ver se está desativada
+    // 1. Desativada
     if (machine.active === false) {
       return {
         ...machine,
         displayCode,
-        displayName,
         operator: '—',
         product: '—',
         lot: '—',
@@ -144,15 +195,18 @@ const stations = computed(() => {
         targetProduction: null,
         progress: 0,
         statusType: 'disabled',
-        statusBadge: '⚪ DESATIVADA',
-        statusColorClass: 'border-slate-800 bg-slate-900/40 text-slate-500',
+        statusLabel: 'Desativada',
+        cardBorderClass: 'border-slate-800',
+        badgeClass: 'border-slate-700 bg-slate-900 text-slate-500',
+        pillClass: 'border-slate-700 bg-slate-900 text-slate-500',
+        dotClass: 'bg-slate-600',
       };
     }
 
-    // 2. Ver se há parada aberta para esta máquina
+    // 2. Parada aberta?
     const openStop = store.stops.find((s) => s.machine_id === machine.id && !s.ended_at);
 
-    // 3. Ver se há sessão ativa
+    // 3. Sessão ativa?
     const session = store.sessions.find((item) => item.machine_id === machine.id && item.status === 'active');
     const target = store.metas.find(
       (item) => item.machine_id === machine.id
@@ -168,23 +222,31 @@ const stations = computed(() => {
     const metaBatida = targetProduction !== null && currentProduction >= targetProduction;
 
     let statusType = 'waiting';
-    let statusBadge = '🟡 AGUARDANDO';
-    let statusColorClass = 'border-amber-500/30 bg-amber-500/10 text-amber-400';
+    let statusLabel = 'Aguardando';
+    let cardBorderClass = 'border-amber-500/40';
+    let badgeClass = 'border-amber-500/50 bg-amber-500/10 text-amber-400';
+    let pillClass = 'border-amber-500/40 bg-amber-500/10 text-amber-400';
+    let dotClass = 'bg-amber-400';
 
     if (openStop) {
       statusType = 'stopped';
-      statusBadge = '🔴 PARADA';
-      statusColorClass = 'border-red-500/50 bg-red-500/10 text-red-400 animate-pulse';
+      statusLabel = 'Parada';
+      cardBorderClass = 'border-red-500/50';
+      badgeClass = 'border-red-500/50 bg-red-500/10 text-red-400';
+      pillClass = 'border-red-500/50 bg-red-500/10 text-red-400';
+      dotClass = 'bg-red-400 animate-pulse';
     } else if (session) {
       statusType = 'running';
-      statusBadge = '🟢 FUNCIONANDO';
-      statusColorClass = 'border-emerald-500/50 bg-emerald-500/10 text-emerald-400';
+      statusLabel = 'Operacional';
+      cardBorderClass = 'border-emerald-500/50';
+      badgeClass = 'border-emerald-500/50 bg-emerald-500/10 text-emerald-400';
+      pillClass = 'border-emerald-500/50 bg-emerald-500/10 text-emerald-400';
+      dotClass = 'bg-emerald-400 animate-pulse';
     }
 
     return {
       ...machine,
       displayCode,
-      displayName,
       operator: session?.operator?.name || '—',
       product: session?.product?.name || '—',
       lot: session?.lot?.code || '—',
@@ -196,11 +258,27 @@ const stations = computed(() => {
       progressBarWidth: Math.min(100, progressRaw),
       metaBatida,
       statusType,
-      statusBadge,
-      statusColorClass,
+      statusLabel,
+      cardBorderClass,
+      badgeClass,
+      pillClass,
+      dotClass,
     };
   });
 });
+
+// KPIs do topo — tudo derivado de dado real já carregado (nenhum número fixo).
+const kpis = computed(() => ({
+  totalAtivas: store.machines.filter((m) => m.active !== false).length,
+  operacionais: stations.value.filter((s) => s.statusType === 'running').length,
+  alertas: store.alerts.length,
+  // "Manutenção" = parada aberta cujo motivo é especificamente Manutenção
+  // (StopReason.label) — não é um estado à parte no schema, é um motivo
+  // de parada como outro qualquer (ver ../../api/src/database/entities/stop-reason.entity.ts).
+  manutencao: stations.value.filter(
+    (s) => s.statusType === 'stopped' && s.openStopReason?.toLowerCase().includes('manuten'),
+  ).length,
+}));
 
 onMounted(async () => {
   updateTime();
@@ -210,6 +288,7 @@ onMounted(async () => {
     store.fetchSessions(),
     store.fetchStops(),
     store.fetchMetas(),
+    store.fetchAlerts(),
     store.fetchProductionTotals(),
   ]);
   store.startPolling(6000);
