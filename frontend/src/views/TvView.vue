@@ -284,7 +284,15 @@ const stations = computed(() => {
 const kpis = computed(() => ({
   totalAtivas: store.machines.filter((m) => m.active !== false).length,
   operacionais: stations.value.filter((s) => s.statusType === 'running').length,
-  alertas: store.alerts.length,
+  // GET /alertas/abertos (status='open' estrito) some da lista assim que
+  // ALGUÉM reconhece o alerta — mas "reconhecido" só significa "alguém
+  // viu", não "resolvido"; e resolver um alerta hoje não acontece nunca
+  // sozinho quando a parada é fechada (conferido no banco: parada fechada
+  // não muda o status do alerta). Contar por status do alerta então
+  // acumula pra sempre. O que a TV precisa é "quantas máquinas estão
+  // paradas AGORA" — mesmo critério já usado no pill vermelho "PARADA"
+  // de cada card, sem precisar buscar alertas de novo.
+  alertas: stations.value.filter((s) => s.statusType === 'stopped').length,
   // "Manutenção" = parada aberta cujo motivo é especificamente Manutenção
   // (StopReason.label) — não é um estado à parte no schema, é um motivo
   // de parada como outro qualquer (ver ../../api/src/database/entities/stop-reason.entity.ts).
@@ -301,7 +309,6 @@ onMounted(async () => {
     store.fetchSessions(),
     store.fetchStops(),
     store.fetchMetas(),
-    store.fetchAlerts(),
     store.fetchProductionTotals(),
   ]);
   store.startPolling(6000);
