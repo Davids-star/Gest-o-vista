@@ -20,6 +20,11 @@ import {
  * produção. Diferencia isso de "OFFLINE" (dispositivo sem se comunicar —
  * ver heartbeat MQTT em mqtt-message-handler.service.ts): falta de
  * comunicação NUNCA vira possible_stop sozinha.
+ *
+ * Também cancela sozinha: se a produção volta (chega evento novo) antes de
+ * alguém confirmar ou descartar a suspeita pendente, ela mesma marca como
+ * descartada — não precisa de ação manual pra "falso alarme" que se
+ * resolveu por conta própria.
  */
 @Injectable()
 export class PossibleStopDetectorService implements OnModuleInit, OnModuleDestroy {
@@ -102,20 +107,42 @@ export class PossibleStopDetectorService implements OnModuleInit, OnModuleDestro
     const paradaAberta = await this.stopRepo.findOne({ where: { machine_id: sessao.machine_id, ended_at: IsNull() } });
     if (paradaAberta) return;
 
-    // 3. Já existe um possible_stop pendente? Não duplica.
-    const jaPendente = await this.possibleStopRepo.findOne({
-      where: { machine_id: sessao.machine_id, status: PossibleStopStatus.PENDING },
-    });
-    if (jaPendente) return;
-
-    // 4. Último evento de produção desta sessão (ou o início da sessão, se
-    // ainda não produziu nada).
+    // 3. Último evento de produção desta sessão (ou o início da sessão, se
+    // ainda não produziu nada) — calculado antes de olhar o possible_stop
+    // pendente, porque precisamos comparar os dois abaixo.
     const ultimoEvento = await this.eventRepo.findOne({
       where: { session_id: sessao.id },
       order: { occurred_at: 'DESC' },
     });
     const referencia = ultimoEvento?.occurred_at ?? sessao.started_at;
     const segundosSemProducao = (agora.getTime() - referencia.getTime()) / 1000;
+
+    // 4. Já existe um possible_stop pendente pra essa máquina?
+    const jaPendente = await this.possibleStopRepo.findOne({
+      where: { machine_id: sessao.machine_id, status: PossibleStopStatus.PENDING },
+    });
+    if (jaPendente) {
+      // A produção voltou sozinha (chegou evento novo) antes de alguém
+      // confirmar ou descartar — cancela a suspeita automaticamente, ela
+      // mesma sabe que não era uma parada de verdade.
+      if (segundosSemProducao < STOP_DETECTION_SECONDS) {
+        jaPendente.status = PossibleStopStatus.DISMISSED;
+        jaPendente.resolved_at = agora;
+        await this.possibleStopRepo.save(jaPendente);
+        this.realtime.emitToCompany(companyId, 'possible_stop.resolved', {
+          possible_stop_id: jaPendente.id,
+          machine_id: sessao.machine_id,
+          status: jaPendente.status,
+        });
+        this.logger.log(
+          `Possível parada cancelada automaticamente: máquina ${sessao.machine.code} voltou a produzir sozinha`,
+        );
+        await this.registrarEstado(sessao.machine_id, MachineStateEnum.RUNNING, companyId);
+      }
+      // Continua pendente (ainda sem produção) ou acabou de ser cancelada
+      // agora mesmo — nos dois casos não cria outra em cima dela.
+      return;
+    }
 
     if (segundosSemProducao < STOP_DETECTION_SECONDS) {
       await this.registrarEstado(sessao.machine_id, MachineStateEnum.RUNNING, companyId);

@@ -103,6 +103,44 @@ describe('PossibleStopDetectorService (varredura privada via verificarTodas)', (
     expect(possibleStopRepo.save).not.toHaveBeenCalled();
   });
 
+  it('cancela sozinha a possível parada pendente se a produção voltar antes de alguém confirmar/descartar', async () => {
+    const pendente = { id: 'ja-existe', status: PossibleStopStatus.PENDING, resolved_at: null };
+    const { service, possibleStopRepo, machineStateRepo, realtime } = montarService({
+      sessoesAtivas: [SESSAO_BASE],
+      ultimoEvento: { occurred_at: new Date() }, // chegou evento novo agora mesmo
+      possibleStopExistente: pendente,
+    });
+
+    await (service as any).verificarTodas();
+
+    // Não cria um possible_stop NOVO — atualiza (cancela) o que já existia.
+    expect(possibleStopRepo.create).not.toHaveBeenCalled();
+    expect(possibleStopRepo.save).toHaveBeenCalledTimes(1);
+    expect(possibleStopRepo.save).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'ja-existe', status: PossibleStopStatus.DISMISSED }),
+    );
+    expect(realtime.emitToCompany).toHaveBeenCalledWith(
+      'empresa-1', 'possible_stop.resolved', expect.objectContaining({ possible_stop_id: 'ja-existe' }),
+    );
+    expect(machineStateRepo.save).toHaveBeenCalledWith(
+      expect.objectContaining({ state: MachineStateEnum.RUNNING }),
+    );
+  });
+
+  it('possível parada pendente continua parada (sem produção ainda) — não mexe nela', async () => {
+    const pendente = { id: 'ja-existe', status: PossibleStopStatus.PENDING, resolved_at: null };
+    const { service, possibleStopRepo, realtime } = montarService({
+      sessoesAtivas: [SESSAO_BASE],
+      ultimoEvento: { occurred_at: new Date(Date.now() - 999_000) }, // ainda sem produção
+      possibleStopExistente: pendente,
+    });
+
+    await (service as any).verificarTodas();
+
+    expect(possibleStopRepo.save).not.toHaveBeenCalled();
+    expect(realtime.emitToCompany).not.toHaveBeenCalled();
+  });
+
   it('não cria possible_stop se já existe uma parada REAL aberta pra essa máquina (operador já resolveu manualmente)', async () => {
     const { service, possibleStopRepo } = montarService({
       sessoesAtivas: [SESSAO_BASE],
