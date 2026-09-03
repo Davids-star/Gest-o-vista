@@ -76,7 +76,6 @@
       <div class="dark-panel p-6">
         <h3 class="text-xs font-bold uppercase tracking-widest text-white mb-4 border-b border-slate-800 pb-3 flex items-center gap-2">
           <span class="text-emerald-400">🏭</span> ESTAÇÕES DA FÁBRICA
-          <span class="text-[10px] font-medium normal-case text-slate-500 ml-auto">clique numa máquina pra ver o detalhe e filtrar produção por hora</span>
         </h3>
 
         <div v-if="store.loading.machines" class="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -105,7 +104,6 @@
                 <p class="text-xs font-extrabold uppercase tracking-wider text-white truncate">
                   Máquina {{ getMachineNumber(m) }}
                 </p>
-                <p class="text-[10px] text-slate-400 truncate">{{ m.location || m.description || 'Chão de Fábrica' }}</p>
               </div>
             </div>
             <span

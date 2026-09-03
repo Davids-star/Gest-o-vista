@@ -91,7 +91,6 @@
               </span>
               <div>
                 <p class="text-base font-extrabold uppercase tracking-wide text-white">{{ machine.displayName }}</p>
-                <p class="text-xs text-slate-400">{{ machine.location || machine.description || 'Chão de Fábrica' }}</p>
               </div>
             </div>
             <span

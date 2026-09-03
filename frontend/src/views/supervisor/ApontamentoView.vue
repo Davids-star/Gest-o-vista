@@ -9,9 +9,6 @@
           <h1 class="text-2xl sm:text-3xl font-extrabold uppercase tracking-wider text-white">
             APONTAMENTO <span class="text-sm font-normal text-emerald-400">por estação</span>
           </h1>
-          <p class="text-xs text-slate-400 font-semibold uppercase tracking-widest mt-1">
-            Selecione uma máquina para acompanhar sua produção e ocorrências em tempo real
-          </p>
         </div>
 
         <div class="flex items-center gap-3 self-start sm:self-auto">
@@ -32,7 +29,6 @@
       <section class="mb-6">
         <h2 class="text-xs font-bold uppercase tracking-widest text-slate-400 mb-3 flex items-center justify-between">
           <span class="flex items-center gap-2"><span>🏭</span> ESTAÇÕES DA FÁBRICA</span>
-          <span class="text-[10px] text-slate-500 font-normal">Clique na máquina para alternar a visão</span>
         </h2>
 
         <div v-if="store.loading.machines" class="grid grid-cols-2 lg:grid-cols-4 gap-3">
@@ -62,7 +58,6 @@
                   <p class="text-xs font-extrabold uppercase tracking-wider text-white truncate">
                     {{ getMachineDisplayName(st) }}
                   </p>
-                  <p class="text-[10px] text-slate-400 truncate">{{ st.name || st.location || 'Chão de Fábrica' }}</p>
                 </div>
               </div>
             </div>

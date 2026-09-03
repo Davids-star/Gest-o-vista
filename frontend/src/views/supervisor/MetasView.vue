@@ -104,11 +104,6 @@
               </span>
             </div>
           </div>
-
-          <!-- Nota sobre progresso real -->
-          <p class="text-[10px] text-slate-500 uppercase tracking-wider">
-            ⏳ O progresso será exibido conforme os eventos de produção forem registrados.
-          </p>
         </div>
       </div>
     </main>
