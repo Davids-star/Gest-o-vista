@@ -130,6 +130,40 @@
                 <span class="font-bold text-slate-200 truncate block">{{ s.operator?.name || '—' }}</span>
               </div>
             </div>
+
+            <!-- Detalhamento hora a hora — produção, tempo produzido e
+                 tempo parado de cada hora que a sessão esteve ativa (mesma
+                 lógica de "tempo produzido = elapsed - paradas" de cima,
+                 só fatiada por hora; ver ApontamentoService.calcularPorHora). -->
+            <div v-if="s.por_hora?.length" class="pt-2 border-t border-slate-800/60">
+              <button
+                @click="toggleHoraAHora(s.id)"
+                class="text-[11px] font-bold text-slate-400 hover:text-emerald-400 uppercase tracking-wider flex items-center gap-1.5 transition-colors">
+                <span :class="horasExpandidas.has(s.id) ? 'rotate-90' : ''" class="transition-transform inline-block">▸</span>
+                Ver hora a hora ({{ s.por_hora.length }}h)
+              </button>
+
+              <div v-if="horasExpandidas.has(s.id)" class="mt-2 overflow-x-auto">
+                <table class="w-full text-[11px] font-mono">
+                  <thead>
+                    <tr class="text-slate-500 uppercase text-[9px] font-sans font-bold">
+                      <th class="text-left pb-1 pr-3">Hora</th>
+                      <th class="text-right pb-1 pr-3">Produção</th>
+                      <th class="text-right pb-1 pr-3">T. Produzido</th>
+                      <th class="text-right pb-1">T. Parado</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="h in s.por_hora" :key="h.hora" class="border-t border-slate-800/60">
+                      <td class="py-1 pr-3 text-slate-300">{{ h.hora }}h–{{ String((parseInt(h.hora, 10) + 1) % 24).padStart(2, '0') }}h</td>
+                      <td class="py-1 pr-3 text-right text-emerald-400 font-bold">{{ h.producao.toLocaleString('pt-BR') }}</td>
+                      <td class="py-1 pr-3 text-right text-slate-300">{{ formatDuracao(h.tempo_produzido_segundos) }}</td>
+                      <td class="py-1 text-right" :class="h.tempo_parado_segundos > 0 ? 'text-red-400 font-bold' : 'text-slate-600'">{{ formatDuracao(h.tempo_parado_segundos) }}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -188,7 +222,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, reactive, computed } from 'vue';
 
 const props = defineProps({
   isOpen: { type: Boolean, default: false },
@@ -201,6 +235,14 @@ const props = defineProps({
 defineEmits(['close']);
 
 const activeTab = ref('sessoes');
+
+// Quais sessões estão com o detalhamento hora a hora aberto — reactive()
+// pra Vue rastrear mutação de Set (ref() não dispara re-render em .add/.delete).
+const horasExpandidas = reactive(new Set());
+const toggleHoraAHora = (sessionId) => {
+  if (horasExpandidas.has(sessionId)) horasExpandidas.delete(sessionId);
+  else horasExpandidas.add(sessionId);
+};
 
 const formattedDate = computed(() => {
   if (!props.date) return '';
