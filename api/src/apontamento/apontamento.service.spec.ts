@@ -1,4 +1,7 @@
-import { ApontamentoService, formatarDataLocal, limitesDoDia, limitesDoMes, duracaoParada } from './apontamento.service';
+import {
+  ApontamentoService, formatarDataLocal, limitesDoDia, limitesDoMes, duracaoParada,
+  limitesDaHora, overlapSegundos, calcularPorHora,
+} from './apontamento.service';
 import { StopStatus } from '../database/entities/stop.entity';
 import { SessionStatus } from '../database/entities/production-session.entity';
 
@@ -42,6 +45,91 @@ describe('limitesDoMes', () => {
   });
 });
 
+describe('limitesDaHora', () => {
+  it('08h local == 11h UTC (fuso -03:00)', () => {
+    const { inicio, fim } = limitesDaHora('2026-09-02', 8);
+    expect(inicio.toISOString()).toBe('2026-09-02T11:00:00.000Z');
+    expect(fim.toISOString()).toBe('2026-09-02T11:59:59.999Z');
+  });
+
+  it('hora 0 (meia-noite local)', () => {
+    const { inicio } = limitesDaHora('2026-09-02', 0);
+    expect(inicio.toISOString()).toBe('2026-09-02T03:00:00.000Z');
+  });
+});
+
+describe('overlapSegundos', () => {
+  it('sem sobreposição nenhuma → 0', () => {
+    const a1 = new Date('2026-09-02T10:00:00Z');
+    const a2 = new Date('2026-09-02T10:30:00Z');
+    const b1 = new Date('2026-09-02T11:00:00Z');
+    const b2 = new Date('2026-09-02T12:00:00Z');
+    expect(overlapSegundos(a1, a2, b1, b2)).toBe(0);
+  });
+
+  it('intervalo B totalmente dentro de A → duração de B inteira', () => {
+    const a1 = new Date('2026-09-02T08:00:00Z');
+    const a2 = new Date('2026-09-02T17:00:00Z');
+    const b1 = new Date('2026-09-02T09:00:00Z');
+    const b2 = new Date('2026-09-02T10:00:00Z');
+    expect(overlapSegundos(a1, a2, b1, b2)).toBe(3600);
+  });
+
+  it('sobreposição parcial → só o pedaço que se cruza', () => {
+    const a1 = new Date('2026-09-02T08:30:00Z');
+    const a2 = new Date('2026-09-02T09:15:00Z');
+    const b1 = new Date('2026-09-02T09:00:00Z');
+    const b2 = new Date('2026-09-02T10:00:00Z');
+    expect(overlapSegundos(a1, a2, b1, b2)).toBe(900); // 15min
+  });
+});
+
+describe('calcularPorHora — mesmo exemplo da seção 9 (sessão 08h-12h, 27min parado)', () => {
+  it('quebra a sessão em 4 horas, com produzido/parado batendo com o total já testado', () => {
+    const sessao = {
+      started_at: new Date('2026-09-02T08:00:00.000-03:00'),
+      ended_at: new Date('2026-09-02T12:00:00.000-03:00'),
+    };
+    const paradas = [
+      { started_at: new Date('2026-09-02T10:00:00.000-03:00'), ended_at: new Date('2026-09-02T10:15:00.000-03:00') },
+      { started_at: new Date('2026-09-02T11:30:00.000-03:00'), ended_at: new Date('2026-09-02T11:42:00.000-03:00') },
+    ] as any;
+    const producaoPorHora = new Map([['08', 100], ['09', 150], ['10', 200], ['11', 200]]);
+    const agora = new Date('2026-09-02T12:00:00.000-03:00');
+
+    const resultado = calcularPorHora('2026-09-02', sessao, paradas, producaoPorHora, agora);
+
+    expect(resultado).toHaveLength(4); // só as horas em que a sessão realmente esteve ativa
+    expect(resultado.map((r) => r.hora)).toEqual(['08', '09', '10', '11']);
+
+    // Horas sem parada nenhuma: 1h inteira produzindo.
+    expect(resultado[0]).toMatchObject({ producao: 100, tempo_produzido_segundos: 3600, tempo_parado_segundos: 0 });
+    expect(resultado[1]).toMatchObject({ producao: 150, tempo_produzido_segundos: 3600, tempo_parado_segundos: 0 });
+
+    // 10h: parada de 15min (900s) dentro dela.
+    expect(resultado[2]).toMatchObject({ producao: 200, tempo_produzido_segundos: 2700, tempo_parado_segundos: 900 });
+
+    // 11h: parada de 12min (720s) dentro dela.
+    expect(resultado[3]).toMatchObject({ producao: 200, tempo_produzido_segundos: 2880, tempo_parado_segundos: 720 });
+
+    // Soma das horas bate com o total já validado no teste da seção 9
+    // (4h - 27min = 12780s produzido, 27min = 1620s parado).
+    const totalProduzido = resultado.reduce((a, r) => a + r.tempo_produzido_segundos, 0);
+    const totalParado = resultado.reduce((a, r) => a + r.tempo_parado_segundos, 0);
+    expect(totalProduzido).toBe(12780);
+    expect(totalParado).toBe(1620);
+  });
+
+  it('sessão que ainda não passou por uma hora não aparece na lista (não inventa hora vazia)', () => {
+    const sessao = { started_at: new Date('2026-09-02T08:00:00.000-03:00'), ended_at: null };
+    const agora = new Date('2026-09-02T08:30:00.000-03:00'); // só 30min de sessão, ainda na hora 08
+    const resultado = calcularPorHora('2026-09-02', sessao, [], new Map(), agora);
+    expect(resultado).toHaveLength(1);
+    expect(resultado[0].hora).toBe('08');
+    expect(resultado[0].tempo_produzido_segundos).toBe(1800); // 30min
+  });
+});
+
 describe('duracaoParada', () => {
   const agora = new Date('2026-08-31T12:00:00.000Z');
 
@@ -59,7 +147,7 @@ describe('duracaoParada', () => {
 /** QueryBuilder fake — encadeia tudo e devolve o resultado configurado no fim. */
 function fakeQb(resultado: any[]) {
   const qb: any = {};
-  const encadeavel = ['innerJoinAndSelect', 'leftJoinAndSelect', 'innerJoin', 'leftJoin', 'where', 'andWhere', 'select', 'addSelect', 'groupBy', 'orderBy'];
+  const encadeavel = ['innerJoinAndSelect', 'leftJoinAndSelect', 'innerJoin', 'leftJoin', 'where', 'andWhere', 'select', 'addSelect', 'groupBy', 'addGroupBy', 'orderBy'];
   for (const m of encadeavel) qb[m] = jest.fn().mockReturnValue(qb);
   qb.getMany = jest.fn().mockResolvedValue(resultado);
   qb.getRawMany = jest.fn().mockResolvedValue(resultado);

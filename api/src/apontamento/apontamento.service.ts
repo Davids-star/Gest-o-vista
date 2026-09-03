@@ -71,6 +71,66 @@ function horasVazias(): { hora: string; quantidade: number }[] {
   return Array.from({ length: 24 }, (_, h) => ({ hora: String(h).padStart(2, '0'), quantidade: 0 }));
 }
 
+/** Início/fim (em UTC) de uma hora local específica de um dia — mesma
+ * convenção de fuso fixo -03:00 de `limitesDoDia`. Ex.: limitesDaHora(
+ * '2026-09-02', 8) => 08:00:00.000 até 08:59:59.999 locais daquele dia. */
+export function limitesDaHora(dataStr: string, hora: number): { inicio: Date; fim: Date } {
+  const hh = String(hora).padStart(2, '0');
+  const inicio = new Date(`${dataStr}T${hh}:00:00.000-03:00`);
+  const fim = new Date(inicio.getTime() + 60 * 60 * 1000 - 1);
+  return { inicio, fim };
+}
+
+/** Segundos de sobreposição entre dois intervalos [aInicio,aFim] e
+ * [bInicio,bFim] — 0 se não se cruzam. Base de "quanto dessa parada (ou
+ * dessa sessão) caiu dentro dessa hora específica". */
+export function overlapSegundos(aInicio: Date, aFim: Date, bInicio: Date, bFim: Date): number {
+  const inicio = Math.max(aInicio.getTime(), bInicio.getTime());
+  const fim = Math.min(aFim.getTime(), bFim.getTime());
+  return Math.max(0, (fim - inicio) / 1000);
+}
+
+/**
+ * Quebra uma sessão em fatias de 1h (dentro do dia local `dataStr`), com
+ * produção, tempo produzido e tempo parado de CADA hora — mesma lógica já
+ * usada pro total da sessão (tempo = elapsed - paradas), só que aplicada
+ * hora a hora em vez de na sessão inteira. Reaproveita `duracaoParada` e
+ * `overlapSegundos`; não introduz cálculo novo, só fatia o que já existe.
+ */
+export function calcularPorHora(
+  dataStr: string,
+  sessao: { started_at: Date; ended_at: Date | null },
+  paradasDaSessao: Stop[],
+  producaoPorHoraSessao: Map<string, number>,
+  agora: Date,
+): { hora: string; producao: number; tempo_produzido_segundos: number; tempo_parado_segundos: number }[] {
+  const fimEfetivo = sessao.ended_at ?? agora;
+  const resultado: { hora: string; producao: number; tempo_produzido_segundos: number; tempo_parado_segundos: number }[] = [];
+
+  for (let h = 0; h < 24; h++) {
+    const { inicio: horaInicio, fim: horaFim } = limitesDaHora(dataStr, h);
+    const duracaoNaHora = overlapSegundos(sessao.started_at, fimEfetivo, horaInicio, horaFim);
+    if (duracaoNaHora <= 0) continue; // sessão nem passou por essa hora — não polui a lista com hora vazia
+
+    let tempoParadoNaHora = 0;
+    for (const p of paradasDaSessao) {
+      const paradaFim = p.ended_at ?? agora;
+      tempoParadoNaHora += overlapSegundos(p.started_at, paradaFim, horaInicio, horaFim);
+    }
+    tempoParadoNaHora = Math.min(tempoParadoNaHora, duracaoNaHora); // nunca mais que a própria hora
+
+    const hh = String(h).padStart(2, '0');
+    resultado.push({
+      hora: hh,
+      producao: producaoPorHoraSessao.get(hh) || 0,
+      tempo_produzido_segundos: Math.round(duracaoNaHora - tempoParadoNaHora),
+      tempo_parado_segundos: Math.round(tempoParadoNaHora),
+    });
+  }
+
+  return resultado;
+}
+
 function mapParada(stop: Stop, agora: Date) {
   return {
     id: stop.id,
@@ -200,6 +260,26 @@ export class ApontamentoService {
       if (entrada) entrada.quantidade = Number(r.total);
     }
 
+    // Mesma agregação, mas por SESSÃO — usada no detalhamento hora a hora
+    // de cada sessão (calcularPorHora). Uma máquina com mais de uma sessão
+    // no dia não pode misturar a produção de uma hora de uma sessão com a
+    // de outra, por isso agrupa por session_id também, não só por hora.
+    const horaPorSessaoRows = await this.eventRepo
+      .createQueryBuilder('event')
+      .leftJoin('production_corrections', 'correction', 'correction.event_id = event.id')
+      .select('event.session_id', 'session_id')
+      .addSelect("to_char(event.occurred_at AT TIME ZONE 'America/Fortaleza', 'HH24')", 'hora')
+      .addSelect('COALESCE(SUM(COALESCE(correction.corrected_quantity, event.quantity)), 0)', 'total')
+      .where('event.session_id IN (:...sessionIds)', { sessionIds })
+      .groupBy('event.session_id')
+      .addGroupBy("to_char(event.occurred_at AT TIME ZONE 'America/Fortaleza', 'HH24')")
+      .getRawMany<{ session_id: string; hora: string; total: string }>();
+    const producaoPorHoraPorSessao = new Map<string, Map<string, number>>();
+    for (const r of horaPorSessaoRows) {
+      if (!producaoPorHoraPorSessao.has(r.session_id)) producaoPorHoraPorSessao.set(r.session_id, new Map());
+      producaoPorHoraPorSessao.get(r.session_id)!.set(r.hora, Number(r.total));
+    }
+
     // Paradas ligadas a essas sessões...
     const paradasComSessao = await this.stopRepo.find({
       where: { session_id: In(sessionIds) },
@@ -274,6 +354,17 @@ export class ApontamentoService {
         tempo_produzido_segundos: Math.round(tempoProduzidoSeg),
         tempo_parado_segundos: Math.round(tempoParadoSeg),
         paradas: paradasDaSessao.map((p) => mapParada(p, agora)),
+        // Detalhamento hora a hora: produção, tempo produzido e tempo
+        // parado de CADA hora que a sessão esteve ativa — mesma lógica de
+        // "tempo produzido = elapsed - paradas" de cima, só que fatiada
+        // por hora em vez de aplicada na sessão inteira.
+        por_hora: calcularPorHora(
+          dataStr,
+          session,
+          paradasDaSessao,
+          producaoPorHoraPorSessao.get(session.id) || new Map(),
+          agora,
+        ),
       };
     });
 
