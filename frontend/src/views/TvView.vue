@@ -42,29 +42,31 @@
         </div>
       </div>
 
-      <div class="dark-panel border-2 p-5 flex items-center gap-4" :class="kpis.alertas > 0 ? 'border-red-500/50' : 'border-slate-800'">
-        <div class="w-12 h-12 rounded-xl border flex items-center justify-center shrink-0" :class="kpis.alertas > 0 ? 'bg-red-500/10 border-red-500/40 text-red-400' : 'bg-slate-900 border-slate-700 text-slate-500'">
+      <div class="dark-panel border-2 border-red-500/50 p-5 flex items-center gap-4">
+        <div class="w-12 h-12 rounded-xl border border-red-500/40 bg-red-500/10 text-red-400 flex items-center justify-center shrink-0">
+          <!-- Triângulo de alerta (Heroicons exclamation-triangle) — antes
+               estava com dois ícones diferentes sobrepostos (círculo +
+               triângulo), por isso ficava borrado/quebrado. -->
           <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
           </svg>
         </div>
         <div>
           <p class="text-xs font-bold uppercase tracking-wider text-slate-400">Alertas</p>
-          <p class="text-4xl font-black font-mono leading-tight" :class="kpis.alertas > 0 ? 'text-red-400' : 'text-slate-600'">{{ kpis.alertas }}</p>
+          <p class="text-4xl font-black font-mono leading-tight text-red-400">{{ kpis.alertas }}</p>
           <p class="text-[11px] text-slate-500 uppercase tracking-wider">{{ kpis.alertas > 0 ? 'em aberto' : 'nenhum alerta' }}</p>
         </div>
       </div>
 
-      <div class="dark-panel border-2 p-5 flex items-center gap-4" :class="kpis.manutencao > 0 ? 'border-amber-500/50' : 'border-slate-800'">
-        <div class="w-12 h-12 rounded-xl border flex items-center justify-center shrink-0" :class="kpis.manutencao > 0 ? 'bg-amber-500/10 border-amber-500/40 text-amber-400' : 'bg-slate-900 border-slate-700 text-slate-500'">
+      <div class="dark-panel border-2 border-amber-500/50 p-5 flex items-center gap-4">
+        <div class="w-12 h-12 rounded-xl border border-amber-500/40 bg-amber-500/10 text-amber-400 flex items-center justify-center shrink-0">
           <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.42 15.17L17.25 21A2.652 2.652 0 0021 17.25l-5.877-5.877M11.42 15.17l2.496-3.03c.317-.384.74-.626 1.208-.766M11.42 15.17l-4.655 5.653a2.548 2.548 0 11-3.586-3.586l6.837-5.63m5.108-.233c.55-.164 1.163-.188 1.743-.14a4.5 4.5 0 004.486-6.336l-3.276 3.277a3.004 3.004 0 01-2.25-2.25l3.276-3.276a4.5 4.5 0 00-6.336 4.486c.091 1.076-.071 2.264-.904 2.95l-.102.085m-1.745 1.437L5.909 7.5H4.5L1.5 3l1.5-1.5L7.5 4.5v1.409l4.26 4.26" />
           </svg>
         </div>
         <div>
           <p class="text-xs font-bold uppercase tracking-wider text-slate-400">Manutenção</p>
-          <p class="text-4xl font-black font-mono leading-tight" :class="kpis.manutencao > 0 ? 'text-amber-400' : 'text-slate-600'">{{ kpis.manutencao }}</p>
+          <p class="text-4xl font-black font-mono leading-tight text-amber-400">{{ kpis.manutencao }}</p>
           <p class="text-[11px] text-slate-500 uppercase tracking-wider">{{ kpis.manutencao > 0 ? 'em manutenção' : 'nenhuma parada' }}</p>
         </div>
       </div>
