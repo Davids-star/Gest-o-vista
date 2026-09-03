@@ -8,7 +8,6 @@
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 class="text-2xl sm:text-3xl font-extrabold uppercase tracking-wider text-white">DASHBOARD INDUSTRIAL</h1>
-          <p class="text-xs font-semibold text-slate-400 uppercase tracking-widest mt-1">Visão Geral, Histórico por Dias e Ocorrências da Fábrica</p>
         </div>
         <div class="flex items-center gap-2 bg-[#121824] border border-[#1e293b] px-4 py-2 rounded-xl text-slate-300 font-mono text-sm self-start sm:self-auto">
           <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>

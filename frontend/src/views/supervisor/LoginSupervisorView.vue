@@ -98,8 +98,7 @@ const loginWithLinkedIn = () => {
           </div>
         </div>
 
-        <h1 class="text-center text-2xl font-extrabold text-white mb-1">Bem-vindo de volta!</h1>
-        <p class="text-center text-xs text-gray-400 mb-7 tracking-wide">Faça login para acessar o painel do supervisor</p>
+        <h1 class="text-center text-2xl font-extrabold text-white mb-7">Bem-vindo de volta!</h1>
 
         <!-- Mensagem de erro -->
         <div v-if="errorMessage" class="mb-4 text-center text-xs font-semibold text-red-400 bg-red-950/40 border border-red-800/50 py-2 px-3 rounded-lg">

@@ -7,9 +7,6 @@
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 md:mb-8">
         <div>
           <h1 class="text-2xl sm:text-3xl font-extrabold uppercase tracking-wider text-white">MONITORAMENTO</h1>
-          <p class="text-xs text-slate-400 font-semibold uppercase tracking-widest mt-1">
-            Visão geral de produção em tempo real — {{ currentDate }}
-          </p>
         </div>
         <div class="flex items-center gap-2 bg-[#121824] border border-[#1e293b] px-4 py-2 rounded-xl text-slate-300 font-mono text-sm self-start sm:self-auto">
           <svg class="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">

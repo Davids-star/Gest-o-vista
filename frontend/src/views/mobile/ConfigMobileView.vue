@@ -12,7 +12,6 @@
       </button>
       <div>
         <h1 class="text-base font-extrabold tracking-wide gp-text leading-tight">Configurações</h1>
-        <p class="text-[11px] text-emerald-400 font-semibold tracking-wider uppercase">GP Mobile</p>
       </div>
     </header>
 

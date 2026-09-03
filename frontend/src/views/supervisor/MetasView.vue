@@ -7,9 +7,6 @@
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 md:mb-8">
         <div>
           <h1 class="text-2xl sm:text-3xl font-extrabold uppercase tracking-wider text-white">METAS DE PRODUÇÃO</h1>
-          <p class="text-xs font-semibold text-slate-400 uppercase tracking-widest mt-1">
-            Metas salvas no banco — clique em uma máquina para definir ou editar
-          </p>
         </div>
 
         <button

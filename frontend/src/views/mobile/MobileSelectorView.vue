@@ -10,7 +10,6 @@
         </div>
         <div>
           <h1 class="text-base font-extrabold tracking-wide gp-text leading-tight">GP INDUSTRIAL</h1>
-          <p class="text-[11px] text-emerald-400 font-semibold tracking-wider uppercase">Configuração Inicial Mobile</p>
         </div>
       </div>
 

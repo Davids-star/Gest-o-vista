@@ -9,7 +9,6 @@
 
       <div>
         <h1 class="text-2xl font-extrabold uppercase tracking-wider text-white">TOTEM OPERACIONAL</h1>
-        <p class="text-xs text-slate-400 tracking-wide mt-1">Selecione a estação e informe seu nome</p>
       </div>
 
       <!-- Loading máquinas -->
