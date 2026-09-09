@@ -128,17 +128,26 @@
           METAS
         </router-link>
 
-        <!-- Alertas -->
+        <!-- Alertas — badge vermelho sólido com a contagem de pendências
+             quando há alerta em aberto; sem animate-pulse (não deve "piscar"). -->
         <router-link
           to="/alertas"
           @click="mobileOpen = false"
           class="flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-semibold transition-all"
-          :class="$route.path === '/alertas' ? 'bg-emerald-600/20 text-emerald-400 border border-emerald-500/30' : 'text-slate-300 hover:bg-slate-800/50 hover:text-white'"
+          :class="$route.path === '/alertas'
+            ? 'bg-emerald-600/20 text-emerald-400 border border-emerald-500/30'
+            : (store.alerts.length ? 'text-slate-300 hover:bg-red-500/10 hover:text-red-400' : 'text-slate-300 hover:bg-slate-800/50 hover:text-white')"
         >
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
           </svg>
           ALERTAS
+          <span
+            v-if="store.alerts.length"
+            class="ml-auto min-w-[1.25rem] h-5 px-1.5 rounded-full bg-red-500 text-white text-[10px] font-black flex items-center justify-center"
+          >
+            {{ store.alerts.length }}
+          </span>
         </router-link>
 
         <!-- Lotes -->
@@ -226,9 +235,11 @@
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuth } from '../composables/useAuth';
+import { useProductionStore } from '../stores/productionStore';
 
 const router = useRouter();
 const { role, isAdmin, user, clearSession } = useAuth();
+const store = useProductionStore();
 const mobileOpen = ref(false);
 
 const handleLogout = () => {

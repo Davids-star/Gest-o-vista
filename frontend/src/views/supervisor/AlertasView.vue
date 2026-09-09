@@ -101,7 +101,6 @@
         </div>
         <p class="text-emerald-400 font-bold text-lg">Nenhum alerta em aberto</p>
         <p class="text-slate-400 text-sm">Sistema operando normalmente.</p>
-        <p class="text-slate-500 text-xs">Fonte: <code class="text-emerald-400">GET /alertas/abertos</code></p>
       </div>
 
       <!-- Alertas reais (GET /alertas/abertos) -->

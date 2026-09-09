@@ -156,26 +156,6 @@
             </div>
           </div>
         </div>
-
-        <!-- Resumo das 4 máquinas — produção e paradas de hoje, lado a lado -->
-        <div v-if="store.machines.length" class="mt-5 pt-5 border-t border-slate-800">
-          <h4 class="text-xs font-extrabold uppercase tracking-wider text-slate-300 mb-3">Resumo das Máquinas (Hoje)</h4>
-          <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
-            <div
-              v-for="m in store.machines"
-              :key="'resumo-' + m.id"
-              class="dark-panel p-3 space-y-1 cursor-pointer transition-all"
-              :class="store.selectedStationId === m.id ? 'border-emerald-500/50' : ''"
-              @click="toggleSelecaoMaquina(m.id)"
-            >
-              <p class="text-[10px] font-bold uppercase text-slate-400">Máquina {{ getMachineNumber(m) }}</p>
-              <p class="font-mono text-base font-black text-emerald-400">
-                {{ (resumoPorMaquina[m.id]?.producao || 0).toLocaleString('pt-BR') }} <span class="text-[10px] text-slate-400 font-normal">un.</span>
-              </p>
-              <p class="text-[10px] text-slate-400">{{ resumoPorMaquina[m.id]?.paradas || 0 }} parada{{ (resumoPorMaquina[m.id]?.paradas || 0) !== 1 ? 's' : '' }}</p>
-            </div>
-          </div>
-        </div>
       </div>
 
       <!-- ══════════════════════════════════════════════════════════════
@@ -265,6 +245,27 @@
           <span class="text-emerald-400 normal-case font-normal">— {{ maquinaSelecionada ? `Máquina ${getMachineNumber(maquinaSelecionada)}` : 'Todas as Máquinas' }}</span>
         </h4>
         <HourlyProductionChart :data="producaoPorHoraChart" />
+      </div>
+
+      <!-- Resumo das 4 máquinas — produção e paradas de hoje, lado a lado.
+           Fica logo acima de OCORRÊNCIAS & ALERTAS (pedido do usuário). -->
+      <div v-if="store.machines.length" class="dark-panel p-4 sm:p-6">
+        <h4 class="text-xs font-extrabold uppercase tracking-wider text-slate-300 mb-3">Resumo das Máquinas (Hoje)</h4>
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          <div
+            v-for="m in store.machines"
+            :key="'resumo-' + m.id"
+            class="dark-panel p-3 space-y-1 cursor-pointer transition-all"
+            :class="store.selectedStationId === m.id ? 'border-emerald-500/50' : ''"
+            @click="toggleSelecaoMaquina(m.id)"
+          >
+            <p class="text-[10px] font-bold uppercase text-slate-400">Máquina {{ getMachineNumber(m) }}</p>
+            <p class="font-mono text-base font-black text-emerald-400">
+              {{ (resumoPorMaquina[m.id]?.producao || 0).toLocaleString('pt-BR') }} <span class="text-[10px] text-slate-400 font-normal">un.</span>
+            </p>
+            <p class="text-[10px] text-slate-400">{{ resumoPorMaquina[m.id]?.paradas || 0 }} parada{{ (resumoPorMaquina[m.id]?.paradas || 0) !== 1 ? 's' : '' }}</p>
+          </div>
+        </div>
       </div>
 
       <!-- Alertas & Ocorrências (GET /alertas/abertos) -->
