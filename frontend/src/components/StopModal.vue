@@ -1,32 +1,32 @@
 <template>
   <div v-if="isOpen" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
     <div class="dark-panel w-full max-w-lg p-5 sm:p-6 space-y-4 sm:space-y-5 border border-red-500/30 shadow-2xl max-h-[90vh] overflow-y-auto">
-      <div class="flex justify-between items-center border-b border-slate-800 pb-3">
-        <h3 class="text-base font-bold text-white flex items-center gap-2">
+      <div class="flex justify-between items-center border-b border-slate-200 pb-3">
+        <h3 class="text-base font-bold text-slate-900 flex items-center gap-2">
           <span class="w-3 h-3 rounded-full bg-red-500"></span>
           REGISTRAR NOVA PARADA
         </h3>
-        <button @click="$emit('close')" class="text-slate-400 hover:text-white text-xl">&times;</button>
+        <button @click="$emit('close')" class="text-slate-500 hover:text-slate-900 text-xl">&times;</button>
       </div>
 
       <!-- Loading motivos -->
-      <div v-if="store.loading.stopReasons" class="text-slate-400 text-sm text-center py-4">
+      <div v-if="store.loading.stopReasons" class="text-slate-500 text-sm text-center py-4">
         Carregando motivos de parada...
       </div>
 
       <!-- Sem motivos cadastrados -->
       <div v-else-if="!store.stopReasons.length" class="text-center py-4 space-y-2">
-        <p class="text-slate-400 text-sm">Nenhum motivo de parada cadastrado.</p>
-        <p class="text-xs text-slate-500">Cadastre motivos via <code class="text-emerald-400">POST /motivos-parada</code></p>
+        <p class="text-slate-500 text-sm">Nenhum motivo de parada cadastrado.</p>
+        <p class="text-xs text-slate-500">Cadastre motivos via <code class="text-emerald-600">POST /motivos-parada</code></p>
       </div>
 
       <!-- Formulário com dados reais -->
       <div v-else class="space-y-4">
         <div>
-          <label class="block text-xs uppercase text-slate-400 font-semibold mb-1">Motivo da Parada *</label>
+          <label class="block text-xs uppercase text-slate-500 font-semibold mb-1">Motivo da Parada *</label>
           <select
             v-model="selectedReasonId"
-            class="w-full bg-slate-900 border border-slate-700 text-white rounded-lg p-3 focus:border-emerald-500 focus:outline-none text-sm"
+            class="w-full bg-slate-50 border border-slate-300 text-slate-900 rounded-lg p-3 focus:border-emerald-500 focus:outline-none text-sm"
           >
             <option value="" disabled>Selecione um motivo...</option>
             <option v-for="reason in store.stopReasons" :key="reason.id" :value="reason.id">
@@ -37,12 +37,12 @@
         </div>
 
         <div>
-          <label class="block text-xs uppercase text-slate-400 font-semibold mb-1">Observação / Detalhes</label>
+          <label class="block text-xs uppercase text-slate-500 font-semibold mb-1">Observação / Detalhes</label>
           <textarea
             v-model="obs"
             rows="3"
             placeholder="Descreva o ocorrido..."
-            class="w-full bg-slate-900 border border-slate-700 text-white rounded-lg p-3 focus:border-emerald-500 focus:outline-none text-sm resize-none"
+            class="w-full bg-slate-50 border border-slate-300 text-slate-900 rounded-lg p-3 focus:border-emerald-500 focus:outline-none text-sm resize-none"
           ></textarea>
         </div>
       </div>
@@ -50,7 +50,7 @@
       <div class="flex justify-end gap-3 pt-2">
         <button
           @click="$emit('close')"
-          class="px-6 py-2.5 bg-slate-800 text-slate-300 rounded-lg text-xs font-semibold hover:bg-slate-700 uppercase"
+          class="px-6 py-2.5 bg-slate-100 text-slate-700 rounded-lg text-xs font-semibold hover:bg-slate-200 uppercase"
         >
           CANCELAR
         </button>

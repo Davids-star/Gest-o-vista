@@ -1,12 +1,12 @@
 <template>
-  <div class="min-h-screen bg-[#0b0f17] text-white font-sans flex select-none">
+  <div class="min-h-screen bg-[#f1f5f9] text-slate-900 font-sans flex select-none">
     <AppSidebar />
 
     <main class="flex-1 p-4 pt-[calc(4rem+env(safe-area-inset-top))] md:p-6 md:pt-6 lg:p-8 overflow-y-auto max-w-7xl mx-auto w-full">
       <!-- Header -->
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 md:mb-8">
         <div>
-          <h1 class="text-2xl sm:text-3xl font-extrabold uppercase tracking-wider text-white">METAS DE PRODUÇÃO</h1>
+          <h1 class="text-2xl sm:text-3xl font-extrabold uppercase tracking-wider text-slate-900">METAS DE PRODUÇÃO</h1>
         </div>
 
         <button
@@ -25,17 +25,17 @@
            tendo dado na tela. -->
       <div v-if="store.loading.metas && !store.metas.length" class="space-y-4">
         <div v-for="i in 3" :key="i" class="dark-panel p-6 animate-pulse">
-          <div class="h-4 bg-slate-800 rounded w-1/4 mb-3"></div>
-          <div class="h-3 bg-slate-800 rounded w-1/2"></div>
+          <div class="h-4 bg-slate-100 rounded w-1/4 mb-3"></div>
+          <div class="h-3 bg-slate-100 rounded w-1/2"></div>
         </div>
       </div>
 
       <!-- Empty State -->
       <div v-else-if="!store.metas.length" class="dark-panel p-8 sm:p-12 text-center space-y-4">
         <div class="text-4xl">🎯</div>
-        <p class="text-slate-300 font-bold text-lg">Nenhuma meta cadastrada ainda</p>
-        <p class="text-slate-400 text-sm max-w-md mx-auto">
-          Clique em <strong class="text-emerald-400">+ NOVA META</strong> para criar a primeira meta de produção.
+        <p class="text-slate-700 font-bold text-lg">Nenhuma meta cadastrada ainda</p>
+        <p class="text-slate-500 text-sm max-w-md mx-auto">
+          Clique em <strong class="text-emerald-600">+ NOVA META</strong> para criar a primeira meta de produção.
           As metas são salvas no banco e calculadas automaticamente para semanal e diária.
         </p>
       </div>
@@ -51,17 +51,17 @@
         >
           <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div class="flex items-center gap-3 sm:gap-4">
-              <span class="w-10 h-10 rounded-xl border border-emerald-500/40 bg-emerald-500/10 text-emerald-400 flex items-center justify-center font-mono font-extrabold text-base shrink-0">
+              <span class="w-10 h-10 rounded-xl border border-emerald-500/40 bg-emerald-500/10 text-emerald-600 flex items-center justify-center font-mono font-extrabold text-base shrink-0">
                 {{ getMachineNumber(meta.machine_id) }}
               </span>
               <div>
-                <h3 class="text-base font-extrabold uppercase tracking-wider text-white flex flex-wrap items-center gap-2 sm:gap-3">
+                <h3 class="text-base font-extrabold uppercase tracking-wider text-slate-900 flex flex-wrap items-center gap-2 sm:gap-3">
                   Máquina {{ getMachineNumber(meta.machine_id) }}
-                  <span v-if="meta.product" class="text-xs font-mono font-normal text-slate-400">
+                  <span v-if="meta.product" class="text-xs font-mono font-normal text-slate-500">
                     ({{ meta.product.name }})
                   </span>
                 </h3>
-                <span class="text-[10px] uppercase font-bold tracking-widest text-slate-400">
+                <span class="text-[10px] uppercase font-bold tracking-widest text-slate-500">
                   {{ meta.period_type === 'monthly' ? 'META MENSAL' : meta.period_type === 'weekly' ? 'META SEMANAL' : 'META DIÁRIA' }}
                   — {{ formatDate(meta.period_start) }} até {{ formatDate(meta.period_end) }}
                 </span>
@@ -70,13 +70,13 @@
 
             <div class="flex items-center justify-between sm:justify-end gap-4">
               <div class="flex items-baseline gap-2">
-                <span class="text-xl sm:text-2xl font-black font-mono text-emerald-400">{{ meta.quantity.toLocaleString('pt-BR') }}</span>
-                <span class="text-xs font-bold text-slate-400 uppercase">unidades</span>
+                <span class="text-xl sm:text-2xl font-black font-mono text-emerald-600">{{ meta.quantity.toLocaleString('pt-BR') }}</span>
+                <span class="text-xs font-bold text-slate-500 uppercase">unidades</span>
               </div>
               <button
                 v-if="isSupervisor"
                 @click.stop="openEditMetaModal(meta)"
-                class="px-3 sm:px-4 py-2 bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/50 text-emerald-400 font-bold rounded-lg text-xs uppercase tracking-wider transition-all"
+                class="px-3 sm:px-4 py-2 bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/50 text-emerald-600 font-bold rounded-lg text-xs uppercase tracking-wider transition-all"
               >
                 EDITAR ✏️
               </button>
@@ -84,22 +84,22 @@
           </div>
 
           <!-- Desdobramento calculado -->
-          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-slate-900/60 p-3 rounded-xl border border-slate-800 text-xs">
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-slate-50 p-3 rounded-xl border border-slate-200 text-xs">
             <div>
-              <span class="text-slate-400 block">Mensal:</span>
-              <span class="font-mono font-bold text-white">
+              <span class="text-slate-500 block">Mensal:</span>
+              <span class="font-mono font-bold text-slate-900">
                 {{ meta.period_type === 'monthly' ? meta.quantity.toLocaleString('pt-BR') : Math.round(meta.quantity * 4).toLocaleString('pt-BR') }} un.
               </span>
             </div>
             <div>
-              <span class="text-slate-400 block">Semanal (calc.):</span>
-              <span class="font-mono font-bold text-white">
+              <span class="text-slate-500 block">Semanal (calc.):</span>
+              <span class="font-mono font-bold text-slate-900">
                 {{ meta.period_type === 'monthly' ? Math.round(meta.quantity / 4).toLocaleString('pt-BR') : meta.quantity.toLocaleString('pt-BR') }} un.
               </span>
             </div>
             <div>
-              <span class="text-slate-400 block">Diária (calc.):</span>
-              <span class="font-mono font-bold text-emerald-400">
+              <span class="text-slate-500 block">Diária (calc.):</span>
+              <span class="font-mono font-bold text-emerald-600">
                 {{ meta.period_type === 'monthly' ? Math.round(meta.quantity / 20).toLocaleString('pt-BR') : Math.round(meta.quantity / 5).toLocaleString('pt-BR') }} un.
               </span>
             </div>
@@ -114,21 +114,21 @@
       class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 overflow-y-auto"
     >
       <div class="dark-panel w-full max-w-lg p-5 sm:p-6 space-y-4 sm:space-y-5 border border-emerald-500/40 shadow-2xl max-h-[90vh] overflow-y-auto">
-        <div class="flex justify-between items-center border-b border-slate-800 pb-3">
-          <h3 class="text-base font-bold text-white uppercase flex items-center gap-2">
+        <div class="flex justify-between items-center border-b border-slate-200 pb-3">
+          <h3 class="text-base font-bold text-slate-900 uppercase flex items-center gap-2">
             <span class="w-3 h-3 rounded-full bg-emerald-400"></span>
             {{ editingMeta ? 'EDITAR META' : 'NOVA META DE PRODUÇÃO' }}
           </h3>
-          <button @click="isMetaModalOpen = false" class="text-slate-400 hover:text-white text-xl">&times;</button>
+          <button @click="isMetaModalOpen = false" class="text-slate-500 hover:text-slate-900 text-xl">&times;</button>
         </div>
 
         <div class="space-y-4">
           <!-- Máquina -->
           <div>
-            <label class="block text-xs uppercase text-slate-400 font-semibold mb-1">Máquina *</label>
+            <label class="block text-xs uppercase text-slate-500 font-semibold mb-1">Máquina *</label>
             <select
               v-model="metaForm.machine_id"
-              class="w-full bg-slate-900 border border-slate-700 text-white rounded-lg p-3 text-sm focus:border-emerald-500 focus:outline-none"
+              class="w-full bg-slate-50 border border-slate-300 text-slate-900 rounded-lg p-3 text-sm focus:border-emerald-500 focus:outline-none"
             >
               <option value="" disabled>Selecione uma máquina...</option>
               <option v-for="m in store.machines" :key="m.id" :value="m.id">
@@ -139,10 +139,10 @@
 
           <!-- Produto (opcional) -->
           <div>
-            <label class="block text-xs uppercase text-slate-400 font-semibold mb-1">Produto (opcional)</label>
+            <label class="block text-xs uppercase text-slate-500 font-semibold mb-1">Produto (opcional)</label>
             <select
               v-model="metaForm.product_id"
-              class="w-full bg-slate-900 border border-slate-700 text-white rounded-lg p-3 text-sm focus:border-emerald-500 focus:outline-none"
+              class="w-full bg-slate-50 border border-slate-300 text-slate-900 rounded-lg p-3 text-sm focus:border-emerald-500 focus:outline-none"
             >
               <option value="">Nenhum produto específico</option>
               <option v-for="p in store.products" :key="p.id" :value="p.id">
@@ -153,10 +153,10 @@
 
           <!-- Tipo de período -->
           <div>
-            <label class="block text-xs uppercase text-slate-400 font-semibold mb-1">Tipo de Meta *</label>
+            <label class="block text-xs uppercase text-slate-500 font-semibold mb-1">Tipo de Meta *</label>
             <select
               v-model="metaForm.period_type"
-              class="w-full bg-slate-900 border border-slate-700 text-white rounded-lg p-3 text-sm focus:border-emerald-500 focus:outline-none"
+              class="w-full bg-slate-50 border border-slate-300 text-slate-900 rounded-lg p-3 text-sm focus:border-emerald-500 focus:outline-none"
             >
               <option value="monthly">Mensal</option>
               <option value="weekly">Semanal</option>
@@ -166,57 +166,57 @@
 
           <!-- Quantidade -->
           <div>
-            <label class="block text-xs uppercase text-slate-400 font-semibold mb-1">Quantidade (Unidades) *</label>
+            <label class="block text-xs uppercase text-slate-500 font-semibold mb-1">Quantidade (Unidades) *</label>
             <input
               v-model.number="metaForm.quantity"
               type="number"
               min="1"
               step="100"
-              class="w-full bg-slate-900 border border-slate-700 text-emerald-400 font-mono font-bold text-lg rounded-lg p-3 focus:border-emerald-500 focus:outline-none"
+              class="w-full bg-slate-50 border border-slate-300 text-emerald-600 font-mono font-bold text-lg rounded-lg p-3 focus:border-emerald-500 focus:outline-none"
             />
           </div>
 
           <!-- Período Início e Fim -->
           <div class="grid grid-cols-2 gap-4">
             <div>
-              <label class="block text-xs uppercase text-slate-400 font-semibold mb-1">Data Início *</label>
+              <label class="block text-xs uppercase text-slate-500 font-semibold mb-1">Data Início *</label>
               <input
                 v-model="metaForm.period_start"
                 type="date"
-                class="w-full bg-slate-900 border border-slate-700 text-white rounded-lg p-3 text-sm focus:border-emerald-500 focus:outline-none"
+                class="w-full bg-slate-50 border border-slate-300 text-slate-900 rounded-lg p-3 text-sm focus:border-emerald-500 focus:outline-none"
               />
             </div>
             <div>
-              <label class="block text-xs uppercase text-slate-400 font-semibold mb-1">Data Fim *</label>
+              <label class="block text-xs uppercase text-slate-500 font-semibold mb-1">Data Fim *</label>
               <input
                 v-model="metaForm.period_end"
                 type="date"
                 :min="metaForm.period_start || undefined"
-                class="w-full bg-slate-900 border border-slate-700 text-white rounded-lg p-3 text-sm focus:border-emerald-500 focus:outline-none"
+                class="w-full bg-slate-50 border border-slate-300 text-slate-900 rounded-lg p-3 text-sm focus:border-emerald-500 focus:outline-none"
               />
             </div>
           </div>
 
           <!-- Desdobramento calculado em tempo real -->
-          <div v-if="metaForm.quantity && metaForm.period_type === 'monthly'" class="bg-slate-900/60 p-4 rounded-xl border border-slate-800 grid grid-cols-2 gap-4 text-xs">
+          <div v-if="metaForm.quantity && metaForm.period_type === 'monthly'" class="bg-slate-50 p-4 rounded-xl border border-slate-200 grid grid-cols-2 gap-4 text-xs">
             <div>
-              <span class="text-slate-400 block">Semanal calculado:</span>
-              <span class="font-mono font-bold text-white">{{ Math.round(metaForm.quantity / 4).toLocaleString('pt-BR') }} un.</span>
+              <span class="text-slate-500 block">Semanal calculado:</span>
+              <span class="font-mono font-bold text-slate-900">{{ Math.round(metaForm.quantity / 4).toLocaleString('pt-BR') }} un.</span>
             </div>
             <div>
-              <span class="text-slate-400 block">Diária calculada:</span>
-              <span class="font-mono font-bold text-emerald-400">{{ Math.round(metaForm.quantity / 20).toLocaleString('pt-BR') }} un.</span>
+              <span class="text-slate-500 block">Diária calculada:</span>
+              <span class="font-mono font-bold text-emerald-600">{{ Math.round(metaForm.quantity / 20).toLocaleString('pt-BR') }} un.</span>
             </div>
           </div>
 
           <!-- Erro -->
-          <div v-if="metaError" class="text-red-400 text-xs font-semibold">⚠ {{ metaError }}</div>
+          <div v-if="metaError" class="text-red-600 text-xs font-semibold">⚠ {{ metaError }}</div>
         </div>
 
         <div class="flex justify-end gap-3 pt-2">
           <button
             @click="isMetaModalOpen = false"
-            class="px-6 py-2.5 bg-slate-800 text-slate-300 rounded-lg text-xs font-semibold hover:bg-slate-700 uppercase"
+            class="px-6 py-2.5 bg-slate-100 text-slate-700 rounded-lg text-xs font-semibold hover:bg-slate-200 uppercase"
           >
             CANCELAR
           </button>

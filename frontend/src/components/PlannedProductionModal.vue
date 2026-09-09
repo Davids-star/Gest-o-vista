@@ -1,25 +1,25 @@
 <template>
   <div v-if="isOpen" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
     <div class="dark-panel w-full max-w-lg p-5 sm:p-6 space-y-4 sm:space-y-5 border border-emerald-500/30 shadow-2xl max-h-[90vh] overflow-y-auto">
-      <div class="flex justify-between items-center border-b border-slate-800 pb-3">
-        <h3 class="text-base font-bold text-white flex items-center gap-2">
+      <div class="flex justify-between items-center border-b border-slate-200 pb-3">
+        <h3 class="text-base font-bold text-slate-900 flex items-center gap-2">
           <span class="w-3 h-3 rounded-full bg-emerald-500"></span>
           PRÓXIMA PRODUÇÃO — {{ stationCode }}
         </h3>
-        <button @click="$emit('close')" class="text-slate-400 hover:text-white text-xl">&times;</button>
+        <button @click="$emit('close')" class="text-slate-500 hover:text-slate-900 text-xl">&times;</button>
       </div>
 
-      <p class="text-xs text-slate-400">
+      <p class="text-xs text-slate-500">
         Define o que essa máquina vai produzir assim que uma nova sessão for iniciada no Totem —
         fica valendo até você trocar. Só é possível enquanto a máquina não tem sessão ativa.
       </p>
 
       <div class="space-y-4">
         <div>
-          <label class="block text-xs uppercase text-slate-400 font-semibold mb-1">Produto</label>
+          <label class="block text-xs uppercase text-slate-500 font-semibold mb-1">Produto</label>
           <select
             v-model="productId"
-            class="w-full bg-slate-900 border border-slate-700 text-white rounded-lg p-3 focus:border-emerald-500 focus:outline-none text-sm"
+            class="w-full bg-slate-50 border border-slate-300 text-slate-900 rounded-lg p-3 focus:border-emerald-500 focus:outline-none text-sm"
           >
             <option value="">Sem produto definido</option>
             <option v-for="product in store.products" :key="product.id" :value="product.id">{{ product.name }}</option>
@@ -27,30 +27,30 @@
         </div>
 
         <div>
-          <label class="block text-xs uppercase text-slate-400 font-semibold mb-1">Lote</label>
+          <label class="block text-xs uppercase text-slate-500 font-semibold mb-1">Lote</label>
           <input
             v-model.trim="lotCode"
-            class="w-full bg-slate-900 border border-slate-700 text-white rounded-lg p-3 focus:border-emerald-500 focus:outline-none text-sm"
+            class="w-full bg-slate-50 border border-slate-300 text-slate-900 rounded-lg p-3 focus:border-emerald-500 focus:outline-none text-sm"
             placeholder="Código do lote (opcional)"
             maxlength="120"
           >
         </div>
 
-        <p v-if="errorMsg" class="text-xs text-red-400 font-semibold">⚠ {{ errorMsg }}</p>
+        <p v-if="errorMsg" class="text-xs text-red-600 font-semibold">⚠ {{ errorMsg }}</p>
       </div>
 
       <div class="flex justify-between gap-3 pt-2">
         <button
           @click="handleClear"
           :disabled="saving"
-          class="px-4 py-2.5 bg-slate-800 text-slate-400 rounded-lg text-xs font-semibold hover:bg-slate-700 uppercase disabled:opacity-40"
+          class="px-4 py-2.5 bg-slate-100 text-slate-500 rounded-lg text-xs font-semibold hover:bg-slate-200 uppercase disabled:opacity-40"
         >
           LIMPAR
         </button>
         <div class="flex gap-3">
           <button
             @click="$emit('close')"
-            class="px-6 py-2.5 bg-slate-800 text-slate-300 rounded-lg text-xs font-semibold hover:bg-slate-700 uppercase"
+            class="px-6 py-2.5 bg-slate-100 text-slate-700 rounded-lg text-xs font-semibold hover:bg-slate-200 uppercase"
           >
             CANCELAR
           </button>

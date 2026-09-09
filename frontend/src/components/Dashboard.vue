@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen bg-[#0b0f17] text-white font-sans flex select-none">
+  <div class="min-h-screen bg-[#f1f5f9] text-slate-900 font-sans flex select-none">
     <AppSidebar />
 
     <main class="flex-1 p-4 pt-[calc(4rem+env(safe-area-inset-top))] md:p-6 md:pt-6 lg:p-8 overflow-y-auto max-w-7xl mx-auto w-full space-y-6">
@@ -7,9 +7,9 @@
       <!-- Header do Dashboard -->
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 class="text-2xl sm:text-3xl font-extrabold uppercase tracking-wider text-white">DASHBOARD INDUSTRIAL</h1>
+          <h1 class="text-2xl sm:text-3xl font-extrabold uppercase tracking-wider text-slate-900">DASHBOARD INDUSTRIAL</h1>
         </div>
-        <div class="flex items-center gap-2 bg-[#121824] border border-[#1e293b] px-4 py-2 rounded-xl text-slate-300 font-mono text-sm self-start sm:self-auto">
+        <div class="flex items-center gap-2 bg-white border border-[#e2e8f0] px-4 py-2 rounded-xl text-slate-700 font-mono text-sm self-start sm:self-auto">
           <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
           {{ liveTime }}
         </div>
@@ -21,38 +21,38 @@
         <!-- Produção de Hoje -->
         <div class="dark-panel p-5 space-y-2 border-emerald-500/30">
           <div class="flex justify-between items-center">
-            <span class="text-xs font-bold uppercase tracking-wider text-slate-400">PRODUÇÃO HOJE</span>
-            <span class="text-[10px] text-emerald-400 font-bold bg-emerald-500/10 border border-emerald-500/30 px-2 py-0.5 rounded">
+            <span class="text-xs font-bold uppercase tracking-wider text-slate-500">PRODUÇÃO HOJE</span>
+            <span class="text-[10px] text-emerald-600 font-bold bg-emerald-500/10 border border-emerald-500/30 px-2 py-0.5 rounded">
               AO VIVO
             </span>
           </div>
           <div class="flex items-baseline gap-2">
-            <span class="font-mono text-3xl font-black text-emerald-400">
+            <span class="font-mono text-3xl font-black text-emerald-600">
               {{ (hojeApontamento?.resumo?.producao || 0).toLocaleString('pt-BR') }}
             </span>
-            <span class="text-xs text-slate-400">peças</span>
+            <span class="text-xs text-slate-500">peças</span>
           </div>
         </div>
 
         <!-- Máquinas em Operação -->
         <div class="dark-panel p-5 space-y-2">
-          <span class="text-xs font-bold uppercase tracking-wider text-slate-400">MÁQUINAS CADASTRADAS</span>
+          <span class="text-xs font-bold uppercase tracking-wider text-slate-500">MÁQUINAS CADASTRADAS</span>
           <div class="flex items-baseline gap-2">
-            <span class="font-mono text-3xl font-black text-white">
+            <span class="font-mono text-3xl font-black text-slate-900">
               {{ store.loading.machines ? '—' : store.machines.length }}
             </span>
-            <span class="text-xs text-slate-400">estações ativas</span>
+            <span class="text-xs text-slate-500">estações ativas</span>
           </div>
         </div>
 
         <!-- Alertas & Defeitos -->
         <div class="dark-panel p-5 space-y-2" :class="store.alerts.length > 0 ? 'border-red-500/40' : ''">
-          <span class="text-xs font-bold uppercase tracking-wider text-slate-400">ALERTAS / OCORRÊNCIAS</span>
+          <span class="text-xs font-bold uppercase tracking-wider text-slate-500">ALERTAS / OCORRÊNCIAS</span>
           <div class="flex items-baseline gap-2">
-            <span class="font-mono text-3xl font-black" :class="store.alerts.length > 0 ? 'text-red-400' : 'text-emerald-400'">
+            <span class="font-mono text-3xl font-black" :class="store.alerts.length > 0 ? 'text-red-600' : 'text-emerald-600'">
               {{ store.loading.alerts ? '—' : store.alerts.length }}
             </span>
-            <span class="text-xs text-slate-400">
+            <span class="text-xs text-slate-500">
               {{ store.alerts.length > 0 ? 'requerem atenção' : 'operação normal' }}
             </span>
           </div>
@@ -60,12 +60,12 @@
 
         <!-- Metas Ativas -->
         <div class="dark-panel p-5 space-y-2">
-          <span class="text-xs font-bold uppercase tracking-wider text-slate-400">METAS CADASTRADAS</span>
+          <span class="text-xs font-bold uppercase tracking-wider text-slate-500">METAS CADASTRADAS</span>
           <div class="flex items-baseline gap-2">
-            <span class="font-mono text-3xl font-black text-amber-400">
+            <span class="font-mono text-3xl font-black text-amber-600">
               {{ store.loading.metas ? '—' : store.metas.length }}
             </span>
-            <span class="text-xs text-slate-400">planos de meta</span>
+            <span class="text-xs text-slate-500">planos de meta</span>
           </div>
         </div>
 
@@ -74,15 +74,15 @@
       <!-- Painel de Máquinas Cadastradas — clique numa pra ver o detalhe
            dela E filtrar "Produção por Hora" só por essa máquina. -->
       <div class="dark-panel p-6">
-        <h3 class="text-xs font-bold uppercase tracking-widest text-white mb-4 border-b border-slate-800 pb-3 flex items-center gap-2">
-          <span class="text-emerald-400">🏭</span> ESTAÇÕES DA FÁBRICA
+        <h3 class="text-xs font-bold uppercase tracking-widest text-slate-900 mb-4 border-b border-slate-200 pb-3 flex items-center gap-2">
+          <span class="text-emerald-600">🏭</span> ESTAÇÕES DA FÁBRICA
         </h3>
 
         <div v-if="store.loading.machines" class="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <div v-for="i in 4" :key="i" class="h-20 bg-slate-800 rounded-xl animate-pulse"></div>
+          <div v-for="i in 4" :key="i" class="h-20 bg-slate-100 rounded-xl animate-pulse"></div>
         </div>
 
-        <div v-else-if="!store.machines.length" class="text-center py-6 text-slate-400 text-sm">
+        <div v-else-if="!store.machines.length" class="text-center py-6 text-slate-500 text-sm">
           Nenhuma máquina cadastrada no sistema.
         </div>
 
@@ -94,21 +94,21 @@
             class="p-4 rounded-xl cursor-pointer transition-all border"
             :class="store.selectedStationId === m.id
               ? 'bg-emerald-500/10 border-emerald-500 shadow-lg shadow-emerald-500/10'
-              : 'bg-slate-900/60 border-slate-800 hover:border-slate-700'"
+              : 'bg-slate-50 border-slate-200 hover:border-slate-300'"
           >
             <div class="flex items-center gap-3 mb-2">
-              <span class="w-9 h-9 rounded-lg border border-emerald-500/40 bg-emerald-500/10 text-emerald-400 flex items-center justify-center font-mono font-extrabold text-sm">
+              <span class="w-9 h-9 rounded-lg border border-emerald-500/40 bg-emerald-500/10 text-emerald-600 flex items-center justify-center font-mono font-extrabold text-sm">
                 {{ getMachineNumber(m) }}
               </span>
               <div class="min-w-0">
-                <p class="text-xs font-extrabold uppercase tracking-wider text-white truncate">
+                <p class="text-xs font-extrabold uppercase tracking-wider text-slate-900 truncate">
                   Máquina {{ getMachineNumber(m) }}
                 </p>
               </div>
             </div>
             <span
               class="inline-flex items-center gap-1 px-2 py-0.5 rounded border text-[10px] font-bold uppercase"
-              :class="m.active !== false ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-400' : 'border-slate-600 bg-slate-800 text-slate-400'"
+              :class="m.active !== false ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-600' : 'border-slate-400 bg-slate-100 text-slate-500'"
             >
               <span class="w-1.5 h-1.5 rounded-full" :class="m.active !== false ? 'bg-emerald-400 animate-pulse' : 'bg-slate-500'"/>
               {{ m.active !== false ? 'OPERANDO' : 'INATIVO' }}
@@ -117,14 +117,14 @@
         </div>
 
         <!-- Detalhe da máquina selecionada (produção/paradas de hoje) -->
-        <div v-if="maquinaSelecionada" class="mt-5 pt-5 border-t border-slate-800 space-y-4">
+        <div v-if="maquinaSelecionada" class="mt-5 pt-5 border-t border-slate-200 space-y-4">
           <div class="flex items-center justify-between">
-            <h4 class="text-xs font-extrabold uppercase tracking-wider text-emerald-400">
+            <h4 class="text-xs font-extrabold uppercase tracking-wider text-emerald-600">
               Máquina {{ getMachineNumber(maquinaSelecionada) }} — {{ maquinaSelecionada.name || maquinaSelecionada.code }}
             </h4>
             <span
               class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase border"
-              :class="sessaoAtivaSelecionada ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' : 'bg-slate-800 border-slate-700 text-slate-400'"
+              :class="sessaoAtivaSelecionada ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-600' : 'bg-slate-100 border-slate-300 text-slate-500'"
             >
               <span class="w-1.5 h-1.5 rounded-full" :class="sessaoAtivaSelecionada ? 'bg-emerald-400 animate-pulse' : 'bg-slate-500'" />
               {{ sessaoAtivaSelecionada ? 'EM PRODUÇÃO' : 'SEM SESSÃO ATIVA' }}
@@ -132,27 +132,27 @@
           </div>
 
           <div v-if="sessaoAtivaSelecionada" class="grid grid-cols-3 gap-3 text-xs">
-            <div><span class="text-slate-400 block">Produto</span><span class="font-bold text-white">{{ sessaoAtivaSelecionada.product?.name || '—' }}</span></div>
-            <div><span class="text-slate-400 block">Lote</span><span class="font-bold text-white">{{ sessaoAtivaSelecionada.lot?.code || '—' }}</span></div>
-            <div><span class="text-slate-400 block">Operador</span><span class="font-bold text-white">{{ sessaoAtivaSelecionada.operator?.name || '—' }}</span></div>
+            <div><span class="text-slate-500 block">Produto</span><span class="font-bold text-slate-900">{{ sessaoAtivaSelecionada.product?.name || '—' }}</span></div>
+            <div><span class="text-slate-500 block">Lote</span><span class="font-bold text-slate-900">{{ sessaoAtivaSelecionada.lot?.code || '—' }}</span></div>
+            <div><span class="text-slate-500 block">Operador</span><span class="font-bold text-slate-900">{{ sessaoAtivaSelecionada.operator?.name || '—' }}</span></div>
           </div>
 
           <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <div class="dark-panel p-3 space-y-0.5">
-              <span class="text-[10px] font-bold uppercase text-slate-400">Produção Hoje</span>
-              <p class="font-mono text-lg font-black text-emerald-400">{{ resumoMaquinaSelecionada.producao.toLocaleString('pt-BR') }}</p>
+              <span class="text-[10px] font-bold uppercase text-slate-500">Produção Hoje</span>
+              <p class="font-mono text-lg font-black text-emerald-600">{{ resumoMaquinaSelecionada.producao.toLocaleString('pt-BR') }}</p>
             </div>
             <div class="dark-panel p-3 space-y-0.5">
-              <span class="text-[10px] font-bold uppercase text-slate-400">T. Produzido</span>
-              <p class="font-mono text-lg font-black text-white">{{ formatDuracao(resumoMaquinaSelecionada.tempo_produzido_segundos) }}</p>
+              <span class="text-[10px] font-bold uppercase text-slate-500">T. Produzido</span>
+              <p class="font-mono text-lg font-black text-slate-900">{{ formatDuracao(resumoMaquinaSelecionada.tempo_produzido_segundos) }}</p>
             </div>
             <div class="dark-panel p-3 space-y-0.5">
-              <span class="text-[10px] font-bold uppercase text-slate-400">T. Parado</span>
-              <p class="font-mono text-lg font-black text-red-400">{{ formatDuracao(resumoMaquinaSelecionada.tempo_parado_segundos) }}</p>
+              <span class="text-[10px] font-bold uppercase text-slate-500">T. Parado</span>
+              <p class="font-mono text-lg font-black text-red-600">{{ formatDuracao(resumoMaquinaSelecionada.tempo_parado_segundos) }}</p>
             </div>
             <div class="dark-panel p-3 space-y-0.5">
-              <span class="text-[10px] font-bold uppercase text-slate-400">Paradas</span>
-              <p class="font-mono text-lg font-black text-amber-400">{{ resumoMaquinaSelecionada.paradas }}</p>
+              <span class="text-[10px] font-bold uppercase text-slate-500">Paradas</span>
+              <p class="font-mono text-lg font-black text-amber-600">{{ resumoMaquinaSelecionada.paradas }}</p>
             </div>
           </div>
         </div>
@@ -165,27 +165,27 @@
       <section class="dark-panel p-4 sm:p-6 space-y-5">
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
-            <h2 class="text-sm font-bold uppercase tracking-widest text-white flex items-center gap-2">
-              <span class="text-emerald-400">📅</span> APONTAMENTO
+            <h2 class="text-sm font-bold uppercase tracking-widest text-slate-900 flex items-center gap-2">
+              <span class="text-emerald-600">📅</span> APONTAMENTO
             </h2>
-            <p class="text-xs text-slate-400 mt-0.5">
+            <p class="text-xs text-slate-500 mt-0.5">
               {{ apontamentoTab === 'diario'
                 ? 'Escolha o dia e o turno para ver produção, sessões e paradas daquele período'
                 : 'Produção, tempo produzido/parado e paradas do mês inteiro — dados reais do banco' }}
             </p>
           </div>
 
-          <div class="flex gap-1 bg-slate-950 border border-slate-800 rounded-xl p-1 self-start sm:self-auto">
+          <div class="flex gap-1 bg-white border border-slate-200 rounded-xl p-1 self-start sm:self-auto">
             <button
               @click="apontamentoTab = 'diario'"
               class="px-4 py-1.5 rounded-lg text-[11px] font-extrabold uppercase tracking-wider transition-all"
-              :class="apontamentoTab === 'diario' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40' : 'text-slate-400 hover:text-white'">
+              :class="apontamentoTab === 'diario' ? 'bg-emerald-500/20 text-emerald-600 border border-emerald-500/40' : 'text-slate-500 hover:text-slate-900'">
               Diário
             </button>
             <button
               @click="apontamentoTab = 'mensal'"
               class="px-4 py-1.5 rounded-lg text-[11px] font-extrabold uppercase tracking-wider transition-all"
-              :class="apontamentoTab === 'mensal' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40' : 'text-slate-400 hover:text-white'">
+              :class="apontamentoTab === 'mensal' ? 'bg-emerald-500/20 text-emerald-600 border border-emerald-500/40' : 'text-slate-500 hover:text-slate-900'">
               Resumo Mensal
             </button>
           </div>
@@ -194,19 +194,19 @@
         <!-- ── Diário ─────────────────────────────────────────────── -->
         <div v-if="apontamentoTab === 'diario'" class="flex flex-col sm:flex-row sm:items-end gap-3">
           <div class="flex-1 min-w-[160px]">
-            <label class="text-[10px] text-slate-400 font-bold uppercase tracking-wider block mb-1.5">Dia</label>
+            <label class="text-[10px] text-slate-500 font-bold uppercase tracking-wider block mb-1.5">Dia</label>
             <input
               v-model="consultaData"
               type="date"
               :max="hojeIso"
-              class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:border-emerald-500 focus:outline-none" />
+              class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm text-slate-900 focus:border-emerald-500 focus:outline-none" />
           </div>
 
           <div class="flex-1 min-w-[160px]">
-            <label class="text-[10px] text-slate-400 font-bold uppercase tracking-wider block mb-1.5">Turno</label>
+            <label class="text-[10px] text-slate-500 font-bold uppercase tracking-wider block mb-1.5">Turno</label>
             <select
               v-model="consultaTurnoId"
-              class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:border-emerald-500 focus:outline-none">
+              class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm text-slate-900 focus:border-emerald-500 focus:outline-none">
               <option value="">Todos os turnos</option>
               <option v-for="turno in store.shifts" :key="turno.id" :value="turno.id">
                 {{ turno.name }}<template v-if="turno.start_time && turno.end_time"> ({{ turno.start_time.slice(0, 5) }}–{{ turno.end_time.slice(0, 5) }})</template>
@@ -240,9 +240,9 @@
            DISTRIBUIÇÃO DO TEMPO ainda não foi conectada — adiado (ver plano).
            ══════════════════════════════════════════════════════════════ -->
       <div class="dark-panel p-4">
-        <h4 class="text-xs font-bold uppercase tracking-wider text-slate-300 mb-2">
+        <h4 class="text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">
           Produção por Hora (Hoje)
-          <span class="text-emerald-400 normal-case font-normal">— {{ maquinaSelecionada ? `Máquina ${getMachineNumber(maquinaSelecionada)}` : 'Todas as Máquinas' }}</span>
+          <span class="text-emerald-600 normal-case font-normal">— {{ maquinaSelecionada ? `Máquina ${getMachineNumber(maquinaSelecionada)}` : 'Todas as Máquinas' }}</span>
         </h4>
         <HourlyProductionChart :data="producaoPorHoraChart" />
       </div>
@@ -250,7 +250,7 @@
       <!-- Resumo das 4 máquinas — produção e paradas de hoje, lado a lado.
            Fica logo acima de OCORRÊNCIAS & ALERTAS (pedido do usuário). -->
       <div v-if="store.machines.length" class="dark-panel p-4 sm:p-6">
-        <h4 class="text-xs font-extrabold uppercase tracking-wider text-slate-300 mb-3">Resumo das Máquinas (Hoje)</h4>
+        <h4 class="text-xs font-extrabold uppercase tracking-wider text-slate-700 mb-3">Resumo das Máquinas (Hoje)</h4>
         <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
           <div
             v-for="m in store.machines"
@@ -259,29 +259,29 @@
             :class="store.selectedStationId === m.id ? 'border-emerald-500/50' : ''"
             @click="toggleSelecaoMaquina(m.id)"
           >
-            <p class="text-[10px] font-bold uppercase text-slate-400">Máquina {{ getMachineNumber(m) }}</p>
-            <p class="font-mono text-base font-black text-emerald-400">
-              {{ (resumoPorMaquina[m.id]?.producao || 0).toLocaleString('pt-BR') }} <span class="text-[10px] text-slate-400 font-normal">un.</span>
+            <p class="text-[10px] font-bold uppercase text-slate-500">Máquina {{ getMachineNumber(m) }}</p>
+            <p class="font-mono text-base font-black text-emerald-600">
+              {{ (resumoPorMaquina[m.id]?.producao || 0).toLocaleString('pt-BR') }} <span class="text-[10px] text-slate-500 font-normal">un.</span>
             </p>
-            <p class="text-[10px] text-slate-400">{{ resumoPorMaquina[m.id]?.paradas || 0 }} parada{{ (resumoPorMaquina[m.id]?.paradas || 0) !== 1 ? 's' : '' }}</p>
+            <p class="text-[10px] text-slate-500">{{ resumoPorMaquina[m.id]?.paradas || 0 }} parada{{ (resumoPorMaquina[m.id]?.paradas || 0) !== 1 ? 's' : '' }}</p>
           </div>
         </div>
       </div>
 
       <!-- Alertas & Ocorrências (GET /alertas/abertos) -->
       <div class="dark-panel p-6">
-        <h3 class="text-xs font-bold uppercase tracking-widest text-white mb-4 border-b border-slate-800 pb-3 flex items-center gap-2">
-          <span class="text-red-400">🚨</span> OCORRÊNCIAS & ALERTAS EM ABERTO
+        <h3 class="text-xs font-bold uppercase tracking-widest text-slate-900 mb-4 border-b border-slate-200 pb-3 flex items-center gap-2">
+          <span class="text-red-600">🚨</span> OCORRÊNCIAS & ALERTAS EM ABERTO
         </h3>
 
-        <div v-if="store.loading.alerts" class="text-slate-400 text-sm">Carregando alertas...</div>
+        <div v-if="store.loading.alerts" class="text-slate-500 text-sm">Carregando alertas...</div>
 
         <div v-else-if="!store.alerts.length" class="flex items-center gap-3 py-4">
-          <div class="w-8 h-8 rounded-full bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 font-bold">
+          <div class="w-8 h-8 rounded-full bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-600 font-bold">
             ✓
           </div>
           <div>
-            <p class="text-emerald-400 font-bold text-sm">Nenhum alerta pendente</p>
+            <p class="text-emerald-600 font-bold text-sm">Nenhum alerta pendente</p>
             <p class="text-slate-500 text-xs">Fábrica operando sem interrupções críticas</p>
           </div>
         </div>
@@ -290,13 +290,13 @@
           <div
             v-for="alert in store.alerts"
             :key="alert.id"
-            class="flex items-start justify-between gap-4 p-4 rounded-xl border bg-slate-900/80 border-red-500/30"
+            class="flex items-start justify-between gap-4 p-4 rounded-xl border bg-white border-red-500/30"
           >
             <div class="flex items-start gap-3">
               <span class="mt-0.5 text-base">🔴</span>
               <div>
-                <p class="text-sm font-semibold text-white">{{ alert.message || alert.descricao }}</p>
-                <p class="text-xs text-slate-400 mt-0.5">
+                <p class="text-sm font-semibold text-slate-900">{{ alert.message || alert.descricao }}</p>
+                <p class="text-xs text-slate-500 mt-0.5">
                   {{ alert.machine?.name || alert.maquina?.nome || 'Máquina' }}
                   — {{ formatDateTime(alert.created_at || alert.criado_em) }}
                 </p>
@@ -304,7 +304,7 @@
             </div>
             <button
               @click="acknowledgeAlert(alert.id)"
-              class="shrink-0 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold rounded-lg uppercase transition-all"
+              class="shrink-0 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-lg uppercase transition-all"
             >
               Reconhecer
             </button>

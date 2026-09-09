@@ -2,7 +2,7 @@
   <Transition name="toast-pop">
     <div
       v-if="visible"
-      class="fixed top-4 right-4 z-[70] flex items-center gap-3 dark-panel border-red-500/40 bg-[#1a0f12] px-4 py-3 pr-3 max-w-xs cursor-pointer select-none"
+      class="fixed top-4 right-4 z-[70] flex items-center gap-3 dark-panel border-red-200 bg-white px-4 py-3 pr-3 max-w-xs cursor-pointer select-none"
       role="status"
       @click="irParaAlertas"
     >
@@ -10,14 +10,14 @@
         {{ count }}
       </div>
       <div class="flex-1 min-w-0">
-        <p class="text-sm font-bold text-white leading-tight">
+        <p class="text-sm font-bold text-slate-900 leading-tight">
           {{ count > 1 ? `${count} novos alertas` : 'Novo alerta' }}
         </p>
-        <p class="text-xs text-slate-400 leading-tight mt-0.5">Toque para ver a Central de Alertas</p>
+        <p class="text-xs text-slate-500 leading-tight mt-0.5">Toque para ver a Central de Alertas</p>
       </div>
       <button
         @click.stop="dispensar"
-        class="shrink-0 w-6 h-6 rounded-lg text-slate-500 hover:text-white hover:bg-slate-800 flex items-center justify-center text-lg leading-none"
+        class="shrink-0 w-6 h-6 rounded-lg text-slate-500 hover:text-slate-900 hover:bg-slate-100 flex items-center justify-center text-lg leading-none"
         aria-label="Dispensar"
       >
         &times;

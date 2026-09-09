@@ -1,15 +1,15 @@
 <template>
-  <div class="min-h-screen bg-[#0b0f17] text-white font-sans flex select-none">
+  <div class="min-h-screen bg-[#f1f5f9] text-slate-900 font-sans flex select-none">
     <AppSidebar />
 
     <main class="flex-1 p-4 pt-[calc(4rem+env(safe-area-inset-top))] md:p-6 md:pt-6 lg:p-8 overflow-y-auto max-w-7xl mx-auto w-full">
       <!-- Header -->
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 md:mb-8">
         <div>
-          <h1 class="text-2xl sm:text-3xl font-extrabold uppercase tracking-wider text-white">MONITORAMENTO</h1>
+          <h1 class="text-2xl sm:text-3xl font-extrabold uppercase tracking-wider text-slate-900">MONITORAMENTO</h1>
         </div>
-        <div class="flex items-center gap-2 bg-[#121824] border border-[#1e293b] px-4 py-2 rounded-xl text-slate-300 font-mono text-sm self-start sm:self-auto">
-          <svg class="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div class="flex items-center gap-2 bg-white border border-[#e2e8f0] px-4 py-2 rounded-xl text-slate-700 font-mono text-sm self-start sm:self-auto">
+          <svg class="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 16 14"/>
           </svg>
           {{ currentTime }}
@@ -20,31 +20,31 @@
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mb-6 md:mb-8">
         <div class="dark-panel p-4 flex items-center justify-between">
           <div>
-            <span class="block text-xs font-bold uppercase tracking-widest text-emerald-400">EM PRODUÇÃO</span>
+            <span class="block text-xs font-bold uppercase tracking-widest text-emerald-600">EM PRODUÇÃO</span>
             <span class="block text-[10px] text-slate-500 uppercase">Sessões ativas</span>
           </div>
-          <span class="font-mono text-3xl font-black text-emerald-400">{{ kpiSummary.producao }}</span>
+          <span class="font-mono text-3xl font-black text-emerald-600">{{ kpiSummary.producao }}</span>
         </div>
         <div class="dark-panel p-4 flex items-center justify-between border-red-500/30">
           <div>
-            <span class="block text-xs font-bold uppercase tracking-widest text-red-400">PARADA</span>
+            <span class="block text-xs font-bold uppercase tracking-widest text-red-600">PARADA</span>
             <span class="block text-[10px] text-slate-500 uppercase">Paradas em aberto</span>
           </div>
-          <span class="font-mono text-3xl font-black text-red-400">{{ kpiSummary.parada }}</span>
+          <span class="font-mono text-3xl font-black text-red-600">{{ kpiSummary.parada }}</span>
         </div>
         <div class="dark-panel p-4 flex items-center justify-between border-amber-500/30">
           <div>
-            <span class="block text-xs font-bold uppercase tracking-widest text-amber-400">OBSERVAÇÃO</span>
+            <span class="block text-xs font-bold uppercase tracking-widest text-amber-600">OBSERVAÇÃO</span>
             <span class="block text-[10px] text-slate-500 uppercase">Sem sessão ou inativas</span>
           </div>
-          <span class="font-mono text-3xl font-black text-amber-400">{{ kpiSummary.observacao }}</span>
+          <span class="font-mono text-3xl font-black text-amber-600">{{ kpiSummary.observacao }}</span>
         </div>
         <div class="dark-panel p-4 flex items-center justify-between border-emerald-500/30">
           <div>
-            <span class="block text-xs font-bold uppercase tracking-widest text-emerald-400">MÁQUINAS FUNCIONANDO</span>
+            <span class="block text-xs font-bold uppercase tracking-widest text-emerald-600">MÁQUINAS FUNCIONANDO</span>
             <span class="block text-[10px] text-slate-500 uppercase">Em operação normal</span>
           </div>
-          <span class="font-mono text-3xl font-black text-emerald-400">{{ kpiSummary.producao }}</span>
+          <span class="font-mono text-3xl font-black text-emerald-600">{{ kpiSummary.producao }}</span>
         </div>
       </div>
 
@@ -52,9 +52,9 @@
       <template v-if="store.loading.machines">
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
           <div v-for="i in 4" :key="i" class="dark-panel p-6 animate-pulse space-y-4">
-            <div class="h-10 bg-slate-800 rounded-xl w-1/3"></div>
-            <div class="h-4 bg-slate-800 rounded w-2/3"></div>
-            <div class="h-3 bg-slate-800 rounded w-full"></div>
+            <div class="h-10 bg-slate-100 rounded-xl w-1/3"></div>
+            <div class="h-4 bg-slate-100 rounded w-2/3"></div>
+            <div class="h-3 bg-slate-100 rounded w-full"></div>
           </div>
         </div>
       </template>
@@ -65,11 +65,11 @@
         class="dark-panel p-12 text-center"
       >
         <div class="text-4xl mb-4">🏭</div>
-        <p class="text-slate-300 font-bold text-lg">Nenhuma máquina cadastrada</p>
-        <p class="text-slate-400 text-sm mt-2">
-          Cadastre máquinas via API <code class="text-emerald-400">POST /machines</code> para visualizá-las aqui.
+        <p class="text-slate-700 font-bold text-lg">Nenhuma máquina cadastrada</p>
+        <p class="text-slate-500 text-sm mt-2">
+          Cadastre máquinas via API <code class="text-emerald-600">POST /machines</code> para visualizá-las aqui.
         </p>
-        <p v-if="store.errors.machines" class="text-red-400 text-xs mt-3">
+        <p v-if="store.errors.machines" class="text-red-600 text-xs mt-3">
           ⚠ {{ store.errors.machines }}
         </p>
       </div>
@@ -86,11 +86,11 @@
           <!-- Header do Card -->
           <div class="flex items-center justify-between">
             <div class="flex items-center gap-3">
-              <span class="w-10 h-10 rounded-xl border border-emerald-500/40 bg-emerald-500/10 text-emerald-400 flex items-center justify-center font-mono font-extrabold text-lg">
+              <span class="w-10 h-10 rounded-xl border border-emerald-500/40 bg-emerald-500/10 text-emerald-600 flex items-center justify-center font-mono font-extrabold text-lg">
                 {{ machine.displayNumber }}
               </span>
               <div>
-                <p class="text-base font-extrabold uppercase tracking-wide text-white">{{ machine.displayName }}</p>
+                <p class="text-base font-extrabold uppercase tracking-wide text-slate-900">{{ machine.displayName }}</p>
               </div>
             </div>
             <span
@@ -105,8 +105,8 @@
           </div>
 
           <!-- Produção e estado calculados dos registros reais -->
-          <div class="bg-slate-900/60 rounded-xl p-4 border border-slate-800 space-y-2">
-            <div class="flex justify-between items-baseline text-xs text-slate-400 uppercase font-bold">
+          <div class="bg-slate-50 rounded-xl p-4 border border-slate-200 space-y-2">
+            <div class="flex justify-between items-baseline text-xs text-slate-500 uppercase font-bold">
               <span>Produção registrada</span>
               <span class="text-slate-500 normal-case font-normal">{{ machine.hasSession ? 'Sessão ativa' : 'Sem sessão ativa' }}</span>
             </div>
@@ -116,7 +116,7 @@
           </div>
 
           <!-- Seta -->
-          <div class="flex justify-end text-xs text-slate-500 hover:text-emerald-400 transition-colors uppercase tracking-wider font-semibold">
+          <div class="flex justify-end text-xs text-slate-500 hover:text-emerald-600 transition-colors uppercase tracking-wider font-semibold">
             Apontamento → →
           </div>
         </div>
@@ -167,10 +167,10 @@ const stationCards = computed(() => store.machines.map((machine, index) => {
   const production = session ? (store.productionTotals[session.id] ?? 0) : 0;
   const state = openStop ? (planned ? 'planned' : 'stopped') : session ? 'running' : 'observation';
   const style = {
-    running: ['border-emerald-500/30', 'border-emerald-500/40 bg-emerald-500/10 text-emerald-400', 'bg-emerald-400', 'EM PRODUÇÃO'],
-    stopped: ['border-red-500/30', 'border-red-500/40 bg-red-500/10 text-red-400', 'bg-red-400', 'PARADA'],
+    running: ['border-emerald-500/30', 'border-emerald-500/40 bg-emerald-500/10 text-emerald-600', 'bg-emerald-400', 'EM PRODUÇÃO'],
+    stopped: ['border-red-500/30', 'border-red-500/40 bg-red-500/10 text-red-600', 'bg-red-400', 'PARADA'],
     planned: ['border-blue-500/30', 'border-blue-500/40 bg-blue-500/10 text-blue-400', 'bg-blue-400', 'PARADA PLANEJADA'],
-    observation: ['border-amber-500/30', 'border-amber-500/40 bg-amber-500/10 text-amber-400', 'bg-amber-400', machine.active === false ? 'INATIVA' : 'OBSERVAÇÃO'],
+    observation: ['border-amber-500/30', 'border-amber-500/40 bg-amber-500/10 text-amber-600', 'bg-amber-400', machine.active === false ? 'INATIVA' : 'OBSERVAÇÃO'],
   }[state];
 
   // Extrai o número de dentro do code (ex.: "MQ-02" → 2). parseInt(code, 10)
