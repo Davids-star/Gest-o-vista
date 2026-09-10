@@ -7,7 +7,7 @@
 
         <!-- Header -->
         <div class="flex items-center gap-4 border-b border-slate-200 pb-4">
-          <div class="w-10 h-10 rounded-xl border border-emerald-500/40 bg-emerald-500/10 text-emerald-600 flex items-center justify-center shadow-[0_0_10px_rgba(34,197,94,0.15)]">
+          <div class="w-10 h-10 rounded-xl border border-emerald-500/40 bg-emerald-500/10 text-emerald-600 flex items-center justify-center">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
             </svg>
@@ -60,7 +60,7 @@
 
             <!-- Visualização -->
             <div v-if="!isEditing" class="bg-[#0a0e0d] border border-emerald-500/30 rounded-xl px-6 py-5 flex items-center justify-center">
-              <span class="font-mono text-5xl font-black text-emerald-600 tracking-widest drop-shadow-[0_0_16px_rgba(34,255,136,0.4)]">
+              <span class="font-mono text-5xl font-black text-emerald-400 tracking-widest">
                 {{ activeLotCode || '—' }}
               </span>
             </div>
@@ -73,7 +73,7 @@
                 @keyup.enter="saveLote"
                 @keyup.escape="cancelEdit"
                 placeholder="Ex: LOT-2024-001"
-                class="w-full font-mono text-3xl font-black text-emerald-600 tracking-widest text-center bg-[#0a0e0d] border-2 border-emerald-500 focus:shadow-[0_0_14px_rgba(34,255,136,0.35)] rounded-xl px-6 py-5 outline-none transition-all uppercase"
+                class="w-full font-mono text-3xl font-black text-emerald-400 tracking-widest text-center bg-[#0a0e0d] border-2 border-emerald-500 rounded-xl px-6 py-5 outline-none transition-all uppercase"
               />
               <p class="text-center text-xs text-slate-500 mt-2">Enter para salvar · Esc para cancelar</p>
             </div>
@@ -107,7 +107,7 @@
               :disabled="!selectedSession"
               class="flex-1 py-3 rounded-xl border font-bold text-sm uppercase tracking-wider transition-all flex items-center justify-center gap-2 active:scale-[0.98]"
               :class="selectedSession
-                ? 'bg-gray-700 hover:bg-gray-600 border-gray-600 text-slate-900'
+                ? 'bg-gray-700 hover:bg-gray-600 border-gray-600 text-white'
                 : 'bg-slate-50 border-slate-300 text-slate-500 cursor-not-allowed'"
             >
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -138,7 +138,7 @@
               <button
                 @click="saveLote"
                 :disabled="saving"
-                class="flex-1 py-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 border border-emerald-500 text-slate-950 font-extrabold text-sm uppercase tracking-wider transition-all shadow-[0_0_15px_rgba(34,255,136,0.3)] active:scale-[0.98] disabled:opacity-50"
+                class="flex-1 py-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 border border-emerald-500 text-slate-950 font-extrabold text-sm uppercase tracking-wider transition-all active:scale-[0.98] disabled:opacity-50"
               >
                 {{ saving ? 'SALVANDO...' : 'SALVAR' }}
               </button>

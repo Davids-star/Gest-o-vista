@@ -46,7 +46,7 @@
             @click="store.selectStation(st.id)"
             class="p-4 rounded-xl cursor-pointer transition-all duration-200 border"
             :class="st.id === store.selectedStationId
-              ? 'bg-emerald-50 border-emerald-500/80 shadow-lg shadow-emerald-500/10 ring-1 ring-emerald-500/50'
+              ? 'bg-emerald-50 border-emerald-500/80 ring-1 ring-emerald-500/50'
               : 'bg-slate-50 border-slate-200 hover:border-slate-300'"
           >
             <div class="flex items-center justify-between gap-2 mb-1">
@@ -208,7 +208,7 @@
               <button
                 @click="handleRemoteStart"
                 :disabled="store.loading.session || !!selectedSession"
-                class="flex-1 py-3.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-slate-950 font-extrabold rounded-xl uppercase text-xs tracking-wider flex items-center justify-center gap-2 border border-emerald-400/40 shadow-lg shadow-emerald-600/20 transition-all active:scale-95"
+                class="flex-1 py-3.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-slate-950 font-extrabold rounded-xl uppercase text-xs tracking-wider flex items-center justify-center gap-2 border border-emerald-400/40 shadow-lg transition-all active:scale-95"
               >
                 <span v-if="store.loading.session" class="w-3.5 h-3.5 border-2 border-slate-300 border-t-transparent rounded-full animate-spin"></span>
                 ▶ INICIAR SESSÃO

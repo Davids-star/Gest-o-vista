@@ -12,7 +12,7 @@
         <button
           v-if="isSupervisor"
           @click="openNewMetaModal()"
-          class="px-5 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold rounded-xl text-xs uppercase tracking-wider transition-all shadow-md shadow-emerald-500/20 self-start sm:self-auto"
+          class="px-5 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold rounded-xl text-xs uppercase tracking-wider transition-all shadow-md self-start sm:self-auto"
         >
           + NOVA META
         </button>
@@ -223,7 +223,7 @@
           <button
             @click="handleSaveMeta"
             :disabled="savingMeta"
-            class="px-6 py-2.5 bg-emerald-500 text-slate-950 font-bold rounded-lg text-xs hover:bg-emerald-400 shadow-md shadow-emerald-500/20 uppercase disabled:opacity-50"
+            class="px-6 py-2.5 bg-emerald-500 text-slate-950 font-bold rounded-lg text-xs hover:bg-emerald-400 shadow-md uppercase disabled:opacity-50"
           >
             {{ savingMeta ? 'SALVANDO...' : (editingMeta ? 'ATUALIZAR META' : 'SALVAR META') }}
           </button>

@@ -80,7 +80,7 @@
         v-for="(machine, idx) in stationCards"
           :key="machine.id"
           @click="goToApontamento(machine.id)"
-          class="dark-panel p-6 cursor-pointer transition-all duration-200 hover:border-emerald-500/40 hover:shadow-[0_0_20px_rgba(34,197,94,0.1)] space-y-4"
+          class="dark-panel p-6 cursor-pointer transition-all duration-200 hover:border-emerald-500/40 space-y-4"
           :class="machine.statusClass"
         >
           <!-- Header do Card -->

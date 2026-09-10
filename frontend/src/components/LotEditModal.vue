@@ -68,7 +68,7 @@
 
         <button
           @click="handleSave"
-          class="px-10 py-3 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold rounded-lg uppercase tracking-wider text-sm shadow-lg shadow-emerald-500/20 transition-all"
+          class="px-10 py-3 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold rounded-lg uppercase tracking-wider text-sm shadow-lg transition-all"
         >
           SALVAR LOTE
         </button>

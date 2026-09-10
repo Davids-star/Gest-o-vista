@@ -65,7 +65,7 @@
         </button>
         <button
           @click="handleSave"
-          class="px-6 py-2.5 bg-emerald-500 text-slate-950 font-bold rounded-lg text-xs hover:bg-emerald-400 shadow-md shadow-emerald-500/20 uppercase"
+          class="px-6 py-2.5 bg-emerald-500 text-slate-950 font-bold rounded-lg text-xs hover:bg-emerald-400 shadow-md uppercase"
         >
           SALVAR CONFIGURAÇÃO DE META
         </button>

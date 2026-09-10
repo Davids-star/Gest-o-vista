@@ -93,7 +93,7 @@
             @click="toggleSelecaoMaquina(m.id)"
             class="p-4 rounded-xl cursor-pointer transition-all border"
             :class="store.selectedStationId === m.id
-              ? 'bg-emerald-500/10 border-emerald-500 shadow-lg shadow-emerald-500/10'
+              ? 'bg-emerald-500/10 border-emerald-500 shadow-lg'
               : 'bg-slate-50 border-slate-200 hover:border-slate-300'"
           >
             <div class="flex items-center gap-3 mb-2">

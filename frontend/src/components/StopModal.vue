@@ -58,7 +58,7 @@
           v-if="store.stopReasons.length"
           @click="handleSave"
           :disabled="!selectedReasonId"
-          class="px-6 py-2.5 bg-red-600 hover:bg-red-500 text-white font-bold rounded-lg text-xs uppercase shadow-md shadow-red-600/20 disabled:opacity-40"
+          class="px-6 py-2.5 bg-red-600 hover:bg-red-500 text-white font-bold rounded-lg text-xs uppercase shadow-md disabled:opacity-40"
         >
           CONFIRMAR PARADA
         </button>

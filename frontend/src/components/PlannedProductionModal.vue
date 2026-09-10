@@ -57,7 +57,7 @@
           <button
             @click="handleSave"
             :disabled="saving"
-            class="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-lg text-xs uppercase shadow-md shadow-emerald-600/20 disabled:opacity-40"
+            class="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-lg text-xs uppercase shadow-md disabled:opacity-40"
           >
             {{ saving ? 'SALVANDO...' : 'SALVAR' }}
           </button>
