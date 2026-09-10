@@ -29,7 +29,7 @@
 
     <!-- KPIs gerais — dados reais (nada fixo) -->
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-5 mb-8">
-      <div class="dark-panel border-2 border-emerald-500/40 p-5 flex items-center gap-4">
+      <div class="panel-industrial border-2 border-emerald-500/40 p-5 flex items-center gap-4">
         <div class="w-12 h-12 rounded-xl bg-emerald-500/10 border border-emerald-500/40 text-emerald-400 flex items-center justify-center shrink-0">
           <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M22 12h-4l-3 9L9 3l-3 9H2" />
@@ -42,7 +42,7 @@
         </div>
       </div>
 
-      <div class="dark-panel border-2 border-red-500/50 p-5 flex items-center gap-4">
+      <div class="panel-industrial border-2 border-red-500/50 p-5 flex items-center gap-4">
         <div class="w-12 h-12 rounded-xl border border-red-500/40 bg-red-500/10 text-red-400 flex items-center justify-center shrink-0">
           <!-- Triângulo de alerta (Heroicons exclamation-triangle) — antes
                estava com dois ícones diferentes sobrepostos (círculo +
@@ -58,7 +58,7 @@
         </div>
       </div>
 
-      <div class="dark-panel border-2 border-amber-500/50 p-5 flex items-center gap-4">
+      <div class="panel-industrial border-2 border-amber-500/50 p-5 flex items-center gap-4">
         <div class="w-12 h-12 rounded-xl border border-amber-500/40 bg-amber-500/10 text-amber-400 flex items-center justify-center shrink-0">
           <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.42 15.17L17.25 21A2.652 2.652 0 0021 17.25l-5.877-5.877M11.42 15.17l2.496-3.03c.317-.384.74-.626 1.208-.766M11.42 15.17l-4.655 5.653a2.548 2.548 0 11-3.586-3.586l6.837-5.63m5.108-.233c.55-.164 1.163-.188 1.743-.14a4.5 4.5 0 004.486-6.336l-3.276 3.277a3.004 3.004 0 01-2.25-2.25l3.276-3.276a4.5 4.5 0 00-6.336 4.486c.091 1.076-.071 2.264-.904 2.95l-.102.085m-1.745 1.437L5.909 7.5H4.5L1.5 3l1.5-1.5L7.5 4.5v1.409l4.26 4.26" />
@@ -77,7 +77,7 @@
       <div
         v-for="st in stations"
         :key="st.id"
-        class="dark-panel p-6 border-2 space-y-5"
+        class="panel-industrial p-6 border-2 space-y-5"
         :class="st.cardBorderClass"
       >
         <!-- Cabeçalho do card -->

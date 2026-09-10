@@ -1,6 +1,6 @@
 <template>
   <div class="min-h-screen bg-[#0b0f17] text-white flex flex-col items-center justify-center p-6 select-none">
-    <div class="dark-panel w-full max-w-md p-8 space-y-8 text-center border border-emerald-500/30">
+    <div class="panel-industrial w-full max-w-md p-8 space-y-8 text-center border border-emerald-500/30">
       <div class="w-16 h-16 rounded-2xl bg-emerald-500/10 border-2 border-emerald-500 flex items-center justify-center mx-auto text-emerald-400">
         <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />

@@ -292,7 +292,7 @@
 
     <!-- Modal de Ajuda com Motivos de Parada da API GET /motivos-parada -->
     <div v-if="isHelpModalOpen" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-      <div class="dark-panel w-full max-w-lg p-6 space-y-6 border border-emerald-500/40">
+      <div class="panel-industrial w-full max-w-lg p-6 space-y-6 border border-emerald-500/40">
         <div class="flex justify-between items-center border-b border-slate-800 pb-3">
           <h3 class="text-base font-bold text-white uppercase flex items-center gap-2">
             <span>❓</span> MOTIVOS DE PARADA & SOLICITAÇÃO DE AJUDA
