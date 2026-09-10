@@ -5,14 +5,8 @@
     <main class="flex-1 p-4 pt-[calc(4rem+env(safe-area-inset-top))] md:p-6 md:pt-6 lg:p-8 overflow-y-auto max-w-7xl mx-auto w-full space-y-6">
       
       <!-- Header do Dashboard -->
-      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 class="text-2xl sm:text-3xl font-extrabold uppercase tracking-wider text-slate-900">DASHBOARD INDUSTRIAL</h1>
-        </div>
-        <div class="flex items-center gap-2 bg-white border border-[#e2e8f0] px-4 py-2 rounded-xl text-slate-700 font-mono text-sm self-start sm:self-auto">
-          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-          {{ liveTime }}
-        </div>
+      <div>
+        <h1 class="text-2xl sm:text-3xl font-extrabold uppercase tracking-wider text-slate-900">DASHBOARD INDUSTRIAL</h1>
       </div>
 
       <!-- KPI Cards Globais -->
@@ -391,9 +385,6 @@ const toggleSelecaoMaquina = (machineId) => {
   store.selectStation(store.selectedStationId === machineId ? null : machineId);
 };
 
-const liveTime = ref(new Date().toLocaleTimeString('pt-BR'));
-let timer = null;
-
 // Data de hoje em formato ISO (YYYY-MM-DD) — usada como valor inicial e
 // como limite máximo do seletor de data (não faz sentido consultar o futuro).
 const hojeIso = computed(() => {
@@ -509,10 +500,6 @@ const acknowledgeAlert = async (alertId) => {
 let producaoHojeTimer = null;
 
 onMounted(async () => {
-  timer = setInterval(() => {
-    liveTime.value = new Date().toLocaleTimeString('pt-BR');
-  }, 1000);
-
   const agora = new Date();
   await Promise.allSettled([
     store.bootstrap(),
@@ -533,7 +520,6 @@ onMounted(async () => {
 });
 
 onUnmounted(() => {
-  if (timer) clearInterval(timer);
   if (producaoHojeTimer) clearInterval(producaoHojeTimer);
   store.stopPolling();
 });
