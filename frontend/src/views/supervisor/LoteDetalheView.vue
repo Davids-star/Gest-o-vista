@@ -59,8 +59,8 @@
             </label>
 
             <!-- Visualização -->
-            <div v-if="!isEditing" class="bg-[#0a0e0d] border border-emerald-500/30 rounded-xl px-6 py-5 flex items-center justify-center">
-              <span class="font-mono text-5xl font-black text-emerald-400 tracking-widest">
+            <div v-if="!isEditing" class="bg-slate-50 border border-emerald-500/30 rounded-xl px-6 py-5 flex items-center justify-center">
+              <span class="font-mono text-5xl font-black text-emerald-600 tracking-widest">
                 {{ activeLotCode || '—' }}
               </span>
             </div>
@@ -73,7 +73,7 @@
                 @keyup.enter="saveLote"
                 @keyup.escape="cancelEdit"
                 placeholder="Ex: LOT-2024-001"
-                class="w-full font-mono text-3xl font-black text-emerald-400 tracking-widest text-center bg-[#0a0e0d] border-2 border-emerald-500 rounded-xl px-6 py-5 outline-none transition-all uppercase"
+                class="w-full font-mono text-3xl font-black text-emerald-600 tracking-widest text-center bg-slate-50 border-2 border-emerald-500 rounded-xl px-6 py-5 outline-none transition-all uppercase"
               />
               <p class="text-center text-xs text-slate-500 mt-2">Enter para salvar · Esc para cancelar</p>
             </div>
