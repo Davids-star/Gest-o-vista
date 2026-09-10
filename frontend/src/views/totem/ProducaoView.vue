@@ -548,8 +548,15 @@ const metaBatida = computed(() =>
 // Só algumas paradas (session_action = 'end_session', o padrão) encerram a
 // sessão na hora. As outras (Pausa, Limpeza, Falta de material) deixam a
 // sessão aberta e ficam "em andamento" até o operador clicar em Retomar.
+// Filtra também por session_id (não só machine_id): sem isso, encerrar a
+// sessão (ENCERRAR) não fechava a parada em aberto no banco, e esse card
+// continuava aparecendo — machine_id batia, ended_at continuava null —
+// mesmo depois da sessão já ter fechado (e ficaria preso ali até alguém
+// abrir a próxima sessão nessa máquina e "herdar" a parada de outra).
 const openStop = computed(() => store.stops.find(
-  (s) => s.machine_id === currentMachine.value?.id && !s.ended_at,
+  (s) => s.machine_id === currentMachine.value?.id
+    && s.session_id === store.activeSession?.id
+    && !s.ended_at,
 ) || null);
 
 // ── Possível parada detectada automaticamente (sem evento de produção há

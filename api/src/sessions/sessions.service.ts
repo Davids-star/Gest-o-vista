@@ -286,6 +286,16 @@ export class SessionsService {
     session.status = SessionStatus.CLOSED;
     session.ended_at = new Date();
     await this.sessionRepo.save(session);
+
+    // Mesma lógica de fecharParadasAbertas usada ao iniciar uma sessão nova:
+    // uma parada "em andamento" (Pausa/Limpeza/Falta de material) que nunca
+    // foi retomada não pode ficar aberta pra sempre no banco depois que o
+    // operador encerra a sessão pelo Totem — senão ela nunca ganha
+    // ended_at/duration_seconds (afeta o cálculo de tempo parado) e o card
+    // "Parada em andamento" ficava aparecendo até a próxima sessão nessa
+    // máquina "herdar" essa parada.
+    await this.fecharParadasAbertas(dto.machine_id, companyId);
+
     const resultado = await this.buscarPorId(session.id, companyId);
     this.realtime.emitToCompany(companyId, 'session.closed', {
       session_id: session.id,
