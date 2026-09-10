@@ -19,15 +19,8 @@
           </div>
         </div>
 
-        <!-- Clock & Logout Widget -->
+        <!-- Clock -->
         <div class="flex items-center gap-2">
-          <button 
-            @click="handleLogout"
-            class="bg-slate-900 hover:bg-red-500/20 border border-slate-800 hover:border-red-500/40 text-slate-300 hover:text-red-400 px-3 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5"
-            title="Sair da Conta / Reconfigurar Modo">
-            🚪 <span class="hidden sm:inline">Sair / Trocar Modo</span>
-          </button>
-
           <div class="bg-slate-900/90 border border-slate-800 px-4 py-2 rounded-xl text-white font-mono text-sm flex items-center gap-2">
             <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
             {{ currentTime }}
@@ -346,23 +339,12 @@
 
 <script setup>
 import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
+import { useRoute } from 'vue-router';
 import { useProductionStore } from '../../stores/productionStore';
-import { useAuth } from '../../composables/useAuth';
 import LotEditModal from '../../components/LotEditModal.vue';
 
 const route = useRoute();
-const router = useRouter();
 const store = useProductionStore();
-const { clearSession } = useAuth();
-
-const handleLogout = () => {
-  clearSession();
-  localStorage.removeItem('gp_mobile_configured');
-  localStorage.removeItem('gp_pwa_remember');
-  localStorage.removeItem('gp_pwa_default_mode');
-  router.push('/supervisor/login');
-};
 
 const currentTime = ref('');
 const isHelpModalOpen = ref(false);
