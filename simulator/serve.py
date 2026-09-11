@@ -143,13 +143,30 @@ def abrir_serial(porta: str, baud: int):
     return fd
 
 
-def ler_linhas(fd):
-    """Generator: produz uma linha por vez, sem bloquear pra sempre (VTIME=1 = até 100ms)."""
+def ler_linhas(fd, porta: str):
+    """
+    Generator: produz uma linha por vez, sem bloquear pra sempre (VTIME=1 =
+    até 100ms de espera por leitura).
+
+    Se o cabo for desconectado, o nó /dev/ttyUSBx some do sistema mas o fd
+    já aberto continua "válido" pro Linux — só que os.read() passa a
+    retornar vazio NA HORA em vez de esperar os 100ms, o que vira um loop
+    apertadíssimo consumindo CPU à toa e nunca mais lê nada de verdade.
+    Por isso, a cada leitura vazia, confere se o caminho da porta ainda
+    existe — se não existir mais, desiste (o chamador reabre do zero,
+    inclusive achando a porta nova se ela renumerou).
+    """
     buffer = b""
+    vazias_seguidas = 0
     while True:
         chunk = os.read(fd, 256)
         if chunk:
             buffer += chunk
+            vazias_seguidas = 0
+        else:
+            vazias_seguidas += 1
+            if vazias_seguidas > 5 and not os.path.exists(porta):
+                raise OSError(f"Porta {porta} não existe mais (sensor desconectado?)")
         while b"\n" in buffer:
             linha, buffer = buffer.split(b"\n", 1)
             yield linha.decode("utf-8", errors="replace").strip()
@@ -168,6 +185,7 @@ def thread_sensor():
     ultimo_heartbeat = 0.0
 
     while True:
+        fd = None
         try:
             porta = resolver_porta(SERIAL_PORT)
             fd = abrir_serial(porta, BAUD_RATE)
@@ -176,7 +194,7 @@ def thread_sensor():
                 estado["porta"] = porta
                 estado["ultimo_erro"] = None
 
-            for linha in ler_linhas(fd):
+            for linha in ler_linhas(fd, porta):
                 with estado_lock:
                     estado["ultima_linha_crua"] = linha
 
@@ -224,7 +242,12 @@ def thread_sensor():
             with estado_lock:
                 estado["conectado"] = False
                 estado["ultimo_erro"] = str(error)
-            time.sleep(3)  # porta sumiu/erro — tenta reabrir em alguns segundos
+            if fd is not None:
+                try:
+                    os.close(fd)
+                except Exception:
+                    pass  # fd já pode estar inválido (porta removida) — sem problema
+            time.sleep(3)  # porta sumiu/erro — tenta reabrir em alguns segundos (achando a nova, se renumerou)
 
 
 # ============================================================
