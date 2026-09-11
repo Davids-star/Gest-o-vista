@@ -46,6 +46,37 @@ Os campos de tempo (`--interval`, `--production-time`, `--stop-time`, `--heartbe
 
 **⚠️ Sobre `--stop-time` e o alerta de "possível parada":** o backend (`STOP_DETECTION_SECONDS`, ver [`../api/src/common/constants/stop-detection.constants.ts`](../api/src/common/constants/stop-detection.constants.ts)) usa **120 segundos** como padrão pra considerar que uma máquina parou de produzir. Um `--stop-time` menor que isso nunca vai gerar o alerta — o padrão do simulador (150s) já dá uma folga confortável acima do limite.
 
+## 🔌 Sensor real conectado por cabo/USB (sem ESP32/WiFi)
+
+Enquanto o ESP32 não entra em uso, o sensor de contagem é ligado direto no
+computador por cabo USB — aparece como porta serial
+(`/dev/ttyUSB0`/`/dev/ttyACM0` no Linux). `serial_sensor_bridge.py` lê essa
+porta e publica no mesmo broker MQTT, no mesmo formato que o
+`esp32_simulator.py` — pro resto do sistema não enxergar diferença nenhuma
+entre os dois.
+
+```bash
+python3 serial_sensor_bridge.py --list-ports        # descobre a porta
+python3 serial_sensor_bridge.py --port /dev/ttyUSB0 --device ESP32-MQ-01-SENSOR-01 --debug
+```
+
+`--debug` mostra cada linha crua que chega do sensor antes de interpretar —
+use isso na primeira vez pra confirmar o formato real. Regra atual (ver
+`interpretar_linha` no script): qualquer linha de texto = 1 peça; se a linha
+for só um número, usa esse número como quantidade. Ajuste essa função se o
+sensor mandar outro formato (JSON, binário, etc.).
+
+**Sem permissão pra abrir a porta** (`PermissionError`)? No Linux, seu
+usuário precisa estar no grupo `dialout`:
+```bash
+sudo usermod -aG dialout $USER   # depois faça logout/login
+```
+
+Vale a mesma exigência do `esp32_simulator.py`: o `--device` precisa já
+existir cadastrado na tabela `devices`, vinculado a uma `Machine` com
+**sessão ativa** — sem isso os eventos chegam mas são descartados em
+silêncio.
+
 ## 🛰️ Tópicos e Payloads
 
 - **Produção** — `gp/{DEVICE_ID}/production`
