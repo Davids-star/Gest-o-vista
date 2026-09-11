@@ -259,19 +259,19 @@ app = Flask(__name__)
 
 @app.get("/")
 def pagina_status():
-    with estado_lock:
-        e = dict(estado)
-    cor = "#059669" if e["conectado"] else "#dc2626"
+    # Página renderizada UMA vez só — não recarrega mais sozinha (nada de
+    # <meta refresh>, que pisca a tela inteira). O JS abaixo busca /status
+    # a cada 2s em segundo plano (fetch) e só troca o TEXTO das células que
+    # mudaram — atualização "silenciosa", sem piscar nem perder o scroll.
     return f"""
     <!doctype html>
     <html><head>
       <meta charset="utf-8">
-      <meta http-equiv="refresh" content="2">
       <title>Sensor → API</title>
       <style>
         body {{ font-family: system-ui, sans-serif; background: #f1f5f9; padding: 32px; color: #0f172a; }}
         .card {{ background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 24px; max-width: 480px; }}
-        .status {{ display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: {cor}; margin-right: 8px; }}
+        .status {{ display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 8px; transition: background-color 0.3s; }}
         table {{ width: 100%; margin-top: 16px; border-collapse: collapse; }}
         td {{ padding: 6px 0; border-bottom: 1px solid #f1f5f9; }}
         td:first-child {{ color: #64748b; font-size: 13px; }}
@@ -279,17 +279,37 @@ def pagina_status():
       </style>
     </head><body>
       <div class="card">
-        <h2><span class="status"></span>{"Conectado" if e["conectado"] else "Desconectado"} — {SERIAL_PORT}</h2>
+        <h2><span class="status" id="dot"></span><span id="titulo">Carregando…</span> — {SERIAL_PORT}</h2>
         <table>
           <tr><td>Device</td><td>{DEVICE_ID}</td></tr>
-          <tr><td>Última linha do sensor</td><td>{e["ultima_linha_crua"] or "—"}</td></tr>
-          <tr><td>Contagem do sensor</td><td>{e["contagem_sensor"] if e["contagem_sensor"] is not None else "—"}</td></tr>
-          <tr><td>Total enviado pro sistema</td><td>{e["total_enviado"]} peças</td></tr>
-          <tr><td>Eventos enviados</td><td>{e["eventos_enviados"]}</td></tr>
-          <tr><td>Último envio</td><td>{e["ultimo_envio_em"] or "—"}</td></tr>
-          <tr><td>Último erro</td><td style="color:#dc2626">{e["ultimo_erro"] or "—"}</td></tr>
+          <tr><td>Última linha do sensor</td><td id="ultima_linha_crua">—</td></tr>
+          <tr><td>Contagem do sensor</td><td id="contagem_sensor">—</td></tr>
+          <tr><td>Total enviado pro sistema</td><td id="total_enviado">—</td></tr>
+          <tr><td>Eventos enviados</td><td id="eventos_enviados">—</td></tr>
+          <tr><td>Último envio</td><td id="ultimo_envio_em">—</td></tr>
+          <tr><td>Último erro</td><td id="ultimo_erro" style="color:#dc2626">—</td></tr>
         </table>
       </div>
+      <script>
+        async function atualizar() {{
+          let e;
+          try {{
+            e = await (await fetch('/status')).json();
+          }} catch {{
+            return; // rede/servidor fora do ar por um instante — tenta de novo no próximo ciclo
+          }}
+          document.getElementById('dot').style.backgroundColor = e.conectado ? '#059669' : '#dc2626';
+          document.getElementById('titulo').textContent = e.conectado ? 'Conectado' : 'Desconectado';
+          document.getElementById('ultima_linha_crua').textContent = e.ultima_linha_crua || '—';
+          document.getElementById('contagem_sensor').textContent = e.contagem_sensor ?? '—';
+          document.getElementById('total_enviado').textContent = e.total_enviado + ' peças';
+          document.getElementById('eventos_enviados').textContent = e.eventos_enviados;
+          document.getElementById('ultimo_envio_em').textContent = e.ultimo_envio_em || '—';
+          document.getElementById('ultimo_erro').textContent = e.ultimo_erro || '—';
+        }}
+        atualizar();
+        setInterval(atualizar, 2000);
+      </script>
     </body></html>
     """
 
