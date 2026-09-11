@@ -10,18 +10,35 @@ no mesmo formato que o esp32_simulator.py já usa — pro resto do
 sistema (backend, dashboard, totem) não enxergar diferença nenhuma
 entre "veio do ESP32 por WiFi" e "veio do sensor por cabo".
 
-COMO O SENSOR É LIDO (ver `interpretar_linha` mais abaixo) — ainda não
-sabemos o protocolo exato do sensor físico, então a regra por enquanto
-é a mais simples e mais comum pra esse tipo de contador:
+PROTOCOLO REAL DO SENSOR (descoberto testando com --debug em
+09/2026 — ver SerialBridge._processar_linha mais abaixo): o firmware
+da placa fala um protocolo textual próprio, um comando por linha,
+9600 baud. No boot ele manda um banner:
 
-    qualquer linha de texto que chegar pela porta serial = 1 peça.
-    Se a linha for só um número (ex.: "3"), usa esse número como
-    quantidade em vez de 1 — cobre tanto um sensor que manda "pulso
-    por peça" quanto um que manda "contagem acumulada desse pacote".
+    Distancia base: 37.01 cm
+    Sistema pronto.
+    Comandos: RESET, STATUS, CALIBRAR, HELP
+    Contagem atual: 0
 
-Quando o sensor real chegar, é só rodar com --debug pra ver
-exatamente o que ele manda cru na porta, e ajustar `interpretar_linha`
-se o formato for outro (ex.: JSON, ou um pacote binário).
+E, sozinho — sem precisar perguntar nada —, manda DUAS linhas toda
+vez que detecta uma peça passando (mede distância por ultrassom;
+"Total" é a contagem acumulada desde o último RESET/boot):
+
+    COUNT:15
+    Doce detectado. Distancia: 9.81 cm. Total: 15
+
+A ponte usa só a linha `COUNT:N` (ignora a "Doce detectado..." —
+mesma informação, só mais redundância) e calcula a DIFERENÇA entre
+o N novo e o último N visto, pra descobrir quantas peças novas
+contar — nunca assume "sempre +1", porque se uma linha se perder no
+caminho o total ainda corrige sozinho na próxima. A primeira leitura
+de contagem (banner ou primeiro COUNT:) só define a base — não gera
+evento de produção (senão contaria de novo tudo que o sensor já
+tinha contado antes da ponte conectar).
+
+Se o firmware for atualizado e o formato mudar, ajuste o regex
+`CONTAGEM_RE` e `SerialBridge._processar_linha`. Rode com --debug
+pra ver a linha crua antes de qualquer interpretação.
 
 Não tem dependência nenhuma além do Python padrão — a leitura da
 porta serial usa só `termios`/`os`/`fcntl` (sem pyserial), do mesmo
@@ -40,6 +57,7 @@ import fcntl
 import glob
 import json
 import os
+import re
 import socket
 import termios
 import time
@@ -224,35 +242,26 @@ def listar_portas():
 
 
 # ============================================================
-# INTERPRETAÇÃO DA LINHA — o único lugar que provavelmente vai
-# precisar de ajuste quando soubermos o protocolo real do sensor.
+# INTERPRETAÇÃO DA LINHA — protocolo real do sensor (ver docstring
+# do módulo). Só duas formas de linha carregam uma contagem; tudo o
+# mais ("Sistema pronto.", "Comandos: ...", "Distancia atual: ...",
+# "Doce detectado...", "WARNING: ...") é log informativo e é ignorado.
 # ============================================================
 
+CONTAGEM_RE = re.compile(r"^(?:COUNT:|Contagem atual:)\s*(\d+)\s*$")
 
-def interpretar_linha(linha: str) -> int | None:
+
+def extrair_contagem(linha: str) -> int | None:
     """
-    Decide quantas peças essa linha representa.
-
-    Retorna None se a linha deve ser ignorada (linha vazia, ruído,
-    ou uma linha de log do próprio sensor que não é uma contagem).
+    Extrai o total acumulado de uma linha "COUNT:N" ou
+    "Contagem atual: N" (essa segunda só aparece no banner de boot e
+    na resposta do comando STATUS). Retorna None pra qualquer outra
+    linha — inclusive "Doce detectado...Total: N", que carrega a
+    mesma informação só que redundante; usar as duas contaria cada
+    peça em dobro.
     """
-    linha = linha.strip()
-    if not linha:
-        return None
-
-    # Linha puramente numérica (ex.: "1", "3", "12.0") → usa o número
-    # como quantidade. Cobre um sensor que manda a contagem acumulada.
-    try:
-        valor = float(linha)
-        if valor > 0:
-            return int(valor)
-        return None
-    except ValueError:
-        pass
-
-    # Qualquer outra linha não-vazia → trata como "1 peça" (pulso
-    # simples, tipo o sensor mandando "PULSE" ou "OK" a cada peça).
-    return 1
+    m = CONTAGEM_RE.match(linha.strip())
+    return int(m.group(1)) if m else None
 
 
 # ============================================================
@@ -294,6 +303,11 @@ class SerialBridge:
         self.total_events = 0
         self.total_pecas = 0
 
+        # Último total que o sensor reportou (via "COUNT:N" ou o
+        # "Contagem atual: N" do boot) — None até a primeira leitura,
+        # pra distinguir "ainda não sei" de "sensor mandou zero".
+        self.ultima_contagem = None
+
     def run(self):
         self._print_header()
         try:
@@ -307,16 +321,38 @@ class SerialBridge:
                 if self.debug:
                     self._log("📥", f"Linha recebida (crua): {linha!r}")
 
-                quantidade = interpretar_linha(linha)
-                if quantidade is None:
-                    continue
-
-                self._enviar_producao(quantidade)
+                self._processar_linha(linha)
         except KeyboardInterrupt:
             pass
         finally:
             self.serial_port.close()
         self._print_shutdown()
+
+    def _processar_linha(self, linha: str):
+        total_sensor = extrair_contagem(linha)
+        if total_sensor is None:
+            return  # linha informativa (banner, "Doce detectado...", etc.)
+
+        if self.ultima_contagem is None:
+            # Primeira contagem vista — só define a referência. Não
+            # gera evento: senão a ponte recontaria, na conexão, tudo
+            # que o sensor já tinha contado antes dela existir.
+            self.ultima_contagem = total_sensor
+            self._log("ℹ️", f"Contagem inicial do sensor: {total_sensor}")
+            return
+
+        diferenca = total_sensor - self.ultima_contagem
+        self.ultima_contagem = total_sensor
+
+        if diferenca <= 0:
+            # Sensor reiniciou/zerou (RESET) ou mandou o mesmo total
+            # de novo — nunca manda evento negativo/zero pro backend,
+            # só realinha a referência com o novo valor.
+            if diferenca < 0:
+                self._log("⚠️", f"Contagem do sensor voltou pra trás (RESET?): agora {total_sensor}")
+            return
+
+        self._enviar_producao(diferenca)
 
     def _process_heartbeat(self):
         if self.heartbeat_interval <= 0:
