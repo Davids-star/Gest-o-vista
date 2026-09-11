@@ -19,7 +19,7 @@
     </div>
     <button
       @click="mobileOpen = !mobileOpen"
-      class="p-2 rounded-lg bg-slate-100 border border-slate-300 text-emerald-600 focus:outline-none"
+      class="relative p-2 rounded-lg bg-slate-100 border border-slate-300 text-emerald-600 focus:outline-none"
       aria-label="Abrir Menu"
     >
       <svg v-if="!mobileOpen" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -28,6 +28,14 @@
       <svg v-else class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
       </svg>
+      <!-- Badge de alertas no ícone do menu — sem isso, só dava pra ver
+           que havia alerta depois de abrir a gaveta inteira. -->
+      <span
+        v-if="!mobileOpen && store.alerts.length"
+        class="absolute -top-1.5 -right-1.5 min-w-[1.1rem] h-[1.1rem] px-1 rounded-full bg-red-500 text-white text-[10px] font-black flex items-center justify-center border-2 border-white"
+      >
+        {{ store.alerts.length }}
+      </span>
     </button>
   </div>
 

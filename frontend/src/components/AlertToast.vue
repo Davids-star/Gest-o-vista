@@ -2,7 +2,7 @@
   <Transition name="toast-pop">
     <div
       v-if="visible"
-      class="fixed top-4 right-4 z-[70] flex items-center gap-3 dark-panel border-red-200 bg-white px-4 py-3 pr-3 max-w-xs cursor-pointer select-none"
+      class="fixed top-[calc(4rem+0.5rem+env(safe-area-inset-top,0px))] right-4 md:top-4 z-[70] flex items-center gap-3 dark-panel border-red-200 bg-white px-4 py-3 pr-3 max-w-xs cursor-pointer select-none"
       role="status"
       @click="irParaAlertas"
     >

@@ -1,3 +1,12 @@
+// Precisa ser o PRIMEIRO import do arquivo: alguns módulos (ex.:
+// stop-detection.constants.ts) leem process.env direto num `const` de
+// topo de arquivo, avaliado assim que o módulo é importado — ou seja,
+// antes de ConfigModule.forRoot() (que só roda dentro do decorator
+// @Module de AppModule) ter carregado o .env. Sem isso, essas
+// constantes sempre pegavam o valor padrão do código, nunca o do
+// .env, mesmo com a variável lá dentro.
+import 'dotenv/config';
+
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module';
