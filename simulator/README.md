@@ -49,22 +49,26 @@ Os campos de tempo (`--interval`, `--production-time`, `--stop-time`, `--heartbe
 ## 🔌 Sensor real conectado por cabo/USB (sem ESP32/WiFi)
 
 Enquanto o ESP32 não entra em uso, o sensor de contagem é ligado direto no
-computador por cabo USB — aparece como porta serial
-(`/dev/ttyUSB0`/`/dev/ttyACM0` no Linux). `serial_sensor_bridge.py` lê essa
-porta e publica no mesmo broker MQTT, no mesmo formato que o
-`esp32_simulator.py` — pro resto do sistema não enxergar diferença nenhuma
-entre os dois.
+computador por cabo USB — aparece como porta serial (`/dev/ttyUSB0` no
+Linux). `serve.py` lê essa porta e publica no mesmo broker MQTT, no mesmo
+formato que o `esp32_simulator.py` — pro resto do sistema não enxergar
+diferença nenhuma entre os dois.
 
 ```bash
-python3 serial_sensor_bridge.py --list-ports        # descobre a porta
-python3 serial_sensor_bridge.py --port /dev/ttyUSB0 --device ESP32-MQ-01-SENSOR-01 --debug
+python3 serve.py
 ```
 
-`--debug` mostra cada linha crua que chega do sensor antes de interpretar —
-use isso na primeira vez pra confirmar o formato real. Regra atual (ver
-`interpretar_linha` no script): qualquer linha de texto = 1 peça; se a linha
-for só um número, usa esse número como quantidade. Ajuste essa função se o
-sensor mandar outro formato (JSON, binário, etc.).
+Configuração por constante no topo do arquivo (porta, device, host/porta do
+MQTT) — não tem argumento de linha de comando. Depois de rodar, abre
+`http://localhost:5000` no navegador (ou do celular, mesma rede Wi-Fi:
+`http://SEU_IP:5000`) pra ver o status ao vivo: conectado ou não, última
+linha recebida do sensor, total de peças enviadas, e qualquer erro — sem
+precisar ler log de terminal. A página atualiza sozinha (sem piscar/recarregar)
+a cada 2s.
+
+O protocolo real do sensor (o que ele manda pela porta a cada peça
+detectada) está documentado no topo do próprio `serve.py`. Só precisa
+Flask instalado: `pip install flask`.
 
 **Sem permissão pra abrir a porta** (`PermissionError`)? No Linux, seu
 usuário precisa estar no grupo `dialout`:

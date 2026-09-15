@@ -342,6 +342,7 @@ import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue';
 import { useRoute } from 'vue-router';
 import { useProductionStore } from '../../stores/productionStore';
 import LotEditModal from '../../components/LotEditModal.vue';
+import { getMachineDisplayName as getMachineDisplayNameBase } from '../../composables/useMachineDisplay';
 
 const route = useRoute();
 const store = useProductionStore();
@@ -403,15 +404,7 @@ onBeforeUnmount(() => {
 });
 
 const currentMachine = computed(() => store.selectedMachine);
-// Número de exibição da máquina — extrai o dígito do code (ex.: "MQ-02" → 2).
-// parseInt(code, 10) sozinho sempre dava NaN (code começa com letra "MQ-").
-const currentMachineDisplayName = computed(() => {
-  if (!currentMachine.value) return '—';
-  const idx = store.machines.findIndex((m) => m.id === currentMachine.value.id);
-  const match = currentMachine.value.code?.match(/\d+/);
-  const num = match ? parseInt(match[0], 10) : (idx >= 0 ? idx + 1 : 1);
-  return `Máquina ${num}`;
-});
+const currentMachineDisplayName = computed(() => getMachineDisplayNameBase(store.machines, currentMachine.value));
 
 const handleSaveLot = async (newLotCode) => {
   if (!currentMachine.value || !newLotCode?.trim()) return;

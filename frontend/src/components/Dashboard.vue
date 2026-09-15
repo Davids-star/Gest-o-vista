@@ -324,22 +324,16 @@
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
 import { useProductionStore } from '../stores/productionStore';
 import { apontamentoApi } from '../services/api';
+import { formatDuracao as formatDuracaoBase } from '../composables/useFormatters';
 import AppSidebar from './AppSidebar.vue';
 import DayDetailsModal from './DayDetailsModal.vue';
 import MonthlySummaryPanel from './MonthlySummaryPanel.vue';
 import HourlyProductionChart from './HourlyProductionChart.vue';
+import { getMachineNumber as getMachineNumberBase } from '../composables/useMachineDisplay';
 
 const store = useProductionStore();
 
-// Número de exibição da máquina — extrai o dígito do code (ex.: "MQ-02" → 2).
-// parseInt(m.code, 10) sozinho sempre dava NaN (code começa com letra
-// "MQ-"), então nunca usava o código real, só a posição no array —
-// "Máquina 2" podia mostrar uma máquina de teste qualquer, não a MQ-02.
-const getMachineNumber = (m) => {
-  const idx = store.machines.findIndex((item) => item.id === m.id);
-  const match = m.code?.match(/\d+/);
-  return match ? parseInt(match[0], 10) : (idx >= 0 ? idx + 1 : 1);
-};
+const getMachineNumber = (m) => getMachineNumberBase(store.machines, m);
 
 // Máquina escolhida no painel "ESTAÇÕES DA FÁBRICA" (store.selectedStationId,
 // setado por store.selectStation ao clicar num card).
@@ -410,13 +404,7 @@ const selectedDayApontamento = ref(null);
 const modalLoading = ref(false);
 const hojeApontamento = ref(null);
 
-const formatDuracao = (segundos) => {
-  const s = Math.max(0, Math.round(segundos || 0));
-  const h = Math.floor(s / 3600);
-  const m = Math.floor((s % 3600) / 60);
-  if (h > 0) return `${h}h ${String(m).padStart(2, '0')}m`;
-  return `${m}m`;
-};
+const formatDuracao = (segundos) => formatDuracaoBase(segundos, { compact: true });
 
 const formatDateTime = (dt) => {
   if (!dt) return '—';

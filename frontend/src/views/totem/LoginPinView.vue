@@ -73,19 +73,12 @@
 import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useProductionStore } from '../../stores/productionStore';
+import { getMachineNumber as getMachineNumberBase } from '../../composables/useMachineDisplay';
 
 const router = useRouter();
 const store = useProductionStore();
 
-// Número de exibição da máquina — extrai o dígito do code (ex.: "MQ-02" → 2).
-// parseInt(m.code, 10) sozinho sempre dava NaN (code começa com letra
-// "MQ-"), então nunca usava o código real, só a posição no array —
-// "Máquina 2" podia mostrar uma máquina de teste qualquer, não a MQ-02.
-const getMachineNumber = (m) => {
-  const idx = store.machines.findIndex((item) => item.id === m.id);
-  const match = m.code?.match(/\d+/);
-  return match ? parseInt(match[0], 10) : (idx >= 0 ? idx + 1 : 1);
-};
+const getMachineNumber = (m) => getMachineNumberBase(store.machines, m);
 
 const selectedStationId = ref('');
 const operatorName = ref('');

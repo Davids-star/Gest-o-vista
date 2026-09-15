@@ -155,6 +155,7 @@ import { ref, reactive, computed, onMounted, onUnmounted } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { useProductionStore } from '../../stores/productionStore';
 import AppSidebar from '../../components/AppSidebar.vue';
+import { getMachineNumber as getMachineNumberBase, getMachineDisplayName as getMachineDisplayNameBase } from '../../composables/useMachineDisplay';
 
 const router = useRouter();
 const route = useRoute();
@@ -183,17 +184,8 @@ onMounted(async () => {
 onUnmounted(() => clearInterval(clockInterval));
 
 const currentMachine = computed(() => store.selectedMachine);
-// Número de exibição da máquina — extrai o dígito do code (ex.: "MQ-02" → 2).
-// parseInt(code, 10) sozinho sempre dava NaN (code começa com letra "MQ-").
-const getMachineNumber = (m) => {
-  const idx = store.machines.findIndex((item) => item.id === m.id);
-  const match = m.code?.match(/\d+/);
-  return match ? parseInt(match[0], 10) : (idx >= 0 ? idx + 1 : 1);
-};
-const currentMachineDisplayName = computed(() => {
-  if (!currentMachine.value) return '—';
-  return `Máquina ${getMachineNumber(currentMachine.value)}`;
-});
+const getMachineNumber = (m) => getMachineNumberBase(store.machines, m);
+const currentMachineDisplayName = computed(() => getMachineDisplayNameBase(store.machines, currentMachine.value));
 const showLotForm = ref(false);
 const creatingLot = ref(false);
 const lotCreateError = ref('');

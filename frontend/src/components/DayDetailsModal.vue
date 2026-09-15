@@ -223,6 +223,7 @@
 
 <script setup>
 import { ref, reactive, computed } from 'vue';
+import { formatDuracao } from '../composables/useFormatters';
 
 const props = defineProps({
   isOpen: { type: Boolean, default: false },
@@ -254,13 +255,6 @@ const formattedDate = computed(() => {
   }
 });
 
-const formatDuracao = (segundos) => {
-  const s = Math.max(0, Math.round(segundos || 0));
-  const h = Math.floor(s / 3600);
-  const m = Math.floor((s % 3600) / 60);
-  if (h > 0) return `${h}h ${String(m).padStart(2, '0')}min`;
-  return `${m}min`;
-};
 
 const formatHora = (dt) => {
   if (!dt) return '—';

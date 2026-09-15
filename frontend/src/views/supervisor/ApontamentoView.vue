@@ -289,8 +289,10 @@
 import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue';
 import { useRoute } from 'vue-router';
 import { useProductionStore } from '../../stores/productionStore';
+import { formatDuracao } from '../../composables/useFormatters';
 import AppSidebar from '../../components/AppSidebar.vue';
 import StopModal from '../../components/StopModal.vue';
+import { getMachineNumber as getMachineNumberBase, getMachineDisplayName as getMachineDisplayNameBase } from '../../composables/useMachineDisplay';
 
 const route = useRoute();
 const store = useProductionStore();
@@ -365,18 +367,8 @@ const isMachineOperating = (machineId) => {
   return store.sessions.some(s => s.machine_id === machineId && s.status === 'active');
 };
 
-// Número de exibição da máquina — extrai o dígito do code (ex.: "MQ-02" → 2).
-// parseInt(m.code, 10) sozinho sempre dava NaN (code começa com letra
-// "MQ-"), então nunca usava o código real, só a posição no array —
-// "Máquina 2" podia mostrar uma máquina de teste qualquer, não a MQ-02.
-const getMachineNumber = (m) => {
-  if (!m) return '—';
-  const idx = store.machines.findIndex((item) => item.id === m.id);
-  const match = m.code?.match(/\d+/);
-  return match ? parseInt(match[0], 10) : (idx >= 0 ? idx + 1 : 1);
-};
-
-const getMachineDisplayName = (m) => `Máquina ${getMachineNumber(m)}`;
+const getMachineNumber = (m) => getMachineNumberBase(store.machines, m);
+const getMachineDisplayName = (m) => getMachineDisplayNameBase(store.machines, m);
 
 const selectedSession = computed(() => {
   if (!selectedMachine.value) return null;
@@ -401,13 +393,6 @@ const paradasHoje = computed(() => {
   return store.apontamento?.paradas || [];
 });
 
-const formatDuracao = (segundos) => {
-  const s = Math.max(0, Math.round(segundos || 0));
-  const h = Math.floor(s / 3600);
-  const m = Math.floor((s % 3600) / 60);
-  if (h > 0) return `${h}h ${String(m).padStart(2, '0')}min`;
-  return `${m}min`;
-};
 
 const formatHora = (dt) => {
   if (!dt) return '—';

@@ -1,22 +1,44 @@
 #!/usr/bin/env python3
 """
-serve.py — Sensor (USB) → MQTT → API, versão enxuta com Flask
+serve.py — Sensor (USB) → MQTT → API
 
-Faz a mesma ponte que serial_sensor_bridge.py, só que num arquivo só,
-sem classes — e com uma página web (Flask) pra ver o que está
-acontecendo sem precisar ler log de terminal.
+Lê a porta serial de um sensor de contagem ligado por cabo USB (em vez
+do ESP32 por WiFi) e publica cada peça detectada no broker MQTT
+embutido da API — no mesmo formato que esp32_simulator.py usa, pro
+resto do sistema (backend, dashboard, totem) não enxergar diferença
+nenhuma entre as duas origens.
+
+Um arquivo só, sem classes, configuração por constante no topo (sem
+argumento de linha de comando) — e uma página web (Flask) em
+http://localhost:5000 (ou do celular, mesma rede: http://SEU_IP:5000)
+pra ver o que está acontecendo sem precisar ler log de terminal.
 
 Precisa do Flask instalado: pip install flask
 
 Como rodar:
     python3 serve.py
 
-Depois abre no navegador: http://localhost:5000
-(ou do celular, na mesma rede: http://SEU_IP:5000)
+PROTOCOLO REAL DO SENSOR (descoberto testando com --debug em 09/2026):
+o firmware da placa fala um protocolo textual próprio, um comando por
+linha, 9600 baud. No boot manda um banner:
 
-Configuração — edite as constantes logo abaixo, não tem argumento de
-linha de comando (é isso que faz esse arquivo ser mais enxuto que o
-serial_sensor_bridge.py).
+    Distancia base: 37.01 cm
+    Sistema pronto.
+    Comandos: RESET, STATUS, CALIBRAR, HELP
+    Contagem atual: 0
+
+E, sozinho — sem precisar perguntar nada —, manda DUAS linhas toda vez
+que detecta uma peça passando (mede distância por ultrassom; "Total" é
+a contagem acumulada desde o último RESET/boot):
+
+    COUNT:15
+    Doce detectado. Distancia: 9.81 cm. Total: 15
+
+Este script usa só a linha `COUNT:N` (ignora a "Doce detectado..." —
+mesma informação, redundante) e calcula a DIFERENÇA entre o N novo e o
+último N visto — nunca assume "sempre +1", pra se corrigir sozinho se
+alguma linha se perder no caminho. Se o firmware for atualizado e o
+formato mudar, ajuste CONTAGEM_RE e a função thread_sensor().
 """
 
 import fcntl
@@ -174,7 +196,7 @@ def ler_linhas(fd, porta: str):
 
 # ============================================================
 # PROTOCOLO DO SENSOR — só "COUNT:N" / "Contagem atual: N" importam
-# (ver serial_sensor_bridge.py pra explicação completa do protocolo)
+# (ver a explicação completa do protocolo no topo do arquivo)
 # ============================================================
 
 CONTAGEM_RE = re.compile(r"^(?:COUNT:|Contagem atual:)\s*(\d+)\s*$")

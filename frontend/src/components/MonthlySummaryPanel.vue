@@ -136,6 +136,7 @@
 
 <script setup>
 import { ref, computed } from 'vue';
+import { formatDuracao } from '../composables/useFormatters';
 import SimpleBarChart from './SimpleBarChart.vue';
 import TimeDistributionChart from './TimeDistributionChart.vue';
 
@@ -169,13 +170,6 @@ const consultar = () => {
   });
 };
 
-const formatDuracao = (segundos) => {
-  const s = Math.max(0, Math.round(segundos || 0));
-  const h = Math.floor(s / 3600);
-  const m = Math.floor((s % 3600) / 60);
-  if (h > 0) return `${h}h ${String(m).padStart(2, '0')}min`;
-  return `${m}min`;
-};
 
 const producaoPorMaquinaChart = computed(() =>
   (props.data?.por_maquina || []).map((m) => ({ name: m.machine_code, value: m.producao })),
