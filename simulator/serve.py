@@ -92,6 +92,24 @@ estado = {
 }
 estado_lock = threading.Lock()
 
+# fd da porta serial atualmente aberta, pra dar pro Flask escrever nela (pedir
+# RESET) — a thread do sensor é dona de abrir/fechar; o Flask só usa se
+# estiver disponível. None enquanto não há porta aberta (ou entre reconexões).
+serial_fd_atual = None
+serial_fd_lock = threading.Lock()
+
+
+def enviar_comando_arduino(comando: str) -> bool:
+    """Escreve um comando (ex.: "RESET") na porta serial aberta agora, se houver."""
+    with serial_fd_lock:
+        if serial_fd_atual is None:
+            return False
+        try:
+            os.write(serial_fd_atual, (comando + "\n").encode("utf-8"))
+            return True
+        except OSError:
+            return False
+
 
 # ============================================================
 # MQTT — publish mínimo (QoS 0), sem lib externa
@@ -322,6 +340,9 @@ def thread_sensor():
         try:
             porta = resolver_porta(SERIAL_PORT)
             fd = abrir_serial(porta, BAUD_RATE)
+            with serial_fd_lock:
+                global serial_fd_atual
+                serial_fd_atual = fd
             with estado_lock:
                 estado["conectado"] = True
                 estado["porta"] = porta
@@ -370,6 +391,8 @@ def thread_sensor():
                 tentar_esvaziar_fila()
 
         except Exception as error:
+            with serial_fd_lock:
+                serial_fd_atual = None
             with estado_lock:
                 estado["conectado"] = False
                 estado["ultimo_erro"] = str(error)
@@ -407,6 +430,10 @@ def pagina_status():
         td {{ padding: 6px 0; border-bottom: 1px solid #f1f5f9; }}
         td:first-child {{ color: #64748b; font-size: 13px; }}
         td:last-child {{ text-align: right; font-family: monospace; font-weight: bold; }}
+        button {{ margin-top: 20px; width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #e2e8f0; background: #f8fafc; color: #334155; font-weight: bold; font-size: 13px; cursor: pointer; }}
+        button:hover {{ background: #f1f5f9; }}
+        button:disabled {{ opacity: 0.5; cursor: not-allowed; }}
+        #reset_msg {{ margin-top: 8px; font-size: 12px; text-align: center; }}
       </style>
     </head><body>
       <div class="card">
@@ -421,6 +448,8 @@ def pagina_status():
           <tr><td>Na fila (ainda não confirmado)</td><td id="fila_pendente" style="color:#d97706">—</td></tr>
           <tr><td>Último erro</td><td id="ultimo_erro" style="color:#dc2626">—</td></tr>
         </table>
+        <button id="btn_reset" onclick="resetarArduino()">↺ Zerar contador do Arduino</button>
+        <p id="reset_msg"></p>
       </div>
       <script>
         async function atualizar() {{
@@ -439,6 +468,26 @@ def pagina_status():
           document.getElementById('ultimo_envio_em').textContent = e.ultimo_envio_em || '—';
           document.getElementById('fila_pendente').textContent = e.fila_pendente ? (e.fila_pendente + ' peça(s)') : 'nenhuma';
           document.getElementById('ultimo_erro').textContent = e.ultimo_erro || '—';
+          document.getElementById('btn_reset').disabled = !e.conectado || !!e.fila_pendente;
+        }}
+        async function resetarArduino() {{
+          const msg = document.getElementById('reset_msg');
+          msg.style.color = '#64748b';
+          msg.textContent = 'Enviando RESET...';
+          try {{
+            const r = await fetch('/reset', {{ method: 'POST' }});
+            const d = await r.json();
+            if (d.ok) {{
+              msg.style.color = '#059669';
+              msg.textContent = 'Contador zerado.';
+            }} else {{
+              msg.style.color = '#dc2626';
+              msg.textContent = d.motivo;
+            }}
+          }} catch {{
+            msg.style.color = '#dc2626';
+            msg.textContent = 'Falha ao falar com o servidor.';
+          }}
         }}
         atualizar();
         setInterval(atualizar, 2000);
@@ -451,6 +500,29 @@ def pagina_status():
 def status_json():
     with estado_lock:
         return jsonify(estado)
+
+
+@app.post("/reset")
+def resetar_arduino():
+    """
+    Manda RESET pro Arduino (zera o contador dele). Só permite se a fila
+    local estiver vazia — resetar com peça ainda não confirmada no
+    servidor faria essa diferença nunca mais ser calculada (o próximo
+    COUNT que chegar já vem baixo, e o bridge trataria como se o
+    sensor tivesse reiniciado sozinho, sem gerar evento nenhum pra ela).
+    """
+    with estado_lock:
+        pendente = estado["fila_pendente"]
+    if pendente:
+        return jsonify({
+            "ok": False,
+            "motivo": f"Ainda tem {pendente} peça(s) na fila, não confirmadas no servidor — espera esvaziar antes de resetar.",
+        }), 409
+
+    if not enviar_comando_arduino("RESET"):
+        return jsonify({"ok": False, "motivo": "Sensor não está conectado agora."}), 503
+
+    return jsonify({"ok": True})
 
 
 if __name__ == "__main__":
