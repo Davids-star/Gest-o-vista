@@ -353,7 +353,10 @@ const isLotModalOpen = ref(false);
 const sessionError = ref('');
 const selectedProductId = ref('');
 const lotCode = ref('');
-const operatorName = ref('');
+// Mesma chave que LoginPinView.vue usa — pré-preenche com o nome digitado
+// lá (ou da última sessão iniciada aqui mesmo), pra não pedir de novo.
+const OPERATOR_STORAGE_KEY = 'gp_totem_last_operator';
+const operatorName = ref(localStorage.getItem(OPERATOR_STORAGE_KEY) || '');
 
 let clockInterval = null;
 
@@ -604,6 +607,8 @@ const handleStart = async () => {
     sessionError.value = 'Informe produto, lote e operador para iniciar a produção.';
     return;
   }
+
+  localStorage.setItem(OPERATOR_STORAGE_KEY, operatorName.value.trim());
 
   try {
     await store.startSession({

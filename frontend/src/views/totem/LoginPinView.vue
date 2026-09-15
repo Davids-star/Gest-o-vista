@@ -80,8 +80,13 @@ const store = useProductionStore();
 
 const getMachineNumber = (m) => getMachineNumberBase(store.machines, m);
 
+// Lembra o último nome digitado (localStorage) — antes, qualquer recarga
+// de página (inclusive as que acontecem sozinhas quando a API cai e volta)
+// deixava esse campo em branco de novo, obrigando a redigitar toda vez.
+const OPERATOR_STORAGE_KEY = 'gp_totem_last_operator';
+
 const selectedStationId = ref('');
-const operatorName = ref('');
+const operatorName = ref(localStorage.getItem(OPERATOR_STORAGE_KEY) || '');
 const errorMsg = ref('');
 
 onMounted(async () => {
@@ -105,6 +110,8 @@ const handleEnter = () => {
     errorMsg.value = 'Informe o nome do operador.';
     return;
   }
+
+  localStorage.setItem(OPERATOR_STORAGE_KEY, operatorName.value.trim());
 
   // Seleciona estação na store para que ProducaoView use a máquina correta
   store.selectStation(selectedStationId.value);
