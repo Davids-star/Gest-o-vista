@@ -67,6 +67,13 @@ MQTT_PORT = 1883
 FLASK_PORT = 5000
 HEARTBEAT_SECONDS = 10
 
+# Fila local de eventos que ainda não foram confirmados no servidor — ver
+# "FILA LOCAL" mais abaixo. Fica ao lado deste arquivo, sobrevive a reinícios
+# do script (não do computador desligar/o Arduino perder energia — isso é
+# uma limitação de hardware que não dá pra resolver por software nenhum).
+FILA_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "fila_eventos.jsonl")
+FILA_RETRY_SECONDS = 10  # de quanto em quanto tempo tenta esvaziar a fila sozinha
+
 
 # ============================================================
 # ESTADO COMPARTILHADO — a thread do sensor escreve, o Flask só lê
@@ -81,6 +88,7 @@ estado = {
     "eventos_enviados": 0,
     "ultimo_envio_em": None,
     "ultimo_erro": None,
+    "fila_pendente": 0,            # peças já contadas mas ainda não confirmadas no servidor
 }
 estado_lock = threading.Lock()
 
@@ -125,6 +133,104 @@ def mqtt_publish(topic: str, payload: str):
         sock.sendall(publish_pkt)
     finally:
         sock.close()
+
+
+# ============================================================
+# FILA LOCAL — nada de contagem se perde se a API/rede cair
+# ============================================================
+#
+# Toda peça detectada é gravada aqui ANTES de tentar publicar no MQTT
+# (arquivo em disco, uma linha JSON por evento). Só sai da fila quando o
+# publish é confirmado com sucesso. Se a API ou a rede caírem, os
+# eventos continuam se acumulando no arquivo — nada é descartado — e a
+# ponte tenta esvaziar a fila de novo sozinha, tanto a cada nova
+# detecção quanto periodicamente (FILA_RETRY_SECONDS), até conseguir.
+#
+# Importante deixar claro o que isso cobre e o que não cobre: isso
+# protege contra o SERVIDOR ou a REDE caírem enquanto o sensor continua
+# ligado e mandando dado pra ponte. Não protege contra o computador
+# rodando este script (ou o próprio Arduino) perder energia — nesse
+# caso o que ainda não tinha sido gravado no arquivo (ou o que o
+# Arduino ainda não tinha mandado) se perde mesmo, e não tem jeito de
+# recuperar isso só por software daqui.
+
+fila_lock = threading.Lock()
+
+
+def _ler_fila() -> list[dict]:
+    if not os.path.exists(FILA_PATH):
+        return []
+    eventos = []
+    with open(FILA_PATH, "r", encoding="utf-8") as f:
+        for linha in f:
+            linha = linha.strip()
+            if not linha:
+                continue
+            try:
+                eventos.append(json.loads(linha))
+            except json.JSONDecodeError:
+                continue  # linha corrompida (ex.: escrita interrompida) — ignora, não trava a fila
+    return eventos
+
+
+def _escrever_fila(eventos: list[dict]):
+    with open(FILA_PATH, "w", encoding="utf-8") as f:
+        for evento in eventos:
+            f.write(json.dumps(evento) + "\n")
+
+
+def enfileirar_producao(quantidade: int):
+    """
+    Grava uma peça contada na fila local — chamado ANTES de qualquer
+    tentativa de publicar no MQTT, pra a contagem nunca depender de a
+    rede estar de pé no exato momento em que ela aconteceu.
+    """
+    evento = {
+        "event_uid": f"{DEVICE_ID}-{uuid.uuid4()}",
+        "quantity": quantidade,
+        "occurred_at": datetime.now(timezone.utc).isoformat(),
+    }
+    with fila_lock:
+        eventos = _ler_fila()
+        eventos.append(evento)
+        _escrever_fila(eventos)
+    with estado_lock:
+        estado["fila_pendente"] = len(eventos)
+
+
+def tentar_esvaziar_fila():
+    """
+    Tenta publicar, em ordem, cada evento ainda pendente na fila. Para
+    no primeiro que falhar (preserva a ordem cronológica — não faz
+    sentido confirmar um evento mais novo antes de um mais velho) e
+    tenta o resto de novo na próxima chamada.
+    """
+    with fila_lock:
+        eventos = _ler_fila()
+        if not eventos:
+            return
+
+        restantes = list(eventos)
+        for evento in eventos:
+            try:
+                mqtt_publish(f"gp/{DEVICE_ID}/production", json.dumps(evento))
+            except Exception as error:
+                with estado_lock:
+                    estado["ultimo_erro"] = f"Fila com {len(restantes)} pendente(s) — falha ao publicar: {error}"
+                break
+            restantes.pop(0)
+            with estado_lock:
+                estado["total_enviado"] += evento["quantity"]
+                estado["eventos_enviados"] += 1
+                estado["ultimo_envio_em"] = datetime.now().strftime("%H:%M:%S")
+
+        if len(restantes) != len(eventos):
+            _escrever_fila(restantes)
+
+    with estado_lock:
+        estado["fila_pendente"] = len(restantes)
+        if not restantes:
+            estado["ultimo_erro"] = None
 
 
 # ============================================================
@@ -205,6 +311,11 @@ CONTAGEM_RE = re.compile(r"^(?:COUNT:|Contagem atual:)\s*(\d+)\s*$")
 def thread_sensor():
     ultima_contagem = None
     ultimo_heartbeat = 0.0
+    ultima_tentativa_fila = 0.0
+
+    # Se o script travou/reiniciou com peças ainda presas na fila de uma
+    # execução anterior, tenta entregar elas já na largada.
+    tentar_esvaziar_fila()
 
     while True:
         fd = None
@@ -214,7 +325,6 @@ def thread_sensor():
             with estado_lock:
                 estado["conectado"] = True
                 estado["porta"] = porta
-                estado["ultimo_erro"] = None
 
             for linha in ler_linhas(fd, porta):
                 with estado_lock:
@@ -227,6 +337,14 @@ def thread_sensor():
                     except Exception:
                         pass  # heartbeat falhar não é crítico, tenta de novo no próximo ciclo
                     ultimo_heartbeat = time.time()
+
+                # Tenta esvaziar a fila periodicamente mesmo sem detecção
+                # nova — senão, se a API voltar mas o sensor não mandar mais
+                # nada por um tempo, o que já tinha ficado pendente ficaria
+                # parado esperando a próxima peça pra ser reenviado.
+                if time.time() - ultima_tentativa_fila >= FILA_RETRY_SECONDS:
+                    tentar_esvaziar_fila()
+                    ultima_tentativa_fila = time.time()
 
                 m = CONTAGEM_RE.match(linha)
                 if not m:
@@ -245,20 +363,11 @@ def thread_sensor():
                 if diferenca <= 0:
                     continue  # sensor reiniciou/repetiu — só realinha, não conta
 
-                evento = {
-                    "event_uid": f"{DEVICE_ID}-{uuid.uuid4()}",
-                    "quantity": diferenca,
-                    "occurred_at": datetime.now(timezone.utc).isoformat(),
-                }
-                try:
-                    mqtt_publish(f"gp/{DEVICE_ID}/production", json.dumps(evento))
-                    with estado_lock:
-                        estado["total_enviado"] += diferenca
-                        estado["eventos_enviados"] += 1
-                        estado["ultimo_envio_em"] = datetime.now().strftime("%H:%M:%S")
-                except Exception as error:
-                    with estado_lock:
-                        estado["ultimo_erro"] = f"Falha ao publicar no MQTT: {error}"
+                # Grava na fila ANTES de tentar publicar — a partir daqui a
+                # peça está segura em disco, não depende mais da rede/API
+                # estarem de pé neste exato instante pra não se perder.
+                enfileirar_producao(diferenca)
+                tentar_esvaziar_fila()
 
         except Exception as error:
             with estado_lock:
@@ -309,6 +418,7 @@ def pagina_status():
           <tr><td>Total enviado pro sistema</td><td id="total_enviado">—</td></tr>
           <tr><td>Eventos enviados</td><td id="eventos_enviados">—</td></tr>
           <tr><td>Último envio</td><td id="ultimo_envio_em">—</td></tr>
+          <tr><td>Na fila (ainda não confirmado)</td><td id="fila_pendente" style="color:#d97706">—</td></tr>
           <tr><td>Último erro</td><td id="ultimo_erro" style="color:#dc2626">—</td></tr>
         </table>
       </div>
@@ -327,6 +437,7 @@ def pagina_status():
           document.getElementById('total_enviado').textContent = e.total_enviado + ' peças';
           document.getElementById('eventos_enviados').textContent = e.eventos_enviados;
           document.getElementById('ultimo_envio_em').textContent = e.ultimo_envio_em || '—';
+          document.getElementById('fila_pendente').textContent = e.fila_pendente ? (e.fila_pendente + ' peça(s)') : 'nenhuma';
           document.getElementById('ultimo_erro').textContent = e.ultimo_erro || '—';
         }}
         atualizar();

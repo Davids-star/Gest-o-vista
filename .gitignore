@@ -20,6 +20,10 @@ npm-debug.log*
 __pycache__/
 *.pyc
 
+# Fila local do simulator/serve.py — dado de execução (eventos pendentes de
+# envio), não é código nem deve ser versionado
+simulator/fila_eventos.jsonl
+
 # Segredos e dados locais
 *.env
 .env
