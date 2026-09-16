@@ -30,6 +30,7 @@ export default defineConfig({
         cleanupOutdatedCaches: true,
       },
       manifest: {
+        id: '/#/',
         name: 'GP Industrial Mobile - Sistema de Gestão de Produção',
         short_name: 'GP Mobile',
         description: 'Sistema PWA para monitoramento industrial, totens operacionais de fábrica, apontamentos e dashboards no celular.',

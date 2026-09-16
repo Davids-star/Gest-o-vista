@@ -46,12 +46,20 @@
 // novo chegar no mesmo instante em que outro é resolvido, o total pode
 // ficar igual mas o alerta novo ainda aparece — comparar só o length
 // deixaria passar esse caso batido.
-import { ref, watch } from 'vue';
-import { useRouter } from 'vue-router';
+import { ref, computed, watch } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 import { useProductionStore } from '../stores/productionStore';
 
 const store = useProductionStore();
 const router = useRouter();
+const route = useRoute();
+
+// Totem e TV são telas de chão de fábrica, fixas num tablet/monitor — um
+// popup flutuando por cima atrapalha quem está usando (o Totem já é tela
+// de toque pra apontar produção, e a TV é só pra ser lida de longe). O
+// alerta continua contando normal na Central de Alertas; só o popup não
+// aparece nessas duas.
+const emTelaKiosk = computed(() => route.path.startsWith('/totem') || route.path.startsWith('/tv'));
 
 const visible = ref(false);
 const novosAlertas = ref([]);
@@ -73,7 +81,7 @@ watch(
     const chegaram = atuais.filter((a) => !idsConhecidos.has(a.id));
     idsConhecidos = idsAtuais;
 
-    if (chegaram.length) {
+    if (chegaram.length && !emTelaKiosk.value) {
       novosAlertas.value = chegaram;
       mostrar();
     }

@@ -37,9 +37,10 @@ export function useConnectionStatus() {
 
   const evaluate = () => {
     clearTimeout(reconnectingTimer);
-    // Só entra em "reconectando" se alguma tela já chamou startPolling()
-    // (Totem, TV, Dashboard...) — telas de login nunca abrem o socket, então
-    // "não conectado" ali é o estado normal, não uma queda de conexão.
+    // Só entra em "reconectando" depois de startPolling() ser chamado
+    // (App.vue, uma vez só pra vida inteira do app — inclusive na tela de
+    // login, já que o backend aceita WS sem token via fallback de empresa
+    // pública). Antes de qualquer tentativa, `realtimeAttempted` é false.
     if (isBrowserOnline.value && realtimeAttempted.value && !realtimeConnected.value) {
       reconnectingTimer = setTimeout(() => { showReconnecting.value = true; }, 4000);
     } else {

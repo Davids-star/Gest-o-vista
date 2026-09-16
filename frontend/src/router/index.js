@@ -1,5 +1,6 @@
 import { createRouter, createWebHashHistory } from 'vue-router';
 import { useAuth } from '../composables/useAuth';
+import { ajustarManifestPwa } from '../pwaManifest';
 
 import LoginSupervisorView from '../views/supervisor/LoginSupervisorView.vue';
 import Dashboard from '../components/Dashboard.vue';
@@ -144,6 +145,13 @@ router.beforeEach((to, _from, next) => {
   }
 
   next();
+});
+
+// Mantém o manifest certo mesmo em navegação dentro da SPA (sem recarregar
+// a página) — ex.: um supervisor entrando no Totem por um link com
+// device_token, sem passar pelo boot do main.js.
+router.afterEach((to) => {
+  ajustarManifestPwa(`#${to.fullPath}`);
 });
 
 export default router;

@@ -1,6 +1,10 @@
 <template>
-  <div class="min-h-screen bg-[#070a0e] text-white flex flex-col justify-center items-center p-4 sm:p-8 select-none font-sans">
+  <div class="min-h-screen bg-[#070a0e] text-white flex flex-col items-center p-4 sm:p-8 pt-8 sm:pt-12 select-none font-sans">
     <!-- Main Totem Outer Frame with Green Border -->
+    <!-- Sem `justify-center` no wrapper: num tablet em retrato, o card
+         (max-w-5xl) sobrava muito espaço preto vazio em cima/embaixo por
+         ficar centralizado no meio de uma tela bem mais alta que larga —
+         parecia quebrado assim que a produção começava a rodar de verdade. -->
     <div class="w-full max-w-5xl bg-[#0d121c] border-2 border-emerald-500/60 rounded-3xl p-6 lg:p-8 space-y-6 shadow-[0_0_30px_rgba(34,197,94,0.15)] relative">
 
       <!-- ── HEADER ── -->
@@ -393,17 +397,11 @@ onMounted(async () => {
   // atribuição manual aqui (isso era o motivo de só atualizar com F5).
   if (store.activeSession) await store.fetchProductionTotals(store.activeSession.id);
   await store.fetchPossibleStops({ status: 'pending' });
-  store.startPolling(6000);
+  // WebSocket + polling de segurança ligam uma vez só em App.vue.
 });
 
 onBeforeUnmount(() => {
   if (clockInterval) clearInterval(clockInterval);
-  // _pollTimer/socket são globais no store (Pinia é singleton) — sem isso,
-  // sair desta tela (troca de modo, logout) deixava o polling desta tela
-  // rodando sozinho pra sempre; se outra tela encerrasse esse polling
-  // global no meio do caminho (ela fecha o que não foi ela quem abriu),
-  // ninguém mais reabria, e contador/meta travavam até dar F5.
-  store.stopPolling();
 });
 
 const currentMachine = computed(() => store.selectedMachine);

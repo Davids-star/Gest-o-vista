@@ -344,11 +344,10 @@ onMounted(async () => {
     store.fetchMetas(),
     store.fetchProductionTotals(),
   ]);
-  store.startPolling(6000);
+  // WebSocket + polling de segurança ligam uma vez só em App.vue.
 });
 
 onBeforeUnmount(() => {
   if (clockInterval) clearInterval(clockInterval);
-  store.stopPolling();
 });
 </script>

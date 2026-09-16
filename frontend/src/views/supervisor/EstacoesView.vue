@@ -149,12 +149,11 @@ onMounted(async () => {
   updateClock();
   clockInterval = setInterval(updateClock, 1000);
   await Promise.all([store.fetchMachines(), store.fetchSessions(), store.fetchStops(), store.fetchProductionTotals()]);
-  store.startPolling(6000);
+  // WebSocket + polling de segurança ligam uma vez só em App.vue.
 });
 
 onUnmounted(() => {
   if (clockInterval) clearInterval(clockInterval);
-  store.stopPolling();
 });
 
 // ── KPIs derivados dos dados reais ───────────────────────────────────

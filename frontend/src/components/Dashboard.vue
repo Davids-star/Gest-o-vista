@@ -495,7 +495,8 @@ onMounted(async () => {
     carregarProducaoHoje(),
     store.fetchApontamentoMensal({ year: agora.getFullYear(), month: agora.getMonth() + 1 }),
   ]);
-  store.startPolling(6000);
+  // WebSocket + polling de segurança agora ligam uma vez só em App.vue
+  // (vida inteira do app), não aqui — ver comentário lá.
 
   // O card "PRODUÇÃO HOJE" (badge AO VIVO) vem de /apontamento, que não faz
   // parte do polling/websocket do store (isso só cobre machines/sessions/
@@ -509,6 +510,5 @@ onMounted(async () => {
 
 onUnmounted(() => {
   if (producaoHojeTimer) clearInterval(producaoHojeTimer);
-  store.stopPolling();
 });
 </script>

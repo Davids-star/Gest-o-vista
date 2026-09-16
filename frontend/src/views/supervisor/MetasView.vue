@@ -234,7 +234,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, onBeforeUnmount } from 'vue';
+import { ref, reactive, onMounted } from 'vue';
 import { useProductionStore } from '../../stores/productionStore';
 import { useAuth } from '../../composables/useAuth';
 import AppSidebar from '../../components/AppSidebar.vue';
@@ -281,14 +281,8 @@ onMounted(async () => {
     store.fetchMachines(),
     store.fetchProducts(),
   ]);
-  // Sem isso, a lista de metas só se atualizava com F5 — outra tela editando
-  // uma meta (ou fechando a sessão de polling global ao navegar) nunca
-  // chegava aqui. Mesmo padrão de Dashboard/EstacoesView/TvView.
-  store.startPolling(6000);
-});
-
-onBeforeUnmount(() => {
-  store.stopPolling();
+  // WebSocket + polling de segurança ligam uma vez só em App.vue — sem
+  // isso, a lista de metas só se atualizava com F5.
 });
 
 const openNewMetaModal = () => {
