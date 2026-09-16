@@ -1,7 +1,24 @@
+import fs from 'node:fs'
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import tailwindcss from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa'
+
+// Certificado HTTPS local (mkcert), compartilhado com api/src/main.ts em
+// ../.certs/ (raiz do repo) — não versionado (gitignored), específico da
+// máquina/IP de quem está rodando o dev server. Sem HTTPS, o Chrome/Android
+// recusa instalar o PWA de verdade quando acessado pelo IP da rede local
+// (só localhost é isento dessa exigência) — ele oferece só um atalho
+// comum, sem tela cheia nem funcionamento offline. Se os arquivos não
+// existirem (outra máquina, CI), cai em HTTP normal sem quebrar nada.
+const certDir = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', '.certs')
+const certPath = path.join(certDir, 'lan-cert.pem')
+const keyPath = path.join(certDir, 'lan-key.pem')
+const httpsLocal = fs.existsSync(certPath) && fs.existsSync(keyPath)
+  ? { cert: fs.readFileSync(certPath), key: fs.readFileSync(keyPath) }
+  : undefined
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -82,5 +99,6 @@ export default defineConfig({
   server: {
     host: true, // Ou '0.0.0.0' para permitir acesso pela rede local (ex: celular)
     port: 5173,
+    https: httpsLocal,
   },
 })

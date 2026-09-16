@@ -30,6 +30,12 @@ simulator/fila_eventos.jsonl
 .env.*
 !*.env.example
 
+# Certificado HTTPS local (mkcert) pra testar o PWA num celular real na
+# mesma rede Wi-Fi — específico de cada máquina/IP, nunca deve ser
+# versionado (compartilhado entre api/ e frontend/, peça ajuda pra
+# regenerar se mudar de máquina/IP).
+/.certs/
+
 # Editor / SO
 .DS_Store
 .vscode/*
