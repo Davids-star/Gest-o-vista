@@ -2,18 +2,27 @@
   <Transition name="toast-pop">
     <div
       v-if="visible"
-      class="fixed top-[calc(4rem+0.5rem+env(safe-area-inset-top,0px))] right-4 md:top-4 z-[70] flex items-center gap-3 dark-panel border-red-200 bg-white px-4 py-3 pr-3 max-w-xs cursor-pointer select-none"
+      class="fixed top-[calc(4rem+0.5rem+env(safe-area-inset-top,0px))] right-4 md:top-4 z-[70] flex items-start gap-3 dark-panel border-red-200 bg-white px-4 py-3 pr-3 max-w-sm cursor-pointer select-none"
       role="status"
       @click="irParaAlertas"
     >
-      <div class="w-9 h-9 rounded-full bg-red-500 text-white font-black text-sm flex items-center justify-center shrink-0">
-        {{ count }}
+      <div class="w-9 h-9 rounded-full bg-red-500 text-white font-black text-sm flex items-center justify-center shrink-0 mt-0.5">
+        {{ novosAlertas.length }}
       </div>
       <div class="flex-1 min-w-0">
-        <p class="text-sm font-bold text-slate-900 leading-tight">
-          {{ count > 1 ? `${count} novos alertas` : 'Novo alerta' }}
-        </p>
-        <p class="text-xs text-slate-500 leading-tight mt-0.5">Toque para ver a Central de Alertas</p>
+        <template v-if="novosAlertas.length === 1">
+          <p class="text-sm font-bold text-slate-900 leading-tight">
+            {{ nomeMaquina(novosAlertas[0]) }}
+          </p>
+          <p class="text-xs text-slate-600 leading-snug mt-0.5">{{ novosAlertas[0].message || novosAlertas[0].descricao || 'Novo alerta' }}</p>
+        </template>
+        <template v-else>
+          <p class="text-sm font-bold text-slate-900 leading-tight">{{ novosAlertas.length }} novos alertas</p>
+          <p class="text-xs text-slate-600 leading-snug mt-0.5 truncate">
+            {{ novosAlertas.map(nomeMaquina).join(', ') }}
+          </p>
+        </template>
+        <p class="text-[11px] text-slate-400 leading-tight mt-1">Toque para ver a Central de Alertas</p>
       </div>
       <button
         @click.stop="dispensar"
@@ -27,11 +36,16 @@
 </template>
 
 <script setup>
-// Popup global de novo(s) alerta(s) — aparece em qualquer tela quando a
-// contagem de alertas em aberto (store.alerts, atualizada pelo polling/WS
-// do productionStore) SOBE em relação ao valor anterior. Não dispara no
-// primeiro carregamento da store (senão "poparia" toda vez que alguém abre
-// o sistema com alertas já pendentes de antes).
+// Popup global de novo(s) alerta(s) — aparece em qualquer tela quando um
+// alerta novo chega em store.alerts (atualizado pelo WebSocket em tempo
+// real, com o polling do productionStore como rede de segurança). Mostra
+// a máquina e o motivo de cada alerta novo, não só uma contagem — pra dar
+// pra saber o que aconteceu sem precisar nem abrir a Central de Alertas.
+//
+// Compara por ID (não só o total mudar de tamanho): assim, se um alerta
+// novo chegar no mesmo instante em que outro é resolvido, o total pode
+// ficar igual mas o alerta novo ainda aparece — comparar só o length
+// deixaria passar esse caso batido.
 import { ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { useProductionStore } from '../stores/productionStore';
@@ -40,29 +54,37 @@ const store = useProductionStore();
 const router = useRouter();
 
 const visible = ref(false);
-const count = ref(0);
-let baseline = null; // null = ainda não sabemos o valor inicial
+const novosAlertas = ref([]);
+let idsConhecidos = null; // null = ainda não sabemos o estado inicial
 let hideTimer = null;
 
+const nomeMaquina = (alert) => alert.machine?.name || alert.machine?.code || alert.maquina?.nome || 'Máquina';
+
 watch(
-  () => store.alerts.length,
-  (atual) => {
-    if (baseline === null) {
-      baseline = atual; // primeira leitura: só define o ponto de partida
+  () => store.alerts,
+  (atuais) => {
+    const idsAtuais = new Set(atuais.map((a) => a.id));
+
+    if (idsConhecidos === null) {
+      idsConhecidos = idsAtuais; // primeira leitura: só define o ponto de partida
       return;
     }
-    if (atual > baseline) {
-      count.value = atual;
+
+    const chegaram = atuais.filter((a) => !idsConhecidos.has(a.id));
+    idsConhecidos = idsAtuais;
+
+    if (chegaram.length) {
+      novosAlertas.value = chegaram;
       mostrar();
     }
-    baseline = atual;
   },
+  { deep: true },
 );
 
 function mostrar() {
   visible.value = true;
   clearTimeout(hideTimer);
-  hideTimer = setTimeout(() => { visible.value = false; }, 7000);
+  hideTimer = setTimeout(() => { visible.value = false; }, 8000);
 }
 
 function dispensar() {

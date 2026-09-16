@@ -80,6 +80,23 @@ export const useProductionStore = defineStore('production', {
       apontamento: null,
       apontamentoMensal: null,
     },
+
+    // ── Controle interno do polling/WebSocket ───────────────────────────
+    // BUG histórico corrigido aqui: estes 4 campos estavam declarados
+    // dentro de `actions` (mais abaixo), não em `state`. O Pinia trata
+    // TODA chave de `actions` como ação e a envolve numa função de
+    // rastreamento pro devtools — mesmo quando o valor original era
+    // `null`/`false`. Resultado: `this._pollTimer` nunca era `null` de
+    // verdade, sempre virava uma função (valor "verdadeiro"), e
+    // `if (this._pollTimer) return;` em startPolling() saía fora ANTES
+    // de conectar o WebSocket ou criar o setInterval — silenciosamente,
+    // sem erro nenhum. A tela só parecia atualizar sozinha porque cada
+    // navegação/F5 refaz o bootstrap() do zero; parado numa tela, nada
+    // mais chegava depois disso (nem por WS, nem por polling).
+    _pollTimer: null,
+    _isPollingInProgress: false,
+    _visibilityHandler: null,
+    _pageshowHandler: null,
   }),
 
   getters: {
@@ -571,11 +588,8 @@ export const useProductionStore = defineStore('production', {
 
     // ── Polling otimizado e leve (Sincronização multi-tela) ───────
     // Rede de segurança do WebSocket: mesmo que o socket caia, o estado
-    // ainda converge sozinho a cada intervalo.
-    _pollTimer: null,
-    _isPollingInProgress: false,
-    _visibilityHandler: null,
-    _pageshowHandler: null,
+    // ainda converge sozinho a cada intervalo. (_pollTimer e companhia
+    // agora vivem em `state`, ver comentário lá.)
 
     async _refetchDynamicData() {
       if (this._isPollingInProgress) return;
