@@ -1,258 +1,256 @@
 <template>
-  <div class="min-h-screen bg-[#070a0e] text-white flex flex-col items-center p-4 sm:p-8 pt-8 sm:pt-12 select-none font-sans">
-    <!-- Main Totem Outer Frame with Green Border -->
-    <!-- Sem `justify-center` no wrapper: num tablet em retrato, o card
-         (max-w-5xl) sobrava muito espaço preto vazio em cima/embaixo por
-         ficar centralizado no meio de uma tela bem mais alta que larga —
-         parecia quebrado assim que a produção começava a rodar de verdade. -->
-    <div class="w-full max-w-5xl bg-[#0d121c] border-2 border-emerald-500/60 rounded-3xl p-6 lg:p-8 space-y-6 shadow-[0_0_30px_rgba(34,197,94,0.15)] relative">
+  <!-- `h-dvh` + `overflow-hidden`: o Totem fica fixo num tablet montado na
+       parede, então "role a tela pra ver o resto" não é uma opção — tudo
+       tem que caber de uma vez. Por isso o card interno vira uma coluna
+       flex de altura total (h-full), com a área de conteúdo (flex-1
+       min-h-0) se ajustando pro que sobrar depois do cabeçalho e dos
+       botões, em vez de crescer e empurrar pra fora da tela. -->
+  <div class="h-dvh w-screen bg-[#070a0e] text-white flex items-center justify-center p-3 select-none font-sans overflow-hidden">
+    <div class="w-full max-w-6xl h-full max-h-[56rem] flex flex-col bg-[#0d121c] border-2 border-emerald-500/60 rounded-2xl p-4 gap-3 shadow-[0_0_30px_rgba(34,197,94,0.15)] overflow-hidden">
 
-      <!-- ── HEADER ── -->
-      <header class="flex items-center justify-between pb-2">
-        <div class="flex items-center gap-4">
-          <div class="w-12 h-12 rounded-xl bg-emerald-500/10 border-2 border-emerald-500 text-emerald-400 flex items-center justify-center">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <!-- ── HEADER (compacto, altura fixa) ── -->
+      <header class="flex items-center justify-between shrink-0">
+        <div class="flex items-center gap-3">
+          <div class="w-9 h-9 rounded-lg bg-emerald-500/10 border-2 border-emerald-500 text-emerald-400 flex items-center justify-center shrink-0">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
             </svg>
           </div>
           <div>
-            <h1 class="text-2xl font-black uppercase tracking-wider text-white">PRODUÇÃO</h1>
-            <p class="text-xs text-slate-400 font-semibold">
+            <h1 class="text-lg font-black uppercase tracking-wider text-white leading-tight">PRODUÇÃO</h1>
+            <p class="text-[11px] text-slate-400 font-semibold leading-tight">
               Estação de trabalho <span class="text-emerald-400 font-extrabold font-mono">{{ currentMachineDisplayName }}</span>
             </p>
           </div>
         </div>
 
         <!-- Clock -->
-        <div class="flex items-center gap-2">
-          <div class="bg-slate-900/90 border border-slate-800 px-4 py-2 rounded-xl text-white font-mono text-sm flex items-center gap-2">
-            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-            {{ currentTime }}
-          </div>
+        <div class="bg-slate-900/90 border border-slate-800 px-3 py-1.5 rounded-lg text-white font-mono text-xs flex items-center gap-2 shrink-0">
+          <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+          {{ currentTime }}
         </div>
       </header>
 
-      <!-- Loading Machines -->
-      <div v-if="store.loading.machines" class="text-center py-12">
-        <div class="w-8 h-8 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin mx-auto"></div>
-        <p class="text-xs text-slate-400 mt-3 uppercase">Carregando dados da API...</p>
-      </div>
+      <!-- ── CONTEÚDO (ocupa o espaço restante, nunca mais que isso) ── -->
+      <div class="flex-1 min-h-0 flex flex-col gap-2.5 overflow-hidden">
 
-      <!-- Error from API -->
-      <div v-else-if="store.errors.machines" class="bg-red-500/10 border-2 border-red-500/60 p-4 rounded-2xl text-red-300 text-sm font-bold flex items-center gap-3">
-        <span class="text-2xl">⚠️</span>
-        <span>Servidor Indisponível: {{ store.errors.machines }}</span>
-      </div>
-
-      <!-- Dados necessários para iniciar: máquina, produto, lote e operador. -->
-      <!-- Se o supervisor já definiu a próxima produção (PATCH /machines/:id/planned-production) -->
-      <!-- ou a meta do dia (GET /metas/maquina/:id) com produto, isso vem pronto — só falta o resto. -->
-      <section v-else-if="!store.activeSession" class="bg-[#121824] border border-slate-800 rounded-2xl p-6 space-y-5">
-        <div>
-          <h2 class="text-sm font-bold uppercase tracking-wide">Nova produção</h2>
-          <p class="text-xs text-slate-400 mt-1">
-            {{ plannedProductId
-              ? 'Próxima produção definida pelo supervisor — confira e informe o que faltar.'
-              : metaDefiniuProduto
-                ? 'Produto definido pela meta do dia — informe lote e operador.'
-                : 'A meta do dia é opcional e não bloqueia o início.' }}
-          </p>
+        <!-- Loading Machines -->
+        <div v-if="store.loading.machines" class="flex-1 flex flex-col items-center justify-center">
+          <div class="w-8 h-8 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin"></div>
+          <p class="text-xs text-slate-400 mt-3 uppercase">Carregando dados da API...</p>
         </div>
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <label class="text-xs font-semibold text-slate-300 space-y-2">
-            <span>Produto</span>
-            <template v-if="produtoAutoPreenchido">
-              <div class="w-full bg-emerald-500/10 border border-emerald-500/40 rounded-lg px-3 py-3 text-sm text-emerald-400 font-semibold flex items-center justify-between gap-2">
-                <span class="truncate">{{ produtoSugeridoNome || '—' }}</span>
-                <button type="button" @click="destravarProduto" class="text-[10px] text-slate-400 hover:text-white uppercase shrink-0">Trocar</button>
+
+        <!-- Error from API -->
+        <div v-else-if="store.errors.machines" class="bg-red-500/10 border-2 border-red-500/60 p-4 rounded-2xl text-red-300 text-sm font-bold flex items-center gap-3">
+          <span class="text-2xl">⚠️</span>
+          <span>Servidor Indisponível: {{ store.errors.machines }}</span>
+        </div>
+
+        <!-- Dados necessários para iniciar: máquina, produto, lote e operador. -->
+        <!-- Se o supervisor já definiu a próxima produção (PATCH /machines/:id/planned-production) -->
+        <!-- ou a meta do dia (GET /metas/maquina/:id) com produto, isso vem pronto — só falta o resto. -->
+        <section v-else-if="!store.activeSession" class="bg-[#121824] border border-slate-800 rounded-2xl p-4 space-y-3">
+          <div>
+            <h2 class="text-sm font-bold uppercase tracking-wide">Nova produção</h2>
+            <p class="text-xs text-slate-400 mt-1">
+              {{ plannedProductId
+                ? 'Próxima produção definida pelo supervisor — confira e informe o que faltar.'
+                : metaDefiniuProduto
+                  ? 'Produto definido pela meta do dia — informe lote e operador.'
+                  : 'A meta do dia é opcional e não bloqueia o início.' }}
+            </p>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <label class="text-xs font-semibold text-slate-300 space-y-1.5">
+              <span>Produto</span>
+              <template v-if="produtoAutoPreenchido">
+                <div class="w-full bg-emerald-500/10 border border-emerald-500/40 rounded-lg px-3 py-2.5 text-sm text-emerald-400 font-semibold flex items-center justify-between gap-2">
+                  <span class="truncate">{{ produtoSugeridoNome || '—' }}</span>
+                  <button type="button" @click="destravarProduto" class="text-[10px] text-slate-400 hover:text-white uppercase shrink-0">Trocar</button>
+                </div>
+              </template>
+              <select v-else v-model="selectedProductId" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-white">
+                <option value="" disabled>Selecione um produto</option>
+                <option v-for="product in store.products" :key="product.id" :value="product.id">{{ product.name }}</option>
+              </select>
+            </label>
+            <label class="text-xs font-semibold text-slate-300 space-y-1.5">
+              <span>Lote</span>
+              <template v-if="loteAutoPreenchido">
+                <div class="w-full bg-emerald-500/10 border border-emerald-500/40 rounded-lg px-3 py-2.5 text-sm text-emerald-400 font-semibold flex items-center justify-between gap-2">
+                  <span class="truncate">{{ plannedLotCode }}</span>
+                  <button type="button" @click="destravarLote" class="text-[10px] text-slate-400 hover:text-white uppercase shrink-0">Trocar</button>
+                </div>
+              </template>
+              <input v-else v-model.trim="lotCode" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-white" placeholder="Código do lote" maxlength="120">
+            </label>
+            <label class="text-xs font-semibold text-slate-300 space-y-1.5">
+              <span>Operador</span>
+              <input v-model.trim="operatorName" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-white" placeholder="Nome do operador" maxlength="160">
+            </label>
+          </div>
+          <div class="border-t border-slate-800 pt-3 text-sm">
+            <span class="text-slate-400">Meta do dia: </span>
+            <span class="font-semibold" :class="activeTarget ? 'text-emerald-400' : 'text-slate-300'">{{ activeTarget ? `${activeTarget.quantity} unidades` : 'Sem meta definida' }}</span>
+          </div>
+        </section>
+
+        <template v-if="store.activeSession">
+          <!-- ── LINHA 1: UNIDADES PRODUZIDAS + STATUS  |  PROGRESSO DA META ──
+               Antes eram 2 cartões empilhados; lado a lado em 2 colunas
+               (a tela agora é sempre paisagem) cabe tudo numa linha só. -->
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-2.5 shrink-0">
+            <div class="bg-[#121824] border border-slate-800 rounded-2xl p-3.5 flex items-center justify-between gap-3">
+              <div>
+                <span class="text-xs font-semibold text-slate-300 font-mono tracking-wide block">Unidades Produzidas</span>
+                <div class="text-4xl font-black font-mono text-emerald-400 tracking-wider leading-tight">
+                  {{ productionCount }}
+                </div>
               </div>
-            </template>
-            <select v-else v-model="selectedProductId" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-3 text-sm text-white">
-              <option value="" disabled>Selecione um produto</option>
-              <option v-for="product in store.products" :key="product.id" :value="product.id">{{ product.name }}</option>
-            </select>
-          </label>
-          <label class="text-xs font-semibold text-slate-300 space-y-2">
-            <span>Lote</span>
-            <template v-if="loteAutoPreenchido">
-              <div class="w-full bg-emerald-500/10 border border-emerald-500/40 rounded-lg px-3 py-3 text-sm text-emerald-400 font-semibold flex items-center justify-between gap-2">
-                <span class="truncate">{{ plannedLotCode }}</span>
-                <button type="button" @click="destravarLote" class="text-[10px] text-slate-400 hover:text-white uppercase shrink-0">Trocar</button>
+              <div class="flex items-center gap-2.5 border-l border-slate-700 pl-3.5 shrink-0">
+                <div class="w-9 h-9 rounded-lg bg-emerald-500/10 border border-emerald-500/40 text-emerald-400 flex items-center justify-center shrink-0">
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m-8-10l8 4m-8-4v10l8 4m0-10L4 7" />
+                  </svg>
+                </div>
+                <div>
+                  <span class="text-[10px] text-slate-400 font-semibold block uppercase">Status</span>
+                  <span class="text-sm font-bold text-emerald-400">Iniciada</span>
+                </div>
               </div>
-            </template>
-            <input v-else v-model.trim="lotCode" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-3 text-sm text-white" placeholder="Código do lote" maxlength="120">
-          </label>
-          <label class="text-xs font-semibold text-slate-300 space-y-2">
-            <span>Operador</span>
-            <input v-model.trim="operatorName" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-3 text-sm text-white" placeholder="Nome do operador" maxlength="160">
-          </label>
-        </div>
-        <div class="border-t border-slate-800 pt-4 text-sm">
-          <span class="text-slate-400">Meta do dia: </span>
-          <span class="font-semibold" :class="activeTarget ? 'text-emerald-400' : 'text-slate-300'">{{ activeTarget ? `${activeTarget.quantity} unidades` : 'Sem meta definida' }}</span>
-        </div>
-      </section>
-
-      <!-- ── SECTION 1: UNIDADES PRODUZIDAS & STATUS DA LINHA ── -->
-      <div v-if="store.activeSession" class="bg-[#121824] border border-slate-800 rounded-2xl p-6 flex flex-col sm:flex-row items-center justify-between gap-6">
-        <div class="flex-1 space-y-1">
-          <span class="text-sm font-semibold text-slate-300 font-mono tracking-wide block">Unidades Produzidas</span>
-          <div class="text-6xl font-black font-mono text-emerald-400 tracking-wider">
-            {{ productionCount }}
-          </div>
-        </div>
-
-        <div class="w-full sm:w-auto sm:border-l border-slate-700 sm:pl-8 flex items-center gap-4">
-          <div class="w-12 h-12 rounded-xl bg-emerald-500/10 border border-emerald-500/40 text-emerald-400 flex items-center justify-center">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m-8-10l8 4m-8-4v10l8 4m0-10L4 7" />
-            </svg>
-          </div>
-          <div>
-            <span class="text-xs text-slate-400 font-semibold block uppercase">Status da linha</span>
-            <span class="text-lg font-bold text-emerald-400">Iniciada</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- ── SECTION 2: PROGRESSO DA META ── -->
-      <div v-if="store.activeSession" class="bg-[#121824] border border-slate-800 rounded-2xl p-6 space-y-4">
-        <div class="flex items-center justify-between">
-          <div class="flex items-center gap-3">
-            <div class="w-8 h-8 rounded-full bg-emerald-500/10 border border-emerald-500 text-emerald-400 flex items-center justify-center">🎯</div>
-            <span class="text-sm font-mono font-semibold text-white tracking-wide">progresso da meta</span>
-          </div>
-          <div class="flex items-baseline gap-4 font-mono text-sm">
-            <span v-if="activeTarget" :class="metaBatida ? 'text-amber-400' : 'text-emerald-400'">
-              {{ productionCount }} / {{ activeTarget.quantity }}
-              <span v-if="metaBatida" class="ml-1">✅ META BATIDA</span>
-            </span>
-            <span v-else class="text-white font-bold text-sm text-slate-400">SEM META DEFINIDA</span>
-          </div>
-        </div>
-
-        <!-- Progress Bar Capsule — a largura satura em 100% (não tem como uma
-             div passar disso), mas o número acima (produção/meta) continua
-             subindo de verdade. Vira âmbar quando bate a meta.
-             Texto de dentro é só a % (curto de propósito): "26/2000" já
-             aparece no cabeçalho acima — com produção/meta ali dentro
-             também, um progresso baixo (ex.: 1%) deixava a cápsula mais
-             estreita que o texto, cortando ele pela metade. -->
-        <div v-if="activeTarget" class="w-full bg-[#0b0f17] border border-slate-800 rounded-full h-5 p-1 overflow-hidden">
-          <div
-            class="h-full rounded-full transition-all duration-500 flex items-center justify-end px-2 min-w-[2.5rem]"
-            :class="metaBatida ? 'bg-amber-400' : 'bg-emerald-400'"
-            :style="{ width: `${targetProgressBarWidth}%` }"
-          >
-            <span class="text-[10px] font-black text-slate-950 leading-none whitespace-nowrap">
-              {{ targetProgressRaw }}%
-            </span>
-          </div>
-        </div>
-
-        <div class="flex items-center gap-2 text-[11px] text-emerald-400 font-semibold">
-          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-          <span>Atualização em tempo real</span>
-        </div>
-      </div>
-
-      <!-- ── SECTION 3: LOTE & INFORMAÇÕES DA SESSÃO ── -->
-      <div v-if="store.activeSession" class="bg-[#121824] border border-slate-800 rounded-2xl p-6 grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div class="flex items-center gap-4">
-          <div class="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/40 text-emerald-400 flex items-center justify-center">📈</div>
-          <div>
-            <span class="text-xs text-slate-400 font-semibold block">Produto</span>
-            <span class="text-sm font-mono font-bold text-emerald-400">{{ store.activeSession.product?.name || '—' }}</span>
-          </div>
-        </div>
-
-        <div
-          @click="isLotModalOpen = true"
-          class="flex items-center gap-4 md:border-l border-slate-700 md:pl-6 cursor-pointer group hover:bg-slate-800/40 p-2 rounded-xl transition-all border border-transparent hover:border-emerald-500/30"
-          title="Clique para alterar o Lote"
-        >
-          <div class="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/40 text-emerald-400 flex items-center justify-center group-hover:scale-105 transition-transform">🏷️</div>
-          <div>
-            <div class="flex items-center gap-2">
-              <span class="text-xs text-slate-400 font-semibold block">LOTE</span>
-              <span class="text-[10px] text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/30 font-bold uppercase tracking-wider group-hover:bg-emerald-500/20 transition-colors">ALTERAR ✏️</span>
             </div>
-            <span class="text-sm font-mono font-bold text-emerald-400 group-hover:text-emerald-300">{{ store.activeSession.lot?.code || '—' }}</span>
+
+            <div class="bg-[#121824] border border-slate-800 rounded-2xl p-3.5 flex flex-col justify-center gap-2">
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                  <span class="text-sm">🎯</span>
+                  <span class="text-xs font-mono font-semibold text-white tracking-wide uppercase">Meta</span>
+                </div>
+                <div class="flex items-baseline gap-2 font-mono text-xs">
+                  <span v-if="activeTarget" :class="metaBatida ? 'text-amber-400' : 'text-emerald-400'">
+                    {{ productionCount }} / {{ activeTarget.quantity }}
+                    <span v-if="metaBatida">✅</span>
+                  </span>
+                  <span v-else class="text-slate-400 font-bold">SEM META</span>
+                </div>
+              </div>
+
+              <!-- Progress Bar Capsule — a largura satura em 100% (não tem como uma
+                   div passar disso), mas o número acima (produção/meta) continua
+                   subindo de verdade. Vira âmbar quando bate a meta. -->
+              <div v-if="activeTarget" class="w-full bg-[#0b0f17] border border-slate-800 rounded-full h-4 p-0.5 overflow-hidden">
+                <div
+                  class="h-full rounded-full transition-all duration-500 flex items-center justify-end px-2 min-w-[2rem]"
+                  :class="metaBatida ? 'bg-amber-400' : 'bg-emerald-400'"
+                  :style="{ width: `${targetProgressBarWidth}%` }"
+                >
+                  <span class="text-[9px] font-black text-slate-950 leading-none whitespace-nowrap">
+                    {{ targetProgressRaw }}%
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ── LOTE & INFORMAÇÕES DA SESSÃO ── -->
+          <div class="bg-[#121824] border border-slate-800 rounded-2xl p-3 grid grid-cols-1 md:grid-cols-3 gap-3 shrink-0">
+            <div class="flex items-center gap-3">
+              <div class="w-8 h-8 rounded-lg bg-emerald-500/10 border border-emerald-500/40 text-emerald-400 flex items-center justify-center shrink-0">📈</div>
+              <div class="min-w-0">
+                <span class="text-[10px] text-slate-400 font-semibold block">Produto</span>
+                <span class="text-sm font-mono font-bold text-emerald-400 truncate block">{{ store.activeSession.product?.name || '—' }}</span>
+              </div>
+            </div>
+
+            <div
+              @click="isLotModalOpen = true"
+              class="flex items-center gap-3 md:border-l border-slate-700 md:pl-4 cursor-pointer group hover:bg-slate-800/40 p-1.5 rounded-xl transition-all border border-transparent hover:border-emerald-500/30 min-w-0"
+              title="Clique para alterar o Lote"
+            >
+              <div class="w-8 h-8 rounded-lg bg-emerald-500/10 border border-emerald-500/40 text-emerald-400 flex items-center justify-center group-hover:scale-105 transition-transform shrink-0">🏷️</div>
+              <div class="min-w-0">
+                <div class="flex items-center gap-1.5">
+                  <span class="text-[10px] text-slate-400 font-semibold block">LOTE</span>
+                  <span class="text-[9px] text-emerald-400 bg-emerald-500/10 px-1 py-0.5 rounded border border-emerald-500/30 font-bold uppercase tracking-wider group-hover:bg-emerald-500/20 transition-colors">ALTERAR ✏️</span>
+                </div>
+                <span class="text-sm font-mono font-bold text-emerald-400 group-hover:text-emerald-300 truncate block">{{ store.activeSession.lot?.code || '—' }}</span>
+              </div>
+            </div>
+
+            <div class="flex items-center gap-3 md:border-l border-slate-700 md:pl-4">
+              <div class="w-8 h-8 rounded-lg bg-emerald-500/10 border border-emerald-500/40 text-emerald-400 flex items-center justify-center shrink-0">👷</div>
+              <div class="min-w-0">
+                <span class="text-[10px] text-slate-400 font-semibold block">Operador</span>
+                <span class="text-sm font-mono font-bold text-emerald-400 truncate block">{{ store.activeSession.operator?.name || '—' }}</span>
+              </div>
+            </div>
+          </div>
+        </template>
+
+        <!-- ── POSSÍVEL PARADA DETECTADA AUTOMATICAMENTE — sem evento de
+             produção há tempo demais (ver PossibleStopDetectorService).
+             Nunca coexiste com "parada em andamento" abaixo: o detector não
+             cria isso se já existe uma parada real aberta. ── -->
+        <div v-if="possibleStopPendente" class="bg-orange-500/10 border-2 border-orange-500/50 rounded-2xl p-3 space-y-2 shrink-0">
+          <div class="flex items-center gap-3">
+            <div class="w-9 h-9 rounded-lg bg-orange-500/10 border-2 border-orange-500 text-orange-400 flex items-center justify-center text-lg shrink-0">⚠️</div>
+            <div class="min-w-0">
+              <p class="text-orange-400 font-black text-xs uppercase tracking-wider">Possível parada detectada</p>
+              <p class="text-white text-xs mt-0.5 truncate">Sem produção há {{ Math.round(possibleStopPendente.duration_seconds / 60) }} min. É parada de verdade?</p>
+            </div>
+          </div>
+          <div class="flex flex-col sm:flex-row gap-2">
+            <select v-model="possibleStopReasonId" class="flex-1 bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white">
+              <option value="" disabled>Selecione o motivo...</option>
+              <option v-for="reason in store.stopReasons" :key="reason.id" :value="reason.id">{{ reason.label }}</option>
+            </select>
+            <button
+              @click="handleConfirmarPossibleStop"
+              :disabled="!possibleStopReasonId"
+              class="px-5 py-2 bg-orange-500 hover:bg-orange-400 disabled:opacity-40 disabled:cursor-not-allowed text-slate-950 font-black text-xs uppercase tracking-wider rounded-lg transition-all active:scale-95 shrink-0"
+            >
+              Confirmar
+            </button>
+            <button
+              @click="handleDescartarPossibleStop"
+              class="px-5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs uppercase tracking-wider rounded-lg transition-all active:scale-95 shrink-0"
+            >
+              Não é parada
+            </button>
           </div>
         </div>
 
-        <div class="flex items-center gap-4 md:border-l border-slate-700 md:pl-6">
-          <div class="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/40 text-emerald-400 flex items-center justify-center">👷</div>
-          <div>
-            <span class="text-xs text-slate-400 font-semibold block">Operador</span>
-            <span class="text-sm font-mono font-bold text-emerald-400">{{ store.activeSession.operator?.name || '—' }}</span>
+        <!-- ── PARADA EM ANDAMENTO — motivos que não encerram a sessão (Pausa,
+             Limpeza, Falta de material) ficam aqui até o operador retomar. ── -->
+        <div v-if="openStop" class="bg-amber-500/10 border-2 border-amber-500/50 rounded-2xl p-3 flex items-center justify-between gap-3 shrink-0">
+          <div class="flex items-center gap-3 min-w-0">
+            <div class="w-9 h-9 rounded-lg bg-amber-500/10 border-2 border-amber-500 text-amber-400 flex items-center justify-center text-lg shrink-0">⏸️</div>
+            <div class="min-w-0">
+              <p class="text-amber-400 font-black text-xs uppercase tracking-wider">Parada em andamento</p>
+              <p class="text-white text-xs mt-0.5 truncate">{{ openStop.reason?.label || 'Motivo não informado' }}</p>
+            </div>
           </div>
-        </div>
-      </div>
-
-      <!-- ── POSSÍVEL PARADA DETECTADA AUTOMATICAMENTE — sem evento de
-           produção há tempo demais (ver PossibleStopDetectorService).
-           Nunca coexiste com "parada em andamento" abaixo: o detector não
-           cria isso se já existe uma parada real aberta. ── -->
-      <div v-if="possibleStopPendente" class="bg-orange-500/10 border-2 border-orange-500/50 rounded-2xl p-6 space-y-4">
-        <div class="flex items-center gap-4">
-          <div class="w-12 h-12 rounded-xl bg-orange-500/10 border-2 border-orange-500 text-orange-400 flex items-center justify-center text-2xl shrink-0">⚠️</div>
-          <div>
-            <p class="text-orange-400 font-black text-sm uppercase tracking-wider">Possível parada detectada</p>
-            <p class="text-white text-sm mt-0.5">Sem produção detectada há {{ Math.round(possibleStopPendente.duration_seconds / 60) }} min. É uma parada de verdade?</p>
-          </div>
-        </div>
-        <div class="flex flex-col sm:flex-row gap-3">
-          <select v-model="possibleStopReasonId" class="flex-1 bg-slate-950 border border-slate-700 rounded-lg px-3 py-3 text-sm text-white">
-            <option value="" disabled>Selecione o motivo...</option>
-            <option v-for="reason in store.stopReasons" :key="reason.id" :value="reason.id">{{ reason.label }}</option>
-          </select>
           <button
-            @click="handleConfirmarPossibleStop"
-            :disabled="!possibleStopReasonId"
-            class="px-6 py-3 bg-orange-500 hover:bg-orange-400 disabled:opacity-40 disabled:cursor-not-allowed text-slate-950 font-black text-sm uppercase tracking-wider rounded-xl transition-all active:scale-95 shrink-0"
+            @click="handleResume"
+            class="px-5 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs uppercase tracking-wider rounded-lg transition-all active:scale-95 shrink-0"
           >
-            Confirmar parada
+            ▶ Retomar
           </button>
-          <button
-            @click="handleDescartarPossibleStop"
-            class="px-6 py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-sm uppercase tracking-wider rounded-xl transition-all active:scale-95 shrink-0"
-          >
-            Não é parada
-          </button>
+        </div>
+
+        <!-- Session Action Error -->
+        <div v-if="sessionError" class="bg-red-500/10 border border-red-500/40 p-2.5 rounded-xl text-red-400 text-xs font-semibold shrink-0">
+          {{ sessionError }}
         </div>
       </div>
 
-      <!-- ── PARADA EM ANDAMENTO — motivos que não encerram a sessão (Pausa,
-           Limpeza, Falta de material) ficam aqui até o operador retomar. ── -->
-      <div v-if="openStop" class="bg-amber-500/10 border-2 border-amber-500/50 rounded-2xl p-6 flex flex-col sm:flex-row items-center justify-between gap-4">
-        <div class="flex items-center gap-4">
-          <div class="w-12 h-12 rounded-xl bg-amber-500/10 border-2 border-amber-500 text-amber-400 flex items-center justify-center text-2xl shrink-0">⏸️</div>
-          <div>
-            <p class="text-amber-400 font-black text-sm uppercase tracking-wider">Parada em andamento</p>
-            <p class="text-white text-sm mt-0.5">{{ openStop.reason?.label || 'Motivo não informado' }}</p>
-          </div>
-        </div>
-        <button
-          @click="handleResume"
-          class="px-6 py-3 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-sm uppercase tracking-wider rounded-xl transition-all active:scale-95 shrink-0"
-        >
-          ▶ Retomar Produção
-        </button>
-      </div>
-
-      <!-- Session Action Error -->
-      <div v-if="sessionError" class="bg-red-500/10 border border-red-500/40 p-3 rounded-xl text-red-400 text-xs font-semibold">
-        {{ sessionError }}
-      </div>
-
-      <!-- ── SECTION 4: BOTÕES INICIAR | AJUDA | PARAR ── -->
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
+      <!-- ── BOTÕES INICIAR | AJUDA | PARAR (altura fixa) ── -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-3 shrink-0">
         <!-- Botão verde: INICIAR -->
         <button
           @click="handleStart"
           :disabled="store.loading.session || !!store.activeSession"
-          class="py-4 bg-[#056e29] hover:bg-[#068532] disabled:opacity-40 disabled:cursor-not-allowed text-white font-black text-sm uppercase tracking-wider rounded-xl flex items-center justify-center gap-3 shadow-lg shadow-emerald-900/30 transition-all active:scale-95 border border-emerald-500/40"
+          class="py-3 bg-[#056e29] hover:bg-[#068532] disabled:opacity-40 disabled:cursor-not-allowed text-white font-black text-sm uppercase tracking-wider rounded-xl flex items-center justify-center gap-3 shadow-lg shadow-emerald-900/30 transition-all active:scale-95 border border-emerald-500/40"
         >
           <svg v-if="store.loading.session" class="w-4 h-4 border border-white border-t-transparent rounded-full animate-spin" viewBox="0 0 24 24"></svg>
           <svg v-else class="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
@@ -263,7 +261,7 @@
         <button
           @click="isHelpModalOpen = true"
           :disabled="!!openStop"
-          class="py-4 bg-[#121824] hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold text-sm uppercase tracking-wider rounded-xl flex items-center justify-center gap-3 border border-slate-700 transition-all active:scale-95"
+          class="py-3 bg-[#121824] hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold text-sm uppercase tracking-wider rounded-xl flex items-center justify-center gap-3 border border-slate-700 transition-all active:scale-95"
         >
           <svg class="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -278,7 +276,7 @@
         <button
           @click="handleStop"
           :disabled="store.loading.session || !store.activeSession"
-          class="py-4 bg-[#8b0000] hover:bg-[#a80000] disabled:opacity-40 disabled:cursor-not-allowed text-white font-black text-sm uppercase tracking-wider rounded-xl flex items-center justify-center gap-3 shadow-lg shadow-red-900/30 transition-all active:scale-95 border border-red-500/40"
+          class="py-3 bg-[#8b0000] hover:bg-[#a80000] disabled:opacity-40 disabled:cursor-not-allowed text-white font-black text-sm uppercase tracking-wider rounded-xl flex items-center justify-center gap-3 shadow-lg shadow-red-900/30 transition-all active:scale-95 border border-red-500/40"
         >
           <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
           ENCERRAR
@@ -347,6 +345,7 @@ import { useRoute } from 'vue-router';
 import { useProductionStore } from '../../stores/productionStore';
 import LotEditModal from '../../components/LotEditModal.vue';
 import { getMachineDisplayName as getMachineDisplayNameBase } from '../../composables/useMachineDisplay';
+import { travarPaisagem } from '../../composables/useLandscapeLock';
 
 const route = useRoute();
 const store = useProductionStore();
@@ -369,6 +368,7 @@ const updateTime = () => {
 };
 
 onMounted(async () => {
+  travarPaisagem();
   updateTime();
   clockInterval = setInterval(updateTime, 1000);
 

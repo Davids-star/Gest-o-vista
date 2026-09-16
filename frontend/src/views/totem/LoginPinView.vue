@@ -74,6 +74,7 @@ import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useProductionStore } from '../../stores/productionStore';
 import { getMachineNumber as getMachineNumberBase } from '../../composables/useMachineDisplay';
+import { travarPaisagem } from '../../composables/useLandscapeLock';
 
 const router = useRouter();
 const store = useProductionStore();
@@ -90,6 +91,7 @@ const operatorName = ref(localStorage.getItem(OPERATOR_STORAGE_KEY) || '');
 const errorMsg = ref('');
 
 onMounted(async () => {
+  travarPaisagem();
   // Carrega máquinas reais: GET /machines → PostgreSQL
   if (!store.machines.length) {
     await store.fetchMachines();
