@@ -1,6 +1,15 @@
 import { createRouter, createWebHashHistory } from 'vue-router';
 import { useAuth } from '../composables/useAuth';
-import { ajustarManifestPwa } from '../pwaManifest';
+
+// Único manifest.webmanifest pra tudo (gerado pelo vite-plugin-pwa) — nada
+// de trocar `<link rel="manifest">` em runtime: em Chrome/Android real, o
+// navegador decide se o app é instalável olhando o manifest já carregado
+// na primeira visita da aba/PWA, e não reavalia de forma confiável quando
+// o `href` muda depois via JS (testado num tablet real: o ícone instalado
+// a partir do Totem não respeitava o manifest trocado). Em vez disso, o
+// próprio app lembra "este aparelho é um Totem" e decide pra onde mandar
+// o usuário quando o ícone abre em '/' — ver DEVICE_MODE_KEY abaixo.
+const DEVICE_MODE_KEY = 'gp_device_mode';
 
 import LoginSupervisorView from '../views/supervisor/LoginSupervisorView.vue';
 import Dashboard from '../components/Dashboard.vue';
@@ -17,11 +26,15 @@ import MobileSelectorView from '../views/mobile/MobileSelectorView.vue';
 import ConfigMobileView from '../views/mobile/ConfigMobileView.vue';
 
 const routes = [
-  // Rota raiz → Celular e Desktop vão DIRETO para a Supervisão / Dashboard
+  // Rota raiz → Celular e Desktop vão DIRETO para a Supervisão / Dashboard,
+  // MAS um aparelho que já foi usado como Totem (ver DEVICE_MODE_KEY) cai
+  // direto no Totem — é assim que o ícone do PWA instalado a partir do
+  // Totem sabe pra onde abrir, sem precisar de um segundo manifest.
   { path: '/', redirect: () => {
+      if (localStorage.getItem(DEVICE_MODE_KEY) === 'totem') return '/totem/login';
       const { isLoggedIn } = useAuth();
       return isLoggedIn.value ? '/dashboard' : '/supervisor/login';
-    } 
+    }
   },
 
   // ── Autenticação ──────────────────────────────────────────────
@@ -147,11 +160,17 @@ router.beforeEach((to, _from, next) => {
   next();
 });
 
-// Mantém o manifest certo mesmo em navegação dentro da SPA (sem recarregar
-// a página) — ex.: um supervisor entrando no Totem por um link com
-// device_token, sem passar pelo boot do main.js.
+// Grava/limpa a "memória" do aparelho: entrar no Totem marca este
+// navegador como Totem (o ícone instalado vai direto pra lá da próxima
+// vez); voltar ao Seletor Mobile (link "Voltar ao Seletor Mobile" no
+// LoginPinView) é a saída — limpa a marca pra esse aparelho voltar a
+// abrir no fluxo normal de supervisor/celular.
 router.afterEach((to) => {
-  ajustarManifestPwa(`#${to.fullPath}`);
+  if (to.path.startsWith('/totem')) {
+    localStorage.setItem(DEVICE_MODE_KEY, 'totem');
+  } else if (to.path === '/mobile') {
+    localStorage.removeItem(DEVICE_MODE_KEY);
+  }
 });
 
 export default router;

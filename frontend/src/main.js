@@ -4,13 +4,6 @@ import { registerSW } from 'virtual:pwa-register'
 import './style.css'
 import App from './App.vue'
 import router from './router'
-import { ajustarManifestPwa } from './pwaManifest'
-
-// Troca o manifest ANTES de qualquer coisa, ainda no boot: se o Totem já
-// carrega direto em '#/totem/...' (ícone instalado, ou bookmark), precisa
-// estar certo antes do Chrome avaliar se o app é instalável — trocar só
-// depois, via router, pode chegar tarde pra essa primeira avaliação.
-ajustarManifestPwa(window.location.hash)
 
 const app = createApp(App)
 app.use(createPinia())

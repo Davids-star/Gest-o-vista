@@ -39,7 +39,10 @@ export default defineConfig({
         scope: '/',
         display: 'fullscreen',
         display_override: ['fullscreen', 'standalone'],
-        orientation: 'portrait-primary',
+        // 'any' (não trava em retrato): esse mesmo manifest agora cobre o
+        // Totem também (ver DEVICE_MODE_KEY em src/router/index.js), e um
+        // tablet de chão de fábrica pode estar montado em paisagem.
+        orientation: 'any',
         background_color: '#0b0f17',
         theme_color: '#10b981',
         categories: ['industrial', 'productivity', 'utilities'],
