@@ -4,9 +4,14 @@
        tem que caber de uma vez. Por isso o card interno vira uma coluna
        flex de altura total (h-full), com a área de conteúdo (flex-1
        min-h-0) se ajustando pro que sobrar depois do cabeçalho e dos
-       botões, em vez de crescer e empurrar pra fora da tela. -->
+       botões, em vez de crescer e empurrar pra fora da tela.
+       Sem `max-w`/`max-h` no card: com um teto fixo (ex.: max-w-6xl,
+       max-h-56rem), num tablet/monitor real maior que isso o card ficava
+       menorzinho e centralizado, sobrando uma faixa preta enorme ao redor
+       — o card agora sempre preenche a tela inteira, do tamanho que ela
+       for (só o `p-3` do wrapper vira a margem, não um teto arbitrário). -->
   <div class="h-dvh w-screen bg-[#070a0e] text-white flex items-center justify-center p-3 select-none font-sans overflow-hidden">
-    <div class="w-full max-w-6xl h-full max-h-[56rem] flex flex-col bg-[#0d121c] border-2 border-emerald-500/60 rounded-2xl p-4 gap-3 shadow-[0_0_30px_rgba(34,197,94,0.15)] overflow-hidden">
+    <div class="w-full h-full flex flex-col bg-[#0d121c] border-2 border-emerald-500/60 rounded-2xl p-4 gap-3 shadow-[0_0_30px_rgba(34,197,94,0.15)] overflow-hidden">
 
       <!-- ── HEADER (compacto, altura fixa) ── -->
       <header class="flex items-center justify-between shrink-0">
@@ -31,8 +36,14 @@
         </div>
       </header>
 
-      <!-- ── CONTEÚDO (ocupa o espaço restante, nunca mais que isso) ── -->
-      <div class="flex-1 min-h-0 flex flex-col gap-2.5 overflow-hidden">
+      <!-- ── CONTEÚDO (ocupa o espaço restante, nunca mais que isso) ──
+           `justify-center`: num tablet compacto isso não muda nada (o
+           conteúdo já preenche ou passa da altura disponível). Mas numa
+           tela/monitor bem maior, sem isso os cartões ficavam todos
+           empilhados lá em cima e sobrava uma faixa preta enorme embaixo,
+           antes dos botões — agora o conjunto fica centralizado, usando o
+           espaço de verdade em vez de deixar ele vazio. -->
+      <div class="flex-1 min-h-0 flex flex-col justify-center gap-2.5 overflow-hidden">
 
         <!-- Loading Machines -->
         <div v-if="store.loading.machines" class="flex-1 flex flex-col items-center justify-center">
