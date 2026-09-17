@@ -14,6 +14,7 @@ const DEVICE_MODE_KEY = 'gp_device_mode';
 import LoginSupervisorView from '../views/supervisor/LoginSupervisorView.vue';
 import Dashboard from '../components/Dashboard.vue';
 import ApontamentoView from '../views/supervisor/ApontamentoView.vue';
+import RelatoriosView from '../views/supervisor/RelatoriosView.vue';
 import MetasView from '../views/supervisor/MetasView.vue';
 import AlertasView from '../views/supervisor/AlertasView.vue';
 import EstacoesView from '../views/supervisor/EstacoesView.vue';
@@ -62,6 +63,15 @@ const routes = [
     path: '/apontamento/:estacaoId?',
     name: 'Apontamento',
     component: ApontamentoView,
+    meta: { requiresAuth: true, roles: ['supervisor', 'administrador', 'admin'] },
+  },
+  // Relatórios (dia/semana/mês, comparativo por máquina, exportação Excel)
+  // — diferente de /apontamento (operação do dia a dia, só supervisor),
+  // esta é análise/histórico e vale tanto pra supervisor quanto admin.
+  {
+    path: '/relatorios',
+    name: 'Relatorios',
+    component: RelatoriosView,
     meta: { requiresAuth: true, roles: ['supervisor', 'administrador', 'admin'] },
   },
   {

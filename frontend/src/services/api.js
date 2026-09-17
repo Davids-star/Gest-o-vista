@@ -214,6 +214,14 @@ export const apontamentoApi = {
     ).toString();
     return request(`/apontamento/mensal${params ? '?' + params : ''}`);
   },
+  // GET /apontamento/semanal?date=&... — resumo agregado da semana comercial
+  // (segunda a domingo) que contém `date` (default hoje).
+  semanal: (filtros = {}) => {
+    const params = new URLSearchParams(
+      Object.fromEntries(Object.entries(filtros).filter(([, v]) => v)),
+    ).toString();
+    return request(`/apontamento/semanal${params ? '?' + params : ''}`);
+  },
 };
 
 // ─── ESTAÇÕES ──────────────────────────────────────────────────────────────

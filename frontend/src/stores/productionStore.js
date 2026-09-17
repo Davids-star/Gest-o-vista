@@ -49,6 +49,9 @@ export const useProductionStore = defineStore('production', {
     // Resposta pronta de GET /apontamento/mensal (Resumo do Mês) — null até
     // o primeiro fetchApontamentoMensal.
     apontamentoMensal: null,
+    // Mesma coisa, GET /apontamento/semanal (Resumo da Semana) — null até
+    // o primeiro fetchApontamentoSemanal.
+    apontamentoSemanal: null,
 
     // ── Estado da UI ─────────────────────────────────────────────────
     selectedStationId: null,
@@ -66,6 +69,7 @@ export const useProductionStore = defineStore('production', {
       metas: false,
       apontamento: false,
       apontamentoMensal: false,
+      apontamentoSemanal: false,
     },
     errors: {
       machines: null,
@@ -79,6 +83,7 @@ export const useProductionStore = defineStore('production', {
       metas: null,
       apontamento: null,
       apontamentoMensal: null,
+      apontamentoSemanal: null,
     },
 
     // ── Controle interno do polling/WebSocket ───────────────────────────
@@ -433,6 +438,23 @@ export const useProductionStore = defineStore('production', {
         this.apontamentoMensal = null;
       } finally {
         this.loading.apontamentoMensal = false;
+      }
+    },
+
+    // ── RESUMO SEMANAL: GET /apontamento/semanal?date&... ──────────
+    // Mesmo formato do mensal (resumo + quebras por dia/máquina/turno/
+    // motivo), só que da semana comercial (seg-dom) que contém `date` —
+    // ver ApontamentoService.obterSemanal.
+    async fetchApontamentoSemanal(filtros = {}) {
+      this.loading.apontamentoSemanal = true;
+      this.errors.apontamentoSemanal = null;
+      try {
+        this.apontamentoSemanal = await apontamentoApi.semanal(filtros);
+      } catch (err) {
+        this.errors.apontamentoSemanal = err.message || 'Não foi possível carregar o resumo.';
+        this.apontamentoSemanal = null;
+      } finally {
+        this.loading.apontamentoSemanal = false;
       }
     },
 

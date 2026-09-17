@@ -1,10 +1,17 @@
 <template>
   <div class="space-y-5">
-    <!-- Filtros do mês (título/subtítulo já ficam no Dashboard, que hospeda
-         a aba Diário/Resumo Mensal) -->
+    <!-- Filtros do período (título/subtítulo ficam em quem hospeda este painel) -->
     <div class="flex justify-end">
       <div class="flex flex-wrap items-end gap-3">
-        <div class="min-w-[150px]">
+        <div v-if="periodo === 'semana'" class="min-w-[150px]">
+          <label class="text-[10px] text-slate-500 font-bold uppercase tracking-wider block mb-1.5">Um dia da semana</label>
+          <input
+            v-model="dataSelecionada"
+            type="date"
+            :max="hojeIso"
+            class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm text-slate-900 focus:border-emerald-500 focus:outline-none" />
+        </div>
+        <div v-else class="min-w-[150px]">
           <label class="text-[10px] text-slate-500 font-bold uppercase tracking-wider block mb-1.5">Mês</label>
           <input
             v-model="mesSelecionado"
@@ -35,12 +42,17 @@
 
         <button
           @click="consultar"
-          :disabled="!mesSelecionado"
+          :disabled="periodo === 'semana' ? !dataSelecionada : !mesSelecionado"
           class="px-6 py-2 bg-emerald-500 hover:bg-emerald-400 disabled:opacity-40 disabled:cursor-not-allowed text-slate-950 font-bold text-xs rounded-xl uppercase tracking-wider transition-all">
           Consultar →
         </button>
       </div>
     </div>
+
+    <p v-if="periodo === 'semana' && data?.periodo" class="text-right text-xs text-slate-500 -mt-3">
+      Semana de <span class="font-bold text-slate-700">{{ formatarDataBr(data.periodo.inicio) }}</span> a
+      <span class="font-bold text-slate-700">{{ formatarDataBr(data.periodo.fim) }}</span>
+    </p>
 
     <!-- Estados: loading / erro / vazio / conteúdo -->
     <div v-if="loading" class="text-center py-12 text-slate-500 text-sm">Carregando resumo...</div>
@@ -95,6 +107,14 @@
         </div>
       </div>
 
+      <!-- Tabela comparativa: produção por dia, lado a lado por máquina -->
+      <div v-if="data.por_maquina_por_dia?.length > 1" class="dark-panel p-4">
+        <h4 class="text-xs font-bold uppercase tracking-wider text-slate-700 mb-3">
+          Comparativo de Máquinas — Produção por Dia
+        </h4>
+        <MachineComparisonTable :columns="colunasDia" :rows="linhasDia" />
+      </div>
+
       <!-- Gráficos -->
       <div class="grid lg:grid-cols-2 gap-6">
         <div class="dark-panel p-4">
@@ -139,6 +159,7 @@ import { ref, computed } from 'vue';
 import { formatDuracao } from '../composables/useFormatters';
 import SimpleBarChart from './SimpleBarChart.vue';
 import TimeDistributionChart from './TimeDistributionChart.vue';
+import MachineComparisonTable from './MachineComparisonTable.vue';
 
 const props = defineProps({
   data: { type: Object, default: null },
@@ -146,30 +167,49 @@ const props = defineProps({
   error: { type: String, default: null },
   shifts: { type: Array, default: () => [] },
   machines: { type: Array, default: () => [] },
+  // 'semana' ou 'mes' — troca o seletor de período e como `consultar` monta
+  // o filtro emitido (date vs year/month). O resto (indicadores, gráficos,
+  // tabela comparativa) é idêntico pros dois: obterSemanal/obterMensal no
+  // backend devolvem exatamente o mesmo formato de resposta.
+  periodo: { type: String, default: 'mes' }, // 'semana' | 'mes'
 });
 
 const emit = defineEmits(['consultar']);
 
+const hojeIso = computed(() => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+});
 const mesAtualIso = computed(() => {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
 });
 
+const dataSelecionada = ref(hojeIso.value);
 const mesSelecionado = ref(mesAtualIso.value);
 const turnoSelecionado = ref('');
 const maquinaSelecionada = ref('');
 
 const consultar = () => {
-  if (!mesSelecionado.value) return;
-  const [year, month] = mesSelecionado.value.split('-').map(Number);
-  emit('consultar', {
-    year,
-    month,
+  const filtrosComuns = {
     shift_id: turnoSelecionado.value || undefined,
     machine_id: maquinaSelecionada.value || undefined,
-  });
+  };
+  if (props.periodo === 'semana') {
+    if (!dataSelecionada.value) return;
+    emit('consultar', { date: dataSelecionada.value, ...filtrosComuns });
+  } else {
+    if (!mesSelecionado.value) return;
+    const [year, month] = mesSelecionado.value.split('-').map(Number);
+    emit('consultar', { year, month, ...filtrosComuns });
+  }
 };
 
+const formatarDataBr = (dataIso) => {
+  if (!dataIso) return '—';
+  const [ano, mes, dia] = dataIso.split('-');
+  return `${dia}/${mes}/${ano}`;
+};
 
 const producaoPorMaquinaChart = computed(() =>
   (props.data?.por_maquina || []).map((m) => ({ name: m.machine_code, value: m.producao })),
@@ -177,6 +217,17 @@ const producaoPorMaquinaChart = computed(() =>
 
 const producaoPorTurnoChart = computed(() =>
   (props.data?.por_turno || []).map((t) => ({ name: t.shift_name, value: t.producao })),
+);
+
+// Tabela comparativa: uma coluna por dia do período, uma linha por máquina.
+const colunasDia = computed(() =>
+  (props.data?.por_maquina_por_dia?.[0]?.por_dia || []).map((d) => ({ key: d.data, label: formatarDataBr(d.data) })),
+);
+const linhasDia = computed(() =>
+  (props.data?.por_maquina_por_dia || []).map((m) => ({
+    label: `Máquina ${m.machine_code}`,
+    cells: Object.fromEntries(m.por_dia.map((d) => [d.data, d.producao])),
+  })),
 );
 
 // Paleta cíclica pra n motivos — TimeDistributionChart espera `value` como

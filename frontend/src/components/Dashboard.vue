@@ -149,84 +149,52 @@
               <p class="font-mono text-lg font-black text-amber-600">{{ resumoMaquinaSelecionada.paradas }}</p>
             </div>
           </div>
+
+          <!-- Quando a máquina encerrou uma produção e iniciou outra no
+               mesmo dia, mostra cada uma separada (não só o total somado) —
+               pedido explícito do usuário. Some sozinho com sessão única. -->
+          <div v-if="sessoesMaquinaSelecionadaHoje.length > 1" class="pt-1 space-y-1.5">
+            <span class="text-[10px] font-bold uppercase text-slate-500 block">Produções de Hoje ({{ sessoesMaquinaSelecionadaHoje.length }})</span>
+            <div
+              v-for="(s, idx) in sessoesMaquinaSelecionadaHoje"
+              :key="s.id"
+              class="flex items-center justify-between text-xs bg-white border border-slate-200 rounded-lg px-3 py-2"
+            >
+              <div class="flex items-center gap-2">
+                <span class="w-5 h-5 rounded bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 font-bold text-[10px] flex items-center justify-center shrink-0">{{ idx + 1 }}</span>
+                <span class="font-mono text-slate-500">{{ formatHoraCurta(s.started_at) }} → {{ s.ended_at ? formatHoraCurta(s.ended_at) : 'Em aberto' }}</span>
+              </div>
+              <span class="font-mono font-bold text-emerald-600">{{ (s.producao || 0).toLocaleString('pt-BR') }} un.</span>
+            </div>
+            <div class="flex items-center justify-between text-xs px-3 pt-1 border-t border-slate-200">
+              <span class="font-bold text-slate-700 uppercase text-[10px]">Total</span>
+              <span class="font-mono font-black text-slate-900">{{ resumoMaquinaSelecionada.producao.toLocaleString('pt-BR') }} un.</span>
+            </div>
+          </div>
         </div>
       </div>
 
       <!-- ══════════════════════════════════════════════════════════════
-           APONTAMENTO — o usuário escolhe: consulta pontual de Um Dia, ou
-           o Resumo Mensal (produção, tempo, paradas e gráficos do mês).
+           CTA pra página de Relatórios — antes essa área tinha as abas
+           Diário/Resumo Mensal do Apontamento embutidas aqui; migraram pra
+           /relatorios (dia/semana/mês, comparativo por máquina, paradas e
+           exportação Excel), deixando o Dashboard mais enxuto.
            ══════════════════════════════════════════════════════════════ -->
-      <section class="dark-panel p-4 sm:p-6 space-y-5">
-        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <router-link
+        to="/relatorios"
+        class="dark-panel p-5 flex items-center justify-between gap-4 hover:border-emerald-500/40 transition-all group"
+      >
+        <div class="flex items-center gap-4">
+          <div class="w-11 h-11 rounded-xl bg-emerald-500/10 border border-emerald-500/40 text-emerald-600 flex items-center justify-center text-xl shrink-0">
+            📊
+          </div>
           <div>
-            <h2 class="text-sm font-bold uppercase tracking-widest text-slate-900 flex items-center gap-2">
-              <span class="text-emerald-600">📅</span> APONTAMENTO
-            </h2>
-            <p class="text-xs text-slate-500 mt-0.5">
-              {{ apontamentoTab === 'diario'
-                ? 'Escolha o dia e o turno para ver produção, sessões e paradas daquele período'
-                : 'Produção, tempo produzido/parado e paradas do mês inteiro — dados reais do banco' }}
-            </p>
-          </div>
-
-          <div class="flex gap-1 bg-white border border-slate-200 rounded-xl p-1 self-start sm:self-auto">
-            <button
-              @click="apontamentoTab = 'diario'"
-              class="px-4 py-1.5 rounded-lg text-[11px] font-extrabold uppercase tracking-wider transition-all"
-              :class="apontamentoTab === 'diario' ? 'bg-emerald-500/20 text-emerald-600 border border-emerald-500/40' : 'text-slate-500 hover:text-slate-900'">
-              Diário
-            </button>
-            <button
-              @click="apontamentoTab = 'mensal'"
-              class="px-4 py-1.5 rounded-lg text-[11px] font-extrabold uppercase tracking-wider transition-all"
-              :class="apontamentoTab === 'mensal' ? 'bg-emerald-500/20 text-emerald-600 border border-emerald-500/40' : 'text-slate-500 hover:text-slate-900'">
-              Resumo Mensal
-            </button>
+            <h3 class="text-sm font-extrabold uppercase tracking-wider text-slate-900">Relatórios Detalhados</h3>
+            <p class="text-xs text-slate-500 mt-0.5">Produção, paradas e comparativo entre máquinas por dia, semana ou mês — com exportação para Excel</p>
           </div>
         </div>
-
-        <!-- ── Diário ─────────────────────────────────────────────── -->
-        <div v-if="apontamentoTab === 'diario'" class="flex flex-col sm:flex-row sm:items-end gap-3">
-          <div class="flex-1 min-w-[160px]">
-            <label class="text-[10px] text-slate-500 font-bold uppercase tracking-wider block mb-1.5">Dia</label>
-            <input
-              v-model="consultaData"
-              type="date"
-              :max="hojeIso"
-              class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm text-slate-900 focus:border-emerald-500 focus:outline-none" />
-          </div>
-
-          <div class="flex-1 min-w-[160px]">
-            <label class="text-[10px] text-slate-500 font-bold uppercase tracking-wider block mb-1.5">Turno</label>
-            <select
-              v-model="consultaTurnoId"
-              class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm text-slate-900 focus:border-emerald-500 focus:outline-none">
-              <option value="">Todos os turnos</option>
-              <option v-for="turno in store.shifts" :key="turno.id" :value="turno.id">
-                {{ turno.name }}<template v-if="turno.start_time && turno.end_time"> ({{ turno.start_time.slice(0, 5) }}–{{ turno.end_time.slice(0, 5) }})</template>
-              </option>
-            </select>
-          </div>
-
-          <button
-            @click="consultarDia"
-            :disabled="!consultaData"
-            class="px-6 py-2 bg-emerald-500 hover:bg-emerald-400 disabled:opacity-40 disabled:cursor-not-allowed text-slate-950 font-bold text-xs rounded-xl uppercase tracking-wider transition-all">
-            Consultar →
-          </button>
-        </div>
-
-        <!-- ── Resumo Mensal ──────────────────────────────────────── -->
-        <MonthlySummaryPanel
-          v-else
-          :data="store.apontamentoMensal"
-          :loading="store.loading.apontamentoMensal"
-          :error="store.errors.apontamentoMensal"
-          :shifts="store.shifts"
-          :machines="store.machines"
-          @consultar="consultarMes"
-        />
-      </section>
+        <span class="text-emerald-600 text-lg font-bold shrink-0 group-hover:translate-x-1 transition-transform">→</span>
+      </router-link>
 
       <!-- ══════════════════════════════════════════════════════════════
            PRODUÇÃO POR HORA (hoje) — respeita a máquina selecionada acima;
@@ -307,16 +275,6 @@
       </div>
 
     </main>
-
-    <!-- Modal de Detalhamento da Consulta (Dia + Turno) -->
-    <DayDetailsModal
-      :is-open="isDayModalOpen"
-      :date="selectedModalDate"
-      :shift-label="selectedModalTurnoLabel"
-      :apontamento="selectedDayApontamento"
-      :loading="modalLoading"
-      @close="isDayModalOpen = false"
-    />
   </div>
 </template>
 
@@ -326,8 +284,6 @@ import { useProductionStore } from '../stores/productionStore';
 import { apontamentoApi } from '../services/api';
 import { formatDuracao as formatDuracaoBase } from '../composables/useFormatters';
 import AppSidebar from './AppSidebar.vue';
-import DayDetailsModal from './DayDetailsModal.vue';
-import MonthlySummaryPanel from './MonthlySummaryPanel.vue';
 import HourlyProductionChart from './HourlyProductionChart.vue';
 import { getMachineNumber as getMachineNumberBase } from '../composables/useMachineDisplay';
 
@@ -389,19 +345,6 @@ const hojeIso = computed(() => {
   return `${year}-${month}-${day}`;
 });
 
-// Aba ativa do bloco de Apontamento: consulta pontual de um dia, ou o
-// Resumo Mensal — só um dos dois fica visível por vez.
-const apontamentoTab = ref('diario');
-
-// Seletores da consulta (dia + turno)
-const consultaData = ref(hojeIso.value);
-const consultaTurnoId = ref('');
-
-const isDayModalOpen = ref(false);
-const selectedModalDate = ref('');
-const selectedModalTurnoLabel = ref('');
-const selectedDayApontamento = ref(null);
-const modalLoading = ref(false);
 const hojeApontamento = ref(null);
 
 const formatDuracao = (segundos) => formatDuracaoBase(segundos, { compact: true });
@@ -412,30 +355,19 @@ const formatDateTime = (dt) => {
   catch { return String(dt); }
 };
 
-const abrirDetalhesDia = async (dataStr, turnoId = '') => {
-  selectedModalDate.value = dataStr;
-  selectedModalTurnoLabel.value = turnoId
-    ? store.shifts.find((t) => t.id === turnoId)?.name || ''
-    : '';
-  isDayModalOpen.value = true;
-  modalLoading.value = true;
-  selectedDayApontamento.value = null;
-
-  try {
-    const data = await apontamentoApi.obter({ date: dataStr, shift_id: turnoId || undefined });
-    selectedDayApontamento.value = data;
-  } catch (err) {
-    console.warn('[Dashboard] Erro ao buscar apontamentos da data:', dataStr, err.message);
-  } finally {
-    modalLoading.value = false;
-  }
+const formatHoraCurta = (dt) => {
+  if (!dt) return '—';
+  try { return new Date(dt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }); }
+  catch { return String(dt); }
 };
 
-// Ação do botão "Consultar" — abre o detalhamento do dia + turno escolhidos
-const consultarDia = () => {
-  if (!consultaData.value) return;
-  abrirDetalhesDia(consultaData.value, consultaTurnoId.value);
-};
+// Sessões de hoje da máquina selecionada, na ordem em que aconteceram — pra
+// mostrar "1ª produção / 2ª produção" separadas quando a máquina encerrou
+// uma sessão e começou outra no mesmo dia (antes só aparecia o total somado).
+const sessoesMaquinaSelecionadaHoje = computed(() => {
+  if (!maquinaSelecionada.value) return [];
+  return (hojeApontamento.value?.sessoes || []).filter((s) => s.machine?.id === maquinaSelecionada.value.id);
+});
 
 const carregarProducaoHoje = async () => {
   try {
@@ -473,10 +405,6 @@ const producaoPorHoraChart = computed(() => {
   return (fonte?.producao_por_hora || []).map((h) => ({ hour: h.hora, amount: h.quantidade }));
 });
 
-const consultarMes = (filtros) => {
-  store.fetchApontamentoMensal(filtros);
-};
-
 const acknowledgeAlert = async (alertId) => {
   try {
     await store.acknowledgeAlert(alertId);
@@ -488,12 +416,10 @@ const acknowledgeAlert = async (alertId) => {
 let producaoHojeTimer = null;
 
 onMounted(async () => {
-  const agora = new Date();
   await Promise.allSettled([
     store.bootstrap(),
     store.fetchShifts(),
     carregarProducaoHoje(),
-    store.fetchApontamentoMensal({ year: agora.getFullYear(), month: agora.getMonth() + 1 }),
   ]);
   // WebSocket + polling de segurança agora ligam uma vez só em App.vue
   // (vida inteira do app), não aqui — ver comentário lá.
