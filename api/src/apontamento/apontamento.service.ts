@@ -24,6 +24,14 @@ export interface ApontamentoMensalFiltros {
   lot_id?: string;
 }
 
+export interface ApontamentoSemanalFiltros {
+  date?: string;
+  shift_id?: string;
+  machine_id?: string;
+  product_id?: string;
+  lot_id?: string;
+}
+
 /** 'YYYY-MM-DD' de uma Date, em horário de fábrica (America/Fortaleza ==
  * America/Sao_Paulo, sem horário de verão desde 2019). */
 export function formatarDataLocal(d: Date): string {
@@ -56,6 +64,36 @@ export function limitesDoMes(year: number, month: number): { inicio: Date; fim: 
   const inicioProximoMes = new Date(`${anoProximoMes}-${mmProximo}-01T00:00:00.000-03:00`);
   const fim = new Date(inicioProximoMes.getTime() - 1);
   return { inicio, fim };
+}
+
+/** Início/fim (segunda 00:00:00.000 a domingo 23:59:59.999) da semana
+ * comercial (seg-dom) que contém `dataStr`, no mesmo fuso fixo -03:00 de
+ * `limitesDoDia`/`limitesDoMes`. `dias` traz as 7 datas 'YYYY-MM-DD' da
+ * semana (segunda a domingo), usadas como base pra zerar dias sem
+ * produção — mesma convenção de `producaoPorDiaMap` no mês. */
+export function limitesDaSemana(dataStr: string): { inicio: Date; fim: Date; dias: string[] } {
+  // getDay() em UTC evita qualquer ambiguidade de fuso do Date local do
+  // processo — dataStr é uma data "pura" (sem hora), então basta ler os
+  // componentes ano/mês/dia dela direto, sem depender de -03:00 aqui.
+  const [ano, mes, dia] = dataStr.split('-').map(Number);
+  const dataBase = new Date(Date.UTC(ano, mes - 1, dia));
+  const diaDaSemana = dataBase.getUTCDay(); // 0=domingo..6=sábado
+  const deltaParaSegunda = diaDaSemana === 0 ? -6 : 1 - diaDaSemana;
+
+  const dias: string[] = [];
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(dataBase);
+    d.setUTCDate(dataBase.getUTCDate() + deltaParaSegunda + i);
+    dias.push(
+      `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')}`,
+    );
+  }
+
+  return {
+    inicio: new Date(`${dias[0]}T00:00:00.000-03:00`),
+    fim: new Date(`${dias[6]}T23:59:59.999-03:00`),
+    dias,
+  };
 }
 
 /** Duração de uma parada em segundos — se ainda estiver aberta, conta até
@@ -214,6 +252,7 @@ export class ApontamentoService {
         },
         tempo_parado_por_motivo: [],
         producao_por_hora: horasVazias(),
+        producao_por_hora_por_maquina: [],
         sessoes: [],
         paradas: [],
       };
@@ -368,6 +407,28 @@ export class ApontamentoService {
       };
     });
 
+    // Tabela comparativa por máquina: cada máquina com sua própria série de
+    // 24h (base zerada, mesmo padrão de `producaoPorHora`) — reaproveita
+    // `por_hora` que cada sessão já calculou, só soma por máquina (uma
+    // máquina com 2 sessões no dia soma as duas na mesma hora).
+    const producaoPorHoraPorMaquinaMap = new Map<string, { machine_id: string; machine_code: string; machine_name: string; horas: Map<string, number> }>();
+    for (const s of sessoesDetalhadas) {
+      const atual = producaoPorHoraPorMaquinaMap.get(s.machine.id) || {
+        machine_id: s.machine.id, machine_code: s.machine.code, machine_name: s.machine.name,
+        horas: new Map(horasVazias().map((h) => [h.hora, 0])),
+      };
+      for (const h of s.por_hora) {
+        atual.horas.set(h.hora, (atual.horas.get(h.hora) || 0) + h.producao);
+      }
+      producaoPorHoraPorMaquinaMap.set(s.machine.id, atual);
+    }
+    const producaoPorHoraPorMaquina = [...producaoPorHoraPorMaquinaMap.values()].map((m) => ({
+      machine_id: m.machine_id,
+      machine_code: m.machine_code,
+      machine_name: m.machine_name,
+      por_hora: [...m.horas.entries()].map(([hora, quantidade]) => ({ hora, quantidade })),
+    }));
+
     const resumo = {
       producao: sessoesDetalhadas.reduce((a, s) => a + s.producao, 0),
       tempo_produzido_segundos: sessoesDetalhadas.reduce((a, s) => a + s.tempo_produzido_segundos, 0),
@@ -392,6 +453,7 @@ export class ApontamentoService {
       resumo,
       tempo_parado_por_motivo: [...porMotivo.values()].sort((a, b) => b.segundos - a.segundos),
       producao_por_hora: producaoPorHora,
+      producao_por_hora_por_maquina: producaoPorHoraPorMaquina,
       sessoes: sessoesDetalhadas,
       paradas: todasParadas
         .map((p) => mapParada(p, agora))
@@ -402,9 +464,66 @@ export class ApontamentoService {
   async obterMensal(companyId: string, filtros: ApontamentoMensalFiltros) {
     const { year, month } = filtros;
     const { inicio, fim } = limitesDoMes(year, month);
-    const agora = new Date();
     // Truque JS: dia 0 do mês seguinte === último dia deste mês.
     const diasNoMes = new Date(year, month, 0).getDate();
+    const diasDoPeriodo: string[] = [];
+    for (let dia = 1; dia <= diasNoMes; dia++) {
+      diasDoPeriodo.push(`${year}-${String(month).padStart(2, '0')}-${String(dia).padStart(2, '0')}`);
+    }
+
+    const filtrosResposta = {
+      year,
+      month,
+      shift_id: filtros.shift_id ?? null,
+      machine_id: filtros.machine_id ?? null,
+      product_id: filtros.product_id ?? null,
+      lot_id: filtros.lot_id ?? null,
+    };
+    const periodo = { inicio: formatarDataLocal(inicio), fim: formatarDataLocal(fim), dias_no_mes: diasNoMes };
+
+    const resultado = await this.agregarPeriodo(companyId, inicio, fim, diasDoPeriodo, filtros);
+    return { filtros: filtrosResposta, periodo, ...resultado };
+  }
+
+  /**
+   * GET /apontamento/semanal — mesmo formato de resposta do mensal (ver
+   * agregarPeriodo), só que pra semana comercial (seg-dom) que contém a
+   * data informada. `date` vazio assume hoje, mesma convenção de `obter()`.
+   */
+  async obterSemanal(companyId: string, filtros: ApontamentoSemanalFiltros) {
+    const dataStr = filtros.date || formatarDataLocal(new Date());
+    const { inicio, fim, dias } = limitesDaSemana(dataStr);
+
+    const filtrosResposta = {
+      date: dataStr,
+      shift_id: filtros.shift_id ?? null,
+      machine_id: filtros.machine_id ?? null,
+      product_id: filtros.product_id ?? null,
+      lot_id: filtros.lot_id ?? null,
+    };
+    const periodo = { inicio: dias[0], fim: dias[6], dias: dias.length };
+
+    const resultado = await this.agregarPeriodo(companyId, inicio, fim, dias, filtros);
+    return { filtros: filtrosResposta, periodo, ...resultado };
+  }
+
+  /**
+   * Núcleo compartilhado de obterMensal/obterSemanal — mesmas fórmulas do
+   * obter() diário (duracaoParada, tempoTotalSeg - tempoParadoSeg), só que
+   * reduzidas em agrupamentos (dia/máquina/turno/motivo) em vez de
+   * devolvidas sessão a sessão, porque o período pode ter centenas de
+   * sessões. `diasDoPeriodo` é a lista de datas 'YYYY-MM-DD' do período
+   * (base zerada dos gráficos por dia — um dia sem produção aparece como 0
+   * real, nunca é omitido).
+   */
+  private async agregarPeriodo(
+    companyId: string,
+    inicio: Date,
+    fim: Date,
+    diasDoPeriodo: string[],
+    filtros: { shift_id?: string; machine_id?: string; product_id?: string; lot_id?: string },
+  ) {
+    const agora = new Date();
 
     const qb = this.sessionRepo
       .createQueryBuilder('session')
@@ -423,28 +542,15 @@ export class ApontamentoService {
 
     const sessoes = await qb.orderBy('session.started_at', 'ASC').getMany();
 
-    const filtrosResposta = {
-      year,
-      month,
-      shift_id: filtros.shift_id ?? null,
-      machine_id: filtros.machine_id ?? null,
-      product_id: filtros.product_id ?? null,
-      lot_id: filtros.lot_id ?? null,
-    };
-    const periodo = { inicio: formatarDataLocal(inicio), fim: formatarDataLocal(fim), dias_no_mes: diasNoMes };
-
-    // Base do gráfico por dia: todo dia do mês existe com zero — um dia sem
-    // produção aparece como 0 real, nunca é omitido nem inventado.
+    // Base do gráfico por dia: todo dia do período existe com zero — um dia
+    // sem produção aparece como 0 real, nunca é omitido nem inventado.
     const producaoPorDiaMap = new Map<string, { producao: number; tempo_produzido_segundos: number; tempo_parado_segundos: number }>();
-    for (let dia = 1; dia <= diasNoMes; dia++) {
-      const dataStr = `${year}-${String(month).padStart(2, '0')}-${String(dia).padStart(2, '0')}`;
+    for (const dataStr of diasDoPeriodo) {
       producaoPorDiaMap.set(dataStr, { producao: 0, tempo_produzido_segundos: 0, tempo_parado_segundos: 0 });
     }
 
     if (!sessoes.length) {
       return {
-        filtros: filtrosResposta,
-        periodo,
         resumo: {
           producao: 0,
           tempo_produzido_segundos: 0,
@@ -458,6 +564,7 @@ export class ApontamentoService {
         },
         producao_por_dia: [...producaoPorDiaMap.entries()].map(([data, v]) => ({ data, ...v })),
         por_maquina: [],
+        por_maquina_por_dia: [],
         por_turno: [],
         paradas_por_motivo: [],
         produtos: [],
@@ -551,6 +658,26 @@ export class ApontamentoService {
       if (atual) atual.paradas += 1;
     }
 
+    // Tabela comparativa por máquina: cada máquina com sua própria série de
+    // dias do período (base zerada, mesmo padrão de `producaoPorDiaMap`) —
+    // reaproveita `porSessaoCalc` (já tem `session.machine`, `dia`,
+    // `producao`), só reduz por (máquina, dia) em vez de só por dia.
+    const porMaquinaPorDiaMap = new Map<string, Map<string, number>>();
+    for (const c of porSessaoCalc) {
+      const mid = c.session.machine.id;
+      if (!porMaquinaPorDiaMap.has(mid)) {
+        porMaquinaPorDiaMap.set(mid, new Map(diasDoPeriodo.map((d) => [d, 0])));
+      }
+      const porDia = porMaquinaPorDiaMap.get(mid)!;
+      porDia.set(c.dia, (porDia.get(c.dia) || 0) + c.producao);
+    }
+    const porMaquinaPorDia = [...porMaquinaMap.values()].map((m) => ({
+      machine_id: m.machine_id,
+      machine_code: m.machine_code,
+      machine_name: m.machine_name,
+      por_dia: [...(porMaquinaPorDiaMap.get(m.machine_id) || new Map())].map(([data, producao]) => ({ data, producao })),
+    }));
+
     const porTurnoMap = new Map<string, {
       shift_id: string | null; shift_name: string;
       producao: number; tempo_produzido_segundos: number; tempo_parado_segundos: number; sessoes: number;
@@ -612,11 +739,10 @@ export class ApontamentoService {
     };
 
     return {
-      filtros: filtrosResposta,
-      periodo,
       resumo,
       producao_por_dia: [...producaoPorDiaMap.entries()].map(([data, v]) => ({ data, ...v })),
       por_maquina: [...porMaquinaMap.values()].sort((a, b) => b.producao - a.producao),
+      por_maquina_por_dia: porMaquinaPorDia,
       por_turno: [...porTurnoMap.values()],
       paradas_por_motivo: [...porMotivoMap.values()].sort((a, b) => b.segundos - a.segundos),
       produtos: [...porProdutoMap.values()].sort((a, b) => b.producao - a.producao),

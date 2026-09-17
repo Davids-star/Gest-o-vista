@@ -63,4 +63,24 @@ export class ApontamentoController {
       lot_id,
     });
   }
+
+  /**
+   * GET /apontamento/semanal?date=YYYY-MM-DD&shift_id=&machine_id=&product_id=&lot_id=
+   * `date` opcional (assume hoje, mesma convenção de `obter()`) — resolve a
+   * semana comercial (segunda a domingo) que contém essa data. Mesmo
+   * formato de resposta do mensal (ver ApontamentoService.agregarPeriodo).
+   */
+  @Get('semanal')
+  @Roles(UserRole.SUPERVISOR, UserRole.ADMINISTRADOR, UserRole.OPERADOR)
+  @Public()
+  obterSemanal(
+    @CurrentUser() user: UserPayload,
+    @Query('date') date?: string,
+    @Query('shift_id') shift_id?: string,
+    @Query('machine_id') machine_id?: string,
+    @Query('product_id') product_id?: string,
+    @Query('lot_id') lot_id?: string,
+  ) {
+    return this.apontamentoService.obterSemanal(user.companyId, { date, shift_id, machine_id, product_id, lot_id });
+  }
 }

@@ -30,6 +30,10 @@ simulator/fila_eventos.jsonl
 .env.*
 !*.env.example
 
+# Certificado HTTPS local (mkcert) gerado numa tentativa anterior (revertida)
+# de testar PWA no Android — contém chave privada, nunca deve ser versionado.
+/.certs/
+
 # Editor / SO
 .DS_Store
 .vscode/*
