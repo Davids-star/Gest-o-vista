@@ -9,7 +9,16 @@
         <h1 class="text-2xl sm:text-3xl font-extrabold uppercase tracking-wider text-slate-900">DASHBOARD INDUSTRIAL</h1>
       </div>
 
-      <!-- KPI Cards Globais -->
+      <!-- KPI Cards Globais — nenhum número aqui embaixo depende de
+           `store.loading.*` pra decidir o que mostrar (nem um "—" no
+           lugar do valor). `alerts`/`metas` são rebuscados a cada 6s pelo
+           polling global (App.vue): `loading.alerts`/`loading.metas`
+           viram `true` por um instante em TODO ciclo, não só na carga
+           inicial — um `v-if`/ternário em cima disso fazia o número
+           piscar pra "—" e voltar sozinho, sem nenhum dado ter mudado de
+           verdade. Como os arrays já nascem vazios (nunca `null`), usar
+           `.length` direto é sempre seguro — na pior hipótese mostra 0
+           por um instante na primeiríssima carga, nunca mais pisca depois. -->
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         
         <!-- Produção de Hoje -->
@@ -33,7 +42,7 @@
           <span class="text-xs font-bold uppercase tracking-wider text-slate-500">MÁQUINAS CADASTRADAS</span>
           <div class="flex items-baseline gap-2">
             <span class="font-mono text-3xl font-black text-slate-900">
-              {{ store.loading.machines ? '—' : store.machines.length }}
+              {{ store.machines.length }}
             </span>
             <span class="text-xs text-slate-500">estações ativas</span>
           </div>
@@ -44,7 +53,7 @@
           <span class="text-xs font-bold uppercase tracking-wider text-slate-500">ALERTAS / OCORRÊNCIAS</span>
           <div class="flex items-baseline gap-2">
             <span class="font-mono text-3xl font-black" :class="store.alerts.length > 0 ? 'text-red-600' : 'text-emerald-600'">
-              {{ store.loading.alerts ? '—' : store.alerts.length }}
+              {{ store.alerts.length }}
             </span>
             <span class="text-xs text-slate-500">
               {{ store.alerts.length > 0 ? 'requerem atenção' : 'operação normal' }}
@@ -57,7 +66,7 @@
           <span class="text-xs font-bold uppercase tracking-wider text-slate-500">METAS CADASTRADAS</span>
           <div class="flex items-baseline gap-2">
             <span class="font-mono text-3xl font-black text-amber-600">
-              {{ store.loading.metas ? '—' : store.metas.length }}
+              {{ store.metas.length }}
             </span>
             <span class="text-xs text-slate-500">planos de meta</span>
           </div>
@@ -236,7 +245,11 @@
           <span class="text-red-600">🚨</span> OCORRÊNCIAS & ALERTAS EM ABERTO
         </h3>
 
-        <div v-if="store.loading.alerts" class="text-slate-500 text-sm">Carregando alertas...</div>
+        <!-- `&& !store.alerts.length`: sem isso, a lista inteira (que já
+             tem alertas de verdade) sumia e virava esse texto por um
+             instante a CADA ciclo do polling de 6s — só mostra a
+             mensagem de carregamento na primeira busca, nunca mais depois. -->
+        <div v-if="store.loading.alerts && !store.alerts.length" class="text-slate-500 text-sm">Carregando alertas...</div>
 
         <div v-else-if="!store.alerts.length" class="flex items-center gap-3 py-4">
           <div class="w-8 h-8 rounded-full bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-600 font-bold">

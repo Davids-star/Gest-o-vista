@@ -80,8 +80,12 @@
         </div>
       </div>
 
-      <!-- Loading -->
-      <div v-if="store.loading.alerts" class="dark-panel p-10 text-center">
+      <!-- Loading — só na primeira busca (`!store.alerts.length`). Sem
+           isso, a lista inteira sumia e virava esse spinner por um
+           instante a cada ciclo do polling global de 6s (App.vue), toda
+           vez que `fetchAlerts()` rodava em segundo plano — piscava mesmo
+           sem nenhum alerta novo ter chegado. -->
+      <div v-if="store.loading.alerts && !store.alerts.length" class="dark-panel p-10 text-center">
         <div class="w-8 h-8 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
         <p class="text-slate-500 text-sm">Buscando alertas da API...</p>
       </div>
