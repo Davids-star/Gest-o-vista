@@ -39,7 +39,7 @@
             <input
               v-model="diaData"
               type="date"
-              :max="hojeIso"
+              :max="hojeIso()"
               class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm text-slate-900 focus:border-emerald-500 focus:outline-none" />
           </div>
 
@@ -102,17 +102,13 @@ import AppSidebar from '../../components/AppSidebar.vue';
 import DailyReportPanel from '../../components/DailyReportPanel.vue';
 import PeriodReportPanel from '../../components/PeriodReportPanel.vue';
 import { exportarApontamentoExcel } from '../../utils/exportarApontamentoExcel';
+import { hojeIso } from '../../composables/useFormatters';
 
 const store = useProductionStore();
 
-const hojeIso = computed(() => {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-});
-
 const tabAtivo = ref('dia'); // 'dia' | 'semana' | 'mes'
 
-const diaData = ref(hojeIso.value);
+const diaData = ref(hojeIso());
 const diaTurnoId = ref('');
 const diaMachineId = ref('');
 

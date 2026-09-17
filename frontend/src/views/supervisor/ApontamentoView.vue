@@ -14,7 +14,7 @@
         <div class="flex items-center gap-3 self-start sm:self-auto">
           <!-- Data do Turno Atual -->
           <div class="bg-white border border-slate-200 px-3.5 py-2 rounded-xl text-emerald-600 font-mono text-xs font-bold flex items-center gap-2">
-            <span>📅</span> HOJE ({{ dataAtualFormatada }})
+            <span>📅</span> HOJE ({{ dataAtualFormatada() }})
           </div>
 
           <!-- Relógio ao Vivo -->
@@ -289,7 +289,7 @@
 import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue';
 import { useRoute } from 'vue-router';
 import { useProductionStore } from '../../stores/productionStore';
-import { formatDuracao } from '../../composables/useFormatters';
+import { formatDuracao, hojeIso } from '../../composables/useFormatters';
 import AppSidebar from '../../components/AppSidebar.vue';
 import StopModal from '../../components/StopModal.vue';
 import { getMachineNumber as getMachineNumberBase, getMachineDisplayName as getMachineDisplayNameBase } from '../../composables/useMachineDisplay';
@@ -306,13 +306,14 @@ const updateTime = () => {
   currentTime.value = new Date().toLocaleTimeString('pt-BR');
 };
 
-const dataAtualFormatada = computed(() => {
-  return new Date().toLocaleDateString('pt-BR');
-});
-
-const hojeStr = computed(() => {
-  return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Fortaleza' }).format(new Date());
-});
+// Funções puras, chamadas de novo a cada uso — não `computed`/`ref`. Um
+// `computed(() => new Date()...)` só recalcula quando uma dependência
+// REATIVA muda; `new Date()` não é reativa, então o valor calculava uma
+// vez só e ficava travado pro resto da vida do componente (esta tela
+// fica aberta durante o turno inteiro — se cruzasse a meia-noite,
+// "hoje" nunca virava o dia novo sozinho, o polling de 15s continuava
+// buscando o apontamento de ONTEM pra sempre até dar F5).
+const dataAtualFormatada = () => new Date().toLocaleDateString('pt-BR');
 
 // WATCHER FUNDAMENTAL: Quando o usuário clica em qualquer máquina, recarrega o apontamento daquela máquina imediatamente!
 watch(() => store.selectedStationId, async (newStationId) => {
@@ -356,7 +357,7 @@ onBeforeUnmount(() => {
 
 const carregarApontamentoHoje = async () => {
   await store.fetchApontamento({
-    date: hojeStr.value,
+    date: hojeIso(),
     machine_id: store.selectedStationId || undefined,
   });
 };

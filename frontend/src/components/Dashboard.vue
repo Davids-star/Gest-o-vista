@@ -282,7 +282,7 @@
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
 import { useProductionStore } from '../stores/productionStore';
 import { apontamentoApi } from '../services/api';
-import { formatDuracao as formatDuracaoBase } from '../composables/useFormatters';
+import { formatDuracao as formatDuracaoBase, hojeIso } from '../composables/useFormatters';
 import AppSidebar from './AppSidebar.vue';
 import HourlyProductionChart from './HourlyProductionChart.vue';
 import { getMachineNumber as getMachineNumberBase } from '../composables/useMachineDisplay';
@@ -335,16 +335,6 @@ const toggleSelecaoMaquina = (machineId) => {
   store.selectStation(store.selectedStationId === machineId ? null : machineId);
 };
 
-// Data de hoje em formato ISO (YYYY-MM-DD) — usada como valor inicial e
-// como limite máximo do seletor de data (não faz sentido consultar o futuro).
-const hojeIso = computed(() => {
-  const d = new Date();
-  const year = d.getFullYear();
-  const month = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
-});
-
 const hojeApontamento = ref(null);
 
 const formatDuracao = (segundos) => formatDuracaoBase(segundos, { compact: true });
@@ -371,7 +361,7 @@ const sessoesMaquinaSelecionadaHoje = computed(() => {
 
 const carregarProducaoHoje = async () => {
   try {
-    hojeApontamento.value = await apontamentoApi.obter({ date: hojeIso.value });
+    hojeApontamento.value = await apontamentoApi.obter({ date: hojeIso() });
   } catch (e) {
     console.warn('[Dashboard] Erro ao carregar resumo de hoje:', e);
   }
@@ -389,7 +379,7 @@ const carregarProducaoHojeMaquina = async () => {
     return;
   }
   try {
-    hojeApontamentoMaquina.value = await apontamentoApi.obter({ date: hojeIso.value, machine_id: store.selectedStationId });
+    hojeApontamentoMaquina.value = await apontamentoApi.obter({ date: hojeIso(), machine_id: store.selectedStationId });
   } catch (e) {
     console.warn('[Dashboard] Erro ao carregar resumo de hoje da máquina:', e);
   }

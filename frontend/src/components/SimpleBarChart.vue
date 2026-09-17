@@ -10,7 +10,7 @@
 // só trocando os dados e a cor via prop. Mesmo esqueleto ECharts (dark
 // theme, resize listener) de HourlyProductionChart.vue/TimeDistributionChart.vue.
 import { ref, onMounted, onBeforeUnmount, watch } from 'vue';
-import * as echarts from 'echarts';
+import echarts from '../echarts-setup';
 
 const props = defineProps({
   data: {

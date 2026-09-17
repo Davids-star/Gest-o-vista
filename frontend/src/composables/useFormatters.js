@@ -13,3 +13,22 @@ export function formatDuracao(segundos, { compact = false } = {}) {
   if (h > 0) return `${h}h ${String(m).padStart(2, '0')}${sufixo}`;
   return `${m}${sufixo}`;
 }
+
+// Data de hoje em 'YYYY-MM-DD', no horário de fábrica (America/Fortaleza,
+// mesma convenção de formatarDataLocal no backend) — SEMPRE uma função
+// pura chamada na hora, nunca um `computed`/`ref` guardado.
+//
+// Achado real: `hojeIso`/`hojeStr` viviam como `computed(() => new
+// Date()...)` em Dashboard.vue, ApontamentoView.vue, RelatoriosView.vue e
+// PeriodReportPanel.vue. Um `computed` do Vue só recalcula quando uma
+// dependência REATIVA que ele leu muda — `new Date()` não é reativo, não
+// conta como dependência nenhuma. Resultado: o valor era calculado
+// UMA VEZ (no primeiro acesso) e ficava travado pro resto da vida do
+// componente. Numa tela deixada aberta passando da meia-noite (exatamente
+// o caso de uso de um Dashboard de fábrica), "hoje" nunca virava o dia
+// novo sozinho — o polling de 6s continuava buscando `/apontamento` com a
+// data de ONTEM pra sempre, até alguém dar F5 na página. Por isso agora é
+// função, chamada de novo a cada uso — nunca cacheada.
+export function hojeIso() {
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Fortaleza' }).format(new Date());
+}

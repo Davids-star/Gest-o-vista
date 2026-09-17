@@ -8,7 +8,7 @@
           <input
             v-model="dataSelecionada"
             type="date"
-            :max="hojeIso"
+            :max="hojeIso()"
             class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm text-slate-900 focus:border-emerald-500 focus:outline-none" />
         </div>
         <div v-else class="min-w-[150px]">
@@ -16,7 +16,7 @@
           <input
             v-model="mesSelecionado"
             type="month"
-            :max="mesAtualIso"
+            :max="mesAtualIso()"
             class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm text-slate-900 focus:border-emerald-500 focus:outline-none" />
         </div>
 
@@ -156,7 +156,7 @@
 
 <script setup>
 import { ref, computed } from 'vue';
-import { formatDuracao } from '../composables/useFormatters';
+import { formatDuracao, hojeIso } from '../composables/useFormatters';
 import SimpleBarChart from './SimpleBarChart.vue';
 import TimeDistributionChart from './TimeDistributionChart.vue';
 import MachineComparisonTable from './MachineComparisonTable.vue';
@@ -176,17 +176,16 @@ const props = defineProps({
 
 const emit = defineEmits(['consultar']);
 
-const hojeIso = computed(() => {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-});
-const mesAtualIso = computed(() => {
+// Funções puras (não computed): um `computed(() => new Date()...)` sem
+// nenhuma dependência reativa só calcula uma vez e fica travado pro resto
+// da vida do componente — ver comentário de `hojeIso` em useFormatters.js.
+const mesAtualIso = () => {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-});
+};
 
-const dataSelecionada = ref(hojeIso.value);
-const mesSelecionado = ref(mesAtualIso.value);
+const dataSelecionada = ref(hojeIso());
+const mesSelecionado = ref(mesAtualIso());
 const turnoSelecionado = ref('');
 const maquinaSelecionada = ref('');
 

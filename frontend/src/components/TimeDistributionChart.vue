@@ -8,7 +8,7 @@
 // layout pela largura real do container (não do viewport — mais correto
 // se um dia este gráfico ficar numa coluna estreita mesmo no desktop).
 import { ref, nextTick, onMounted, onBeforeUnmount, watch } from 'vue';
-import * as echarts from 'echarts';
+import echarts from '../echarts-setup';
 
 const props = defineProps({
   data: {
