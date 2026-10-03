@@ -25,6 +25,7 @@ import { ApontamentoModule } from './apontamento/apontamento.module';
 import { JwtAuthGuard } from './auth/jwt-auth.guard';
 import { RolesGuard } from './common/guards/roles.guard';
 import { ALL_ENTITIES } from './database/all-entities';
+import { dbConfigFromEnv } from './database/db-config';
 
 @Module({
   imports: [
@@ -34,24 +35,12 @@ import { ALL_ENTITIES } from './database/all-entities';
       envFilePath: [path.resolve(__dirname, '../../.env')],
     }),
     TypeOrmModule.forRootAsync({
-      imports: [ConfigModule],
-      inject: [ConfigService],
-      useFactory: (configService: ConfigService) => ({
-        type: 'postgres',
-        host: configService.getOrThrow<string>('DB_HOST'),
-        port: Number(configService.getOrThrow<string>('DB_PORT')),
-        username: configService.getOrThrow<string>('DB_USERNAME'),
-        // getOrThrow: host/username/porta/nome do banco não são segredo,
-        // tanto faz ter um valor-padrão pra dev. A senha é diferente — um
-        // fallback fraco em texto puro no repo público é a mesma armadilha
-        // do JWT_SECRET (ver jwt.strategy.ts).
-        password: configService.getOrThrow<string>('DB_PASSWORD'),
-        database: configService.getOrThrow<string>('DB_NAME'),
+      useFactory: () => ({
+        ...dbConfigFromEnv(),
         entities: ALL_ENTITIES,
         migrations: [__dirname + '/database/migrations/*{.ts,.js}'],
         migrationsRun: false,
-        // Schema agora é controlado por migrations revisáveis, não mais
-        // sincronizado automaticamente — o banco guarda dado real.
+        // Schema controlado por migrations revisáveis (nunca synchronize).
         synchronize: false,
       }),
     }),

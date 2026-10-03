@@ -27,6 +27,7 @@ Precisa do Postgres de pé antes — ver [`../database/README.md`](../database/R
 | `JWT_SECRET` | Chave de assinatura dos tokens de login (supervisor/admin) e de dispositivo (Totem/TV). |
 | `PORT` | Porta HTTP/WebSocket da API (padrão 3000). |
 | `MQTT_HOST`, `MQTT_PORT` | Onde está o broker MQTT (Mosquitto do `database/docker-compose.yml`, ou o broker embutido de fallback — ver seção MQTT abaixo). |
+| `DATABASE_URL` | String completa do banco (ex.: Neon). Se existir, substitui as variáveis abaixo. SSL liga com `sslmode=require`. |
 | `DB_HOST`, `DB_PORT`, `DB_USERNAME`, `DB_PASSWORD`, `DB_NAME` | Conexão com o Postgres — **mesmos valores** de `database/.env` (é o mesmo banco). |
 | `CORS_ORIGINS` | Origens liberadas (HTTP e WebSocket), separadas por vírgula. Sem a variável, **nenhuma** origem é liberada. Inclua `https://localhost` para o APK. |
 
