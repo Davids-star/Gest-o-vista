@@ -728,7 +728,6 @@ class Esp32Simulator:
 # ARGUMENTOS
 # ============================================================
 
-
 def parse_arguments():
     """
     Retorna (config, devices):
