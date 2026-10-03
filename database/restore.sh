@@ -3,7 +3,7 @@
 # Uso: ./restore.sh backups/sistema_producao_20260830_120000.sql
 set -euo pipefail
 cd "$(dirname "$0")"
-set -a; source .env; set +a
+set -a; source ../.env; set +a
 
 FILE="${1:-}"
 if [ -z "$FILE" ] || [ ! -f "$FILE" ]; then

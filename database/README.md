@@ -10,12 +10,11 @@ Postgres **dedicado** ao sistema GP — container e volume próprios (`gp_postgr
 
 ```bash
 cd database
-docker compose up -d
+docker compose --env-file ../.env up -d
 ```
 
-Credenciais e porta ficam em `.env` (não commitado — veja `.env.example` abaixo se precisar recriar).
-A API (`api/`) lê esse mesmo `.env` para se conectar — ver `api/src/database/all-entities.ts`
-e `api/src/app.module.ts`.
+Credenciais e porta ficam no **`.env` da raiz do projeto** (não versionado; modelo em `.env.example`). Não existe mais `.env` dentro de `database/` nem de `api/`.
+A API (`api/`) lê esse mesmo `.env` da raiz para se conectar (ver `api/src/app.module.ts`).
 
 ## Backup / restore
 

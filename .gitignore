@@ -39,3 +39,4 @@ simulator/fila_eventos.jsonl
 .vscode/*
 !.vscode/extensions.json
 .idea/
+!.env.example

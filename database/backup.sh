@@ -3,7 +3,7 @@
 # Uso: ./backup.sh
 set -euo pipefail
 cd "$(dirname "$0")"
-set -a; source .env; set +a
+set -a; source ../.env; set +a
 
 mkdir -p backups
 STAMP=$(date +%Y%m%d_%H%M%S)
