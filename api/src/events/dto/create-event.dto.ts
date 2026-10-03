@@ -22,6 +22,6 @@ export class CreateEventDto {
   occurred_at?: string | Date;
 
   @IsOptional()
-  @IsEnum(EventSource, { message: 'source deve ser sensor, simulator ou manual' })
+  @IsEnum(EventSource, { message: 'source deve ser sensor, simulator, manual ou bluetooth' })
   source?: EventSource;
 }

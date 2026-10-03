@@ -7,7 +7,7 @@ import {
 import { Logger } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { Server, Socket } from 'socket.io';
-import { AuthService } from '../auth/auth.service';
+import { corsOrigins } from '../common/config/cors.config';
 
 /**
  * Canal de tempo real do sistema GP.
@@ -29,7 +29,7 @@ import { AuthService } from '../auth/auth.service';
  */
 @WebSocketGateway({
   cors: {
-    origin: true,
+    origin: corsOrigins(),
     credentials: true,
   },
 })
@@ -39,39 +39,27 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayDisconnect
 
   private readonly logger = new Logger(RealtimeGateway.name);
 
-  constructor(
-    private readonly jwtService: JwtService,
-    private readonly authService: AuthService,
-  ) {}
+  constructor(private readonly jwtService: JwtService) {}
 
-  async handleConnection(client: Socket) {
+  /**
+   * Sem token válido a conexão é recusada. Não existe mais fallback anônimo:
+   * qualquer cliente anônimo recebendo eventos da empresa era vazamento.
+   */
+  handleConnection(client: Socket) {
     const token = this.extractToken(client);
-
-    // Token presente: tenta validar normalmente (ex.: supervisor logado).
-    if (token) {
-      try {
-        const payload = this.jwtService.verify<{ sub: string; companyId: string }>(token);
-        if (!payload?.companyId) throw new Error('Token sem companyId');
-        client.data.companyId = payload.companyId;
-        client.data.userId = payload.sub;
-        client.join(this.roomFor(payload.companyId));
-        return;
-      } catch {
-        // token inválido/expirado — cai pro fallback público abaixo em vez
-        // de derrubar a conexão (mesmo comportamento do JwtAuthGuard).
-      }
+    if (!token) {
+      this.logger.warn('Conexão WS recusada: sem token');
+      client.disconnect(true);
+      return;
     }
-
-    // Sem token válido: caso normal do Totem/TV (kiosk sem login) — cai pro
-    // usuário-dispositivo da empresa padrão.
     try {
-      const contexto = await this.authService.obterContextoPublico();
-      if (!contexto) throw new Error('Nenhuma empresa cadastrada ainda');
-      client.data.companyId = contexto.companyId;
-      client.data.userId = contexto.id;
-      client.join(this.roomFor(contexto.companyId));
+      const payload = this.jwtService.verify<{ sub: string; companyId: string }>(token);
+      if (!payload?.companyId) throw new Error('Token sem companyId');
+      client.data.companyId = payload.companyId;
+      client.data.userId = payload.sub;
+      client.join(this.roomFor(payload.companyId));
     } catch (err) {
-      this.logger.warn(`Conexão WS rejeitada: ${(err as Error).message}`);
+      this.logger.warn(`Conexão WS recusada: ${(err as Error).message}`);
       client.disconnect(true);
     }
   }

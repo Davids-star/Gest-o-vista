@@ -20,7 +20,7 @@ npm run start:dev        # porta 3000 por padrão (ver PORT no .env)
 Precisa do Postgres de pé antes — ver [`../database/README.md`](../database/README.md)
 (`cd ../database && docker compose up -d`).
 
-### Variáveis de ambiente (`api/.env`)
+### Variáveis de ambiente (`.env` da raiz do projeto)
 
 | Variável | Pra que serve |
 |---|---|
@@ -28,6 +28,7 @@ Precisa do Postgres de pé antes — ver [`../database/README.md`](../database/R
 | `PORT` | Porta HTTP/WebSocket da API (padrão 3000). |
 | `MQTT_HOST`, `MQTT_PORT` | Onde está o broker MQTT (Mosquitto do `database/docker-compose.yml`, ou o broker embutido de fallback — ver seção MQTT abaixo). |
 | `DB_HOST`, `DB_PORT`, `DB_USERNAME`, `DB_PASSWORD`, `DB_NAME` | Conexão com o Postgres — **mesmos valores** de `database/.env` (é o mesmo banco). |
+| `CORS_ORIGINS` | Origens liberadas (HTTP e WebSocket), separadas por vírgula. Sem a variável, **nenhuma** origem é liberada. Inclua `https://localhost` para o APK. |
 
 ### Migrations
 

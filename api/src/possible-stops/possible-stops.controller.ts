@@ -1,7 +1,6 @@
 import { Body, Controller, Get, Param, ParseUUIDPipe, Patch, Query } from '@nestjs/common';
 import { PossibleStopsService } from './possible-stops.service';
 import { Roles } from '../common/decorators/roles.decorator';
-import { Public } from '../common/decorators/public.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import type { UserPayload } from '../common/decorators/current-user.decorator';
 import { UserRole } from '../database/entities/user.entity';
@@ -9,7 +8,6 @@ import { PossibleStopStatus } from '../database/entities/possible-stop.entity';
 
 @Controller('possible-stops')
 @Roles(UserRole.SUPERVISOR, UserRole.ADMINISTRADOR, UserRole.OPERADOR)
-@Public()
 export class PossibleStopsController {
   constructor(private readonly possibleStopsService: PossibleStopsService) {}
 

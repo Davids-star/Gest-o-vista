@@ -1,4 +1,4 @@
-import { IsBoolean, IsOptional, IsString, MaxLength } from 'class-validator';
+import { IsBoolean, IsIn, IsOptional, IsString, MaxLength } from 'class-validator';
 
 export class UpdateMachineDto {
   @IsOptional()
@@ -14,4 +14,8 @@ export class UpdateMachineDto {
   @IsOptional()
   @IsBoolean({ message: 'Ativo deve ser booleano' })
   active?: boolean;
+
+  @IsOptional()
+  @IsIn(['cable', 'bluetooth'], { message: 'sensor_source deve ser cable ou bluetooth' })
+  sensor_source?: string;
 }

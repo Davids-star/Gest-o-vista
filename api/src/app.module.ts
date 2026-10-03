@@ -1,8 +1,10 @@
+import * as path from 'path';
 import { Module } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuthModule } from './auth/auth.module';
 import { MaquinasModule } from './maquinas/maquinas.module';
@@ -28,25 +30,23 @@ import { ALL_ENTITIES } from './database/all-entities';
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      // As credenciais do Postgres moraram em database/.env — pasta
-      // dedicada e isolada do projeto "Batedor de Ponto" (ver database/README.md).
-      // api/.env mantém só segredos de aplicação (JWT_SECRET, PORT).
-      envFilePath: ['../database/.env', '.env'],
+      // Um único .env na raiz do projeto (ver .env.example). Nada de .env por pasta.
+      envFilePath: [path.resolve(__dirname, '../../.env')],
     }),
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => ({
         type: 'postgres',
-        host: configService.get<string>('DB_HOST', 'localhost'),
-        port: configService.get<number>('DB_PORT', 5432),
-        username: configService.get<string>('DB_USERNAME', 'postgres'),
+        host: configService.getOrThrow<string>('DB_HOST'),
+        port: Number(configService.getOrThrow<string>('DB_PORT')),
+        username: configService.getOrThrow<string>('DB_USERNAME'),
         // getOrThrow: host/username/porta/nome do banco não são segredo,
         // tanto faz ter um valor-padrão pra dev. A senha é diferente — um
         // fallback fraco em texto puro no repo público é a mesma armadilha
         // do JWT_SECRET (ver jwt.strategy.ts).
         password: configService.getOrThrow<string>('DB_PASSWORD'),
-        database: configService.get<string>('DB_NAME', 'sistema_producao'),
+        database: configService.getOrThrow<string>('DB_NAME'),
         entities: ALL_ENTITIES,
         migrations: [__dirname + '/database/migrations/*{.ts,.js}'],
         migrationsRun: false,
@@ -55,6 +55,9 @@ import { ALL_ENTITIES } from './database/all-entities';
         synchronize: false,
       }),
     }),
+    // Limite global por IP (folga para Totem/TV/dashboard com polling). O login
+    // tem limite próprio mais apertado (ver AuthController).
+    ThrottlerModule.forRoot([{ name: 'global', ttl: 60_000, limit: 600 }]),
     RealtimeModule,
     AuthModule,
     MaquinasModule,
@@ -75,6 +78,7 @@ import { ALL_ENTITIES } from './database/all-entities';
   controllers: [AppController],
   providers: [
     AppService,
+    { provide: APP_GUARD, useClass: ThrottlerGuard },
     { provide: APP_GUARD, useClass: JwtAuthGuard },
     { provide: APP_GUARD, useClass: RolesGuard },
   ],

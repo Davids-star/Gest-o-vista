@@ -1,7 +1,6 @@
 import { Controller, Get, Query } from '@nestjs/common';
 import { ApontamentoService, formatarDataLocal } from './apontamento.service';
 import { Roles } from '../common/decorators/roles.decorator';
-import { Public } from '../common/decorators/public.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import type { UserPayload } from '../common/decorators/current-user.decorator';
 import { UserRole } from '../database/entities/user.entity';
@@ -18,7 +17,6 @@ export class ApontamentoController {
    */
   @Get()
   @Roles(UserRole.SUPERVISOR, UserRole.ADMINISTRADOR, UserRole.OPERADOR)
-  @Public()
   obter(
     @CurrentUser() user: UserPayload,
     @Query('date') date?: string,
@@ -39,7 +37,6 @@ export class ApontamentoController {
    */
   @Get('mensal')
   @Roles(UserRole.SUPERVISOR, UserRole.ADMINISTRADOR, UserRole.OPERADOR)
-  @Public()
   obterMensal(
     @CurrentUser() user: UserPayload,
     @Query('year') year: string,
@@ -72,7 +69,6 @@ export class ApontamentoController {
    */
   @Get('semanal')
   @Roles(UserRole.SUPERVISOR, UserRole.ADMINISTRADOR, UserRole.OPERADOR)
-  @Public()
   obterSemanal(
     @CurrentUser() user: UserPayload,
     @Query('date') date?: string,

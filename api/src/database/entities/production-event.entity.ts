@@ -14,6 +14,9 @@ export enum EventSource {
   SENSOR = 'sensor',
   SIMULATOR = 'simulator',
   MANUAL = 'manual',
+  // Sensor ligado ao tablet/celular via Bluetooth Classic (HC-06) — o app
+  // envia o evento direto pela API, sem passar pelo MQTT.
+  BLUETOOTH = 'bluetooth',
 }
 
 @Entity('production_events')

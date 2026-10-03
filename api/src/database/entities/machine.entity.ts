@@ -37,6 +37,15 @@ export class Machine {
   active: boolean;
 
   /**
+   * Origem do sensor desta máquina: 'cable' (PC + serve.py/MQTT) ou 'bluetooth'
+   * (tablet do Totem + HC-06). Uma máquina recebe contagem de UMA origem só —
+   * eventos da outra são recusados, para não contar cada peça duas vezes.
+   * null = ainda não configurada (aceita qualquer origem).
+   */
+  @Column({ type: 'varchar', length: 20, nullable: true })
+  sensor_source: string | null;
+
+  /**
    * Próxima produção planejada para esta máquina — definida pelo supervisor
    * enquanto a máquina está SEM sessão ativa (aguardando). Fica valendo até
    * alguém trocar (não é consumida ao iniciar sessão). O Totem lê esses dois

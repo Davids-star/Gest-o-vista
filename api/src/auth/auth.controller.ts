@@ -1,4 +1,5 @@
 import { Controller, Post, Get, Body } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { AuthService } from './auth.service';
 import { Public } from '../common/decorators/public.decorator';
 import { Roles } from '../common/decorators/roles.decorator';
@@ -11,8 +12,9 @@ import { LoginDto } from './dto/login.dto';
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
-  /** POST /auth/login — público */
+  /** POST /auth/login — público, mas com limite: 5 tentativas por minuto por IP. */
   @Public()
+  @Throttle({ global: { limit: 5, ttl: 60_000 } })
   @Post('login')
   login(@Body() dto: LoginDto) {
     return this.authService.login(dto.email, dto.password);

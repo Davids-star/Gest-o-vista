@@ -31,6 +31,7 @@ export class LotesController {
     return this.lotesService.buscarPorId(id, user.companyId);
   }
 
+  @Roles(UserRole.SUPERVISOR, UserRole.ADMINISTRADOR)
   @Post()
   @Roles(UserRole.SUPERVISOR, UserRole.ADMINISTRADOR, UserRole.OPERADOR)
   criar(

@@ -11,7 +11,6 @@ import {
 } from '@nestjs/common';
 import { MetasService } from './metas.service';
 import { Roles } from '../common/decorators/roles.decorator';
-import { Public } from '../common/decorators/public.decorator';
 import { Role } from '../usuarios/usuario.entity';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import type { UserPayload } from '../common/decorators/current-user.decorator';
@@ -22,14 +21,12 @@ export class MetasController {
 
   @Get()
   @Roles(Role.ADMIN, Role.SUPERVISOR, Role.OPERADOR)
-  @Public()
   listar(@CurrentUser() user: UserPayload) {
     return this.metasService.listarTodas(user.companyId);
   }
 
   @Get('maquina/:maquinaId')
   @Roles(Role.ADMIN, Role.SUPERVISOR, Role.OPERADOR)
-  @Public()
   listarPorMaquina(
     @Param('maquinaId', ParseUUIDPipe) maquinaId: string,
     @CurrentUser() user: UserPayload,
@@ -39,23 +36,25 @@ export class MetasController {
 
   @Get(':id')
   @Roles(Role.ADMIN, Role.SUPERVISOR, Role.OPERADOR)
-  @Public()
   buscar(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: UserPayload) {
     return this.metasService.buscarPorId(id, user.companyId);
   }
 
+  @Roles(Role.SUPERVISOR, Role.ADMIN)
   @Post()
   @Roles(Role.SUPERVISOR)
   criar(@CurrentUser() user: UserPayload, @Body() dto: any) {
     return this.metasService.criar(user.companyId, user.id, dto);
   }
 
+  @Roles(Role.SUPERVISOR, Role.ADMIN)
   @Patch(':id')
   @Roles(Role.SUPERVISOR)
   atualizar(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: UserPayload, @Body() dto: any) {
     return this.metasService.atualizar(id, user.companyId, dto);
   }
 
+  @Roles(Role.SUPERVISOR, Role.ADMIN)
   @Delete(':id')
   @Roles(Role.SUPERVISOR)
   remover(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: UserPayload) {

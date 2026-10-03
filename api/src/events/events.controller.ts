@@ -1,7 +1,6 @@
 import { Controller, Get, Post, Body, Query } from '@nestjs/common';
 import { EventsService } from './events.service';
 import { Roles } from '../common/decorators/roles.decorator';
-import { Public } from '../common/decorators/public.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import type { UserPayload } from '../common/decorators/current-user.decorator';
 import { UserRole } from '../database/entities/user.entity';
@@ -19,14 +18,12 @@ export class EventsController {
    */
   @Get('totals')
   @Roles(UserRole.SUPERVISOR, UserRole.ADMINISTRADOR, UserRole.OPERADOR)
-  @Public()
   totais(@CurrentUser() user: UserPayload, @Query('session_id') sessionId?: string) {
     return this.eventsService.totaisPorSessao(user.companyId, sessionId);
   }
 
   @Get()
   @Roles(UserRole.SUPERVISOR, UserRole.ADMINISTRADOR, UserRole.OPERADOR)
-  @Public()
   listar(
     @CurrentUser() user: UserPayload,
     @Query() query: QueryEventsDto,
@@ -34,6 +31,11 @@ export class EventsController {
     return this.eventsService.listarEventos(user.companyId, query);
   }
 
+  /**
+   * Público (modo de teste, como as rotas do Totem): o tablet do Bluetooth envia
+   * a contagem sem login. Endurecer depois com autenticação de dispositivo.
+   * Idempotente por event_uid — reenvio não duplica.
+   */
   @Post()
   @Roles(UserRole.SUPERVISOR, UserRole.ADMINISTRADOR, UserRole.OPERADOR)
   criar(

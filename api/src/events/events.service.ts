@@ -7,6 +7,27 @@ import { CreateEventDto } from './dto/create-event.dto';
 import { QueryEventsDto } from './dto/query-events.dto';
 import { RealtimeGateway } from '../realtime/realtime.gateway';
 
+/**
+ * Origem de um evento em termos da origem do sensor da máquina.
+ * 'sensor' (serve.py) e 'simulator' são o caminho por cabo/MQTT; 'bluetooth' é o tablet.
+ * 'manual' (correção do supervisor) não pertence a nenhuma origem de sensor.
+ */
+export function origemDoEvento(source: string): 'cable' | 'bluetooth' | null {
+  if (source === 'bluetooth') return 'bluetooth';
+  if (source === 'sensor' || source === 'simulator') return 'cable';
+  return null;
+}
+
+/** Recusa evento de origem diferente da configurada para a máquina. */
+export function assertOrigemPermitida(configurada: string | null | undefined, source: string) {
+  if (!configurada) return;
+  const origem = origemDoEvento(source);
+  if (!origem || origem === configurada) return;
+  throw new BadRequestException(
+    `Máquina configurada para sensor "${configurada}": evento de "${origem}" recusado para não contar a mesma peça duas vezes`,
+  );
+}
+
 @Injectable()
 export class EventsService {
   constructor(
@@ -34,6 +55,9 @@ export class EventsService {
     if (session.machine_id !== dto.machine_id) {
       throw new BadRequestException('A máquina informada não corresponde à máquina da sessão');
     }
+
+    // 2b. Origem do sensor da máquina: a outra origem não pode contar
+    assertOrigemPermitida(session.machine.sensor_source, dto.source || EventSource.SIMULATOR);
 
     // 3. Validar se a sessão está ativa (não encerrada)
     if (session.status === SessionStatus.CLOSED) {

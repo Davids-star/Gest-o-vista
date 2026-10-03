@@ -11,7 +11,6 @@ import {
 } from '@nestjs/common';
 import { MotivosParadaService } from './motivos-parada.service';
 import { Roles } from '../common/decorators/roles.decorator';
-import { Public } from '../common/decorators/public.decorator';
 import { Role } from '../usuarios/usuario.entity';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import type { UserPayload } from '../common/decorators/current-user.decorator';
@@ -22,30 +21,31 @@ export class MotivosParadaController {
 
   @Get()
   @Roles(Role.ADMIN, Role.SUPERVISOR, Role.OPERADOR)
-  @Public()
   listar(@CurrentUser() user: UserPayload) {
     return this.motivosParadaService.listarTodos(user.companyId);
   }
 
   @Get(':id')
   @Roles(Role.ADMIN, Role.SUPERVISOR, Role.OPERADOR)
-  @Public()
   buscar(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: UserPayload) {
     return this.motivosParadaService.buscarPorId(id, user.companyId);
   }
 
+  @Roles(Role.SUPERVISOR, Role.ADMIN)
   @Post()
   @Roles(Role.ADMIN)
   criar(@CurrentUser() user: UserPayload, @Body() dto: any) {
     return this.motivosParadaService.criar(user.companyId, dto);
   }
 
+  @Roles(Role.SUPERVISOR, Role.ADMIN)
   @Patch(':id')
   @Roles(Role.ADMIN)
   atualizar(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: UserPayload, @Body() dto: any) {
     return this.motivosParadaService.atualizar(id, user.companyId, dto);
   }
 
+  @Roles(Role.SUPERVISOR, Role.ADMIN)
   @Delete(':id')
   @Roles(Role.ADMIN)
   remover(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: UserPayload) {

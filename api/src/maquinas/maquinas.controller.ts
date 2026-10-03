@@ -10,7 +10,6 @@ import {
 } from '@nestjs/common';
 import { MaquinasService } from './maquinas.service';
 import { Roles } from '../common/decorators/roles.decorator';
-import { Public } from '../common/decorators/public.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import type { UserPayload } from '../common/decorators/current-user.decorator';
 import { UserRole } from '../database/entities/user.entity';
@@ -25,13 +24,11 @@ export class MaquinasController {
 
   // Totem/TV leem sem login — ver JwtAuthGuard (fallback pra empresa padrão).
   @Get()
-  @Public()
   listar(@CurrentUser() user: UserPayload) {
     return this.maquinasService.listarTodas(user.companyId);
   }
 
   @Get(':id')
-  @Public()
   buscar(
     @Param('id', ParseUUIDPipe) id: string,
     @CurrentUser() user: UserPayload,
@@ -39,6 +36,7 @@ export class MaquinasController {
     return this.maquinasService.buscarPorId(id, user.companyId);
   }
 
+  @Roles(UserRole.SUPERVISOR, UserRole.ADMINISTRADOR)
   @Post()
   criar(
     @CurrentUser() user: UserPayload,
@@ -47,6 +45,7 @@ export class MaquinasController {
     return this.maquinasService.criar(user.companyId, dto);
   }
 
+  @Roles(UserRole.SUPERVISOR, UserRole.ADMINISTRADOR)
   @Patch(':id')
   atualizar(
     @Param('id', ParseUUIDPipe) id: string,
@@ -56,6 +55,7 @@ export class MaquinasController {
     return this.maquinasService.atualizar(id, user.companyId, dto);
   }
 
+  @Roles(UserRole.SUPERVISOR, UserRole.ADMINISTRADOR)
   @Delete(':id')
   remover(
     @Param('id', ParseUUIDPipe) id: string,
@@ -69,6 +69,7 @@ export class MaquinasController {
    * Só supervisor/admin definem a próxima produção — e só enquanto a
    * máquina não tem sessão ativa (validado no service).
    */
+  @Roles(UserRole.SUPERVISOR, UserRole.ADMINISTRADOR)
   @Patch(':id/planned-production')
   @Roles(UserRole.SUPERVISOR, UserRole.ADMINISTRADOR)
   definirProximaProducao(

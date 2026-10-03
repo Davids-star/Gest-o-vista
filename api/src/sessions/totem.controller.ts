@@ -1,7 +1,6 @@
 import { Controller, Post, Patch, Body, HttpCode, HttpStatus } from '@nestjs/common';
 import { SessionsService } from './sessions.service';
 import { Roles } from '../common/decorators/roles.decorator';
-import { Public } from '../common/decorators/public.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import type { UserPayload } from '../common/decorators/current-user.decorator';
 import { UserRole } from '../database/entities/user.entity';
@@ -14,7 +13,6 @@ import { CloseSessionDto } from './dto/close-session.dto';
 // que sem token nenhum cai pro usuário-dispositivo da empresa padrão.
 @Controller('totem/sessions')
 @Roles(UserRole.SUPERVISOR, UserRole.ADMINISTRADOR, UserRole.OPERADOR)
-@Public()
 export class TotemController {
   constructor(private readonly sessionsService: SessionsService) {}
 

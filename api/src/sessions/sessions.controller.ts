@@ -8,7 +8,6 @@ import {
 } from '@nestjs/common';
 import { SessionsService } from './sessions.service';
 import { Roles } from '../common/decorators/roles.decorator';
-import { Public } from '../common/decorators/public.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import type { UserPayload } from '../common/decorators/current-user.decorator';
 import { UserRole } from '../database/entities/user.entity';
@@ -24,14 +23,12 @@ export class SessionsController {
   // selecionada já tem sessão ativa (store.fetchSessions()).
   @Get()
   @Roles(UserRole.SUPERVISOR, UserRole.ADMINISTRADOR, UserRole.OPERADOR)
-  @Public()
   listar(@CurrentUser() user: UserPayload) {
     return this.sessionsService.listarTodas(user.companyId);
   }
 
   @Get(':id')
   @Roles(UserRole.SUPERVISOR, UserRole.ADMINISTRADOR, UserRole.OPERADOR)
-  @Public()
   buscar(
     @Param('id', ParseUUIDPipe) id: string,
     @CurrentUser() user: UserPayload,

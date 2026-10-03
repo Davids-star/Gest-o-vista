@@ -21,6 +21,7 @@ import { UpdateDeviceDto } from './dto/update-device.dto';
 export class DevicesController {
   constructor(private readonly devicesService: DevicesService) {}
 
+  @Roles(UserRole.SUPERVISOR, UserRole.ADMINISTRADOR)
   @Post()
   @Roles(UserRole.ADMINISTRADOR, UserRole.SUPERVISOR)
   async criar(@Req() req: any, @Body() dto: CreateDeviceDto) {
@@ -39,6 +40,7 @@ export class DevicesController {
     return this.devicesService.obterDevice(req.user.companyId, id);
   }
 
+  @Roles(UserRole.SUPERVISOR, UserRole.ADMINISTRADOR)
   @Patch(':id')
   @Roles(UserRole.ADMINISTRADOR, UserRole.SUPERVISOR)
   async atualizar(
@@ -49,6 +51,7 @@ export class DevicesController {
     return this.devicesService.atualizarDevice(req.user.companyId, id, dto);
   }
 
+  @Roles(UserRole.SUPERVISOR, UserRole.ADMINISTRADOR)
   @Post(':id/rotate-token')
   @Roles(UserRole.ADMINISTRADOR, UserRole.SUPERVISOR)
   async rotacionarToken(@Req() req: any, @Param('id') id: string) {

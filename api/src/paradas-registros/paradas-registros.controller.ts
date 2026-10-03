@@ -11,7 +11,6 @@ import {
 } from '@nestjs/common';
 import { ParadasRegistrosService } from './paradas-registros.service';
 import { Roles } from '../common/decorators/roles.decorator';
-import { Public } from '../common/decorators/public.decorator';
 import { Role } from '../usuarios/usuario.entity';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import type { UserPayload } from '../common/decorators/current-user.decorator';
@@ -22,21 +21,18 @@ export class ParadasRegistrosController {
 
   @Get()
   @Roles(Role.ADMIN, Role.SUPERVISOR, Role.OPERADOR)
-  @Public()
   listar(@CurrentUser() user: UserPayload) {
     return this.paradasRegistrosService.listarTodos(user.companyId);
   }
 
   @Get('maquina/:maquinaId')
   @Roles(Role.ADMIN, Role.SUPERVISOR, Role.OPERADOR)
-  @Public()
   listarPorMaquina(@Param('maquinaId', ParseUUIDPipe) maquinaId: string, @CurrentUser() user: UserPayload) {
     return this.paradasRegistrosService.listarPorMaquina(maquinaId, user.companyId);
   }
 
   @Get(':id')
   @Roles(Role.ADMIN, Role.SUPERVISOR, Role.OPERADOR)
-  @Public()
   buscar(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: UserPayload) {
     return this.paradasRegistrosService.buscarPorId(id, user.companyId);
   }
@@ -44,7 +40,6 @@ export class ParadasRegistrosController {
   // Totem cria isso na "Ajuda/Parada" sem login nenhum.
   @Post()
   @Roles(Role.ADMIN, Role.SUPERVISOR, Role.OPERADOR)
-  @Public()
   criar(
     @CurrentUser() user: UserPayload,
     @Body() dto: { machine_id: string; reason_id: string; observation?: string; session_id?: string },
@@ -65,7 +60,6 @@ export class ParadasRegistrosController {
    */
   @Patch(':id/encerrar')
   @Roles(Role.ADMIN, Role.SUPERVISOR, Role.OPERADOR)
-  @Public()
   encerrar(
     @Param('id', ParseUUIDPipe) id: string,
     @CurrentUser() user: UserPayload,

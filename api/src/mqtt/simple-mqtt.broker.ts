@@ -35,7 +35,8 @@ export class SimpleMqttBroker {
         resolve(false);
       });
 
-      this.server.listen(port, () => {
+      // Só loopback: o broker embutido não pode ficar exposto na rede (sem auth).
+      this.server.listen(port, '127.0.0.1', () => {
         this.logger.log(`🚀 Broker MQTT embutido rodando na porta ${port}`);
         resolve(true);
       });
