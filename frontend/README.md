@@ -29,9 +29,40 @@ npm run build     # gera dist/ com o Service Worker/manifest do PWA
 npm run preview   # serve o build de produção localmente
 ```
 
-Precisa da API rodando (ver [`../api/README.md`](../api/README.md)). Por padrão
-o frontend assume a API em `http://<mesmo host>:3000` — pra apontar pra outro
-endereço, defina `VITE_API_URL` (ex.: arquivo `.env.local`).
+Precisa da API rodando (ver [`../api/README.md`](../api/README.md)).
+
+### Configuração por ambiente
+
+Toda a configuração fica no **`.env` da raiz do projeto** (modelo: `.env.example`).
+O Vite lê dele (`envDir: '..'`); só as variáveis `VITE_*` vão para o bundle, então
+nunca colocar segredo ali. Para gerar o APK apontando para outra API, sobrescreva
+na linha de comando (tem prioridade sobre o `.env`):
+
+```bash
+# APK na rede da fábrica (IP do PC que roda a API):
+VITE_API_URL=http://192.168.18.82:3000 npx vite build --mode android && npx cap sync android
+# APK com cabo USB (adb reverse tcp:3000 tcp:3000):
+VITE_API_URL=http://localhost:3000 npx vite build && npx cap sync android
+```
+
+### Origens de contagem
+
+Cada máquina recebe contagem de **uma** origem por vez (evite ligar o cabo e o
+Bluetooth para a mesma máquina — as duas contariam):
+
+- **Cabo:** sensor ligado ao PC → `simulator/serve.py` → MQTT → API (`source: sensor`).
+- **Bluetooth (APK):** HC-06 ligado ao tablet → `services/bluetooth/` → `services/production/ProductionService.js` → fila local (`services/database/`, IndexedDB) → `services/sync/SyncService.js` → `POST /production-events` (`source: bluetooth`). Não passa pelo MQTT.
+
+Fluxo do Bluetooth no app:
+
+```
+HC-06 → CordovaBluetoothSerialGateway → ProductionService → DatabaseService (fila)
+                                                              ↓
+                                         SyncService → eventsApi (api.js) → API
+```
+
+Na PWA/navegador o gateway é `MockBluetoothGateway` (nenhuma contagem é lida do
+hardware; a contagem continua vindo da API). Testes: `npm test` (Node, sem navegador).
 
 ## Estrutura (`frontend/src/*`)
 
@@ -43,7 +74,13 @@ endereço, defina `VITE_API_URL` (ex.: arquivo `.env.local`).
 | `views/TvView.vue` | Painel de TV (Andon). |
 | `components/` | Componentes reutilizáveis: sidebar, modais (parada, lote, meta, produção planejada), gráficos, banner de instalação PWA, indicador de conexão. |
 | `stores/productionStore.js` | Único Pinia store da aplicação — todo o estado vem da API (nunca é banco de dados); mantém tudo fresco via polling (6s) + WebSocket. |
-| `services/api.js` | Cliente HTTP da API (fetch + token JWT). |
+| `config/env.js` | Configuração por ambiente (API, modo do sensor, sync). |
+| `services/api.js` | Cliente HTTP da API (fetch + token JWT) — é o `ApiService`. |
+| `services/bluetooth/` | Gateway do sensor: contrato, `MockBluetoothGateway` (PWA) e `CordovaBluetoothSerialGateway` (APK, HC-06). |
+| `services/production/` | `ProductionService` (interpreta `COUNT:n`, gera `event_uid`) e `ProductionPipeline` (liga as peças). |
+| `services/database/` | `DatabaseService`: fila e histórico local de eventos (IndexedDB). |
+| `services/sync/` | `SyncService`: envia pendentes à API, sem duplicar, e tenta de novo sem rede. |
+| `stores/integrationStore.js` | Estado do sensor e da sincronização mostrado no Totem (🟢/🔴). |
 | `services/realtime.js` | Cliente WebSocket (Socket.IO) — cada evento recebido só dispara um refetch real via `api.js`, nunca escreve dado fabricado no store. |
 | `composables/useAuth.js` | Sessão do usuário logado (token, role) — singleton reativo persistido em `localStorage`. |
 | `composables/useConnectionStatus.js` | Estado online/offline/instável exibido pelo `ConnectionStatusBanner`. |

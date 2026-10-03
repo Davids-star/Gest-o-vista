@@ -11,6 +11,8 @@ import { useAuth } from '../composables/useAuth';
 // o usuário quando o ícone abre em '/' — ver DEVICE_MODE_KEY abaixo.
 const DEVICE_MODE_KEY = 'gp_device_mode';
 
+import { isNativeApp } from '../config/platform.js';
+
 import LoginSupervisorView from '../views/supervisor/LoginSupervisorView.vue';
 import Dashboard from '../components/Dashboard.vue';
 import ApontamentoView from '../views/supervisor/ApontamentoView.vue';
@@ -32,6 +34,8 @@ const routes = [
   // direto no Totem — é assim que o ícone do PWA instalado a partir do
   // Totem sabe pra onde abrir, sem precisar de um segundo manifest.
   { path: '/', redirect: () => {
+      // APK = aparelho de Totem: abre direto na tela do operador (sem seletor PWA).
+      if (isNativeApp()) return '/totem/login';
       if (localStorage.getItem(DEVICE_MODE_KEY) === 'totem') return '/totem/login';
       const { isLoggedIn } = useAuth();
       return isLoggedIn.value ? '/dashboard' : '/supervisor/login';

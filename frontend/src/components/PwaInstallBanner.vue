@@ -2,7 +2,7 @@
   <!-- Exibido apenas no celular, fora do modo PWA standalone e se a escolha ainda não foi feita -->
   <Transition name="fade">
     <div 
-      v-if="showChoiceModal && !isStandalone" 
+      v-if="showChoiceModal && !isStandalone && !isNative" 
       class="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 select-none font-sans"
     >
       <div class="bg-[#121824] border border-emerald-500/40 w-full max-w-md rounded-3xl p-6 sm:p-7 space-y-6 shadow-2xl shadow-emerald-950/80 text-white relative overflow-hidden">
@@ -103,6 +103,9 @@
 </template>
 
 <script setup>
+import { isNativeApp } from '../config/platform.js';
+// No APK o aparelho já é o Totem: o convite para instalar a PWA não se aplica.
+const isNative = isNativeApp();
 import { ref, onMounted, computed } from 'vue';
 
 const showChoiceModal = ref(false);

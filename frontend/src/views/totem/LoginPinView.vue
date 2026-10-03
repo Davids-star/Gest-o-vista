@@ -60,9 +60,9 @@
         </button>
 
         <div class="pt-2 text-center">
-          <router-link to="/mobile" class="text-xs text-slate-400 hover:text-emerald-400 transition-colors inline-flex items-center gap-1 font-medium">
+          <template v-if="!isNative"><router-link to="/mobile" class="text-xs text-slate-400 hover:text-emerald-400 transition-colors inline-flex items-center gap-1 font-medium">
             📱 Voltar ao Seletor Mobile / Instalar PWA
-          </router-link>
+          </router-link></template>
         </div>
       </div>
     </div>
@@ -75,6 +75,10 @@ import { useRouter } from 'vue-router';
 import { useProductionStore } from '../../stores/productionStore';
 import { getMachineNumber as getMachineNumberBase } from '../../composables/useMachineDisplay';
 import { travarPaisagem } from '../../composables/useLandscapeLock';
+import { isNativeApp } from '../../config/platform.js';
+
+// No APK o aparelho é o Totem: não existe seletor nem instalação de PWA.
+const isNative = isNativeApp();
 
 const router = useRouter();
 const store = useProductionStore();

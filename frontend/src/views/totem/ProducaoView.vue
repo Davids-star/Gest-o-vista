@@ -5,13 +5,12 @@
        flex de altura total (h-full), com a área de conteúdo (flex-1
        min-h-0) se ajustando pro que sobrar depois do cabeçalho e dos
        botões, em vez de crescer e empurrar pra fora da tela.
-       Sem `max-w`/`max-h` no card: com um teto fixo (ex.: max-w-6xl,
-       max-h-56rem), num tablet/monitor real maior que isso o card ficava
-       menorzinho e centralizado, sobrando uma faixa preta enorme ao redor
-       — o card agora sempre preenche a tela inteira, do tamanho que ela
-       for (só o `p-3` do wrapper vira a margem, não um teto arbitrário). -->
+       Sem `max-w`/`max-h` no card até `xl` (tablet/celular): preenche a
+       tela inteira, do tamanho que ela for. A partir de `xl` (notebook/
+       monitor), volta o teto fixo (96rem / 76rem) — em tela grande o
+       card fica menorzinho e centralizado em vez de esticar sem limite. -->
   <div class="h-dvh w-screen bg-[#070a0e] text-white flex items-center justify-center p-3 select-none font-sans overflow-hidden">
-    <div class="w-full h-full flex flex-col bg-[#0d121c] border-2 border-emerald-500/60 rounded-2xl p-4 gap-3 shadow-[0_0_30px_rgba(34,197,94,0.15)] overflow-hidden">
+    <div class="w-full h-full xl:max-w-[96rem] xl:max-h-[76rem] flex flex-col bg-[#0d121c] border-2 border-emerald-500/60 rounded-2xl p-4 xl:p-6 gap-3 xl:gap-5 shadow-[0_0_30px_rgba(34,197,94,0.15)] overflow-hidden">
 
       <!-- ── HEADER (compacto, altura fixa) ── -->
       <header class="flex items-center justify-between shrink-0">
@@ -29,6 +28,14 @@
           </div>
         </div>
 
+        <!-- Sensor Bluetooth (só no APK): 🟢 conectado / 🔴 sem sensor -->
+        <div v-if="integration.sensorKind === 'cordova'" class="bg-slate-900/90 border border-slate-800 px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-2 shrink-0"
+             :title="integration.sensorDetail || integration.sensorStatus">
+          <span>{{ integration.sensorStatus === 'connected' ? '🟢' : '🔴' }}</span>
+          <span class="text-slate-300 uppercase">{{ integration.sensorStatus === 'connected' ? 'Sensor' : integration.sensorStatus === 'reconnecting' ? 'Reconectando' : 'Sem sensor' }}</span>
+          <span v-if="integration.sync.pending" class="text-amber-300 font-mono">{{ integration.sync.pending }} a enviar</span>
+        </div>
+
         <!-- Clock -->
         <div class="bg-slate-900/90 border border-slate-800 px-3 py-1.5 rounded-lg text-white font-mono text-xs flex items-center gap-2 shrink-0">
           <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
@@ -43,7 +50,7 @@
            empilhados lá em cima e sobrava uma faixa preta enorme embaixo,
            antes dos botões — agora o conjunto fica centralizado, usando o
            espaço de verdade em vez de deixar ele vazio. -->
-      <div class="flex-1 min-h-0 flex flex-col justify-center gap-2.5 overflow-hidden">
+      <div class="flex-1 min-h-0 flex flex-col justify-center gap-2.5 xl:gap-6 overflow-hidden">
 
         <!-- Loading Machines -->
         <div v-if="store.loading.machines" class="flex-1 flex flex-col items-center justify-center">
@@ -108,36 +115,40 @@
 
         <template v-if="store.activeSession">
           <!-- ── LINHA 1: UNIDADES PRODUZIDAS + STATUS  |  PROGRESSO DA META ──
-               Antes eram 2 cartões empilhados; lado a lado em 2 colunas
-               (a tela agora é sempre paisagem) cabe tudo numa linha só. -->
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-2.5 shrink-0">
-            <div class="bg-[#121824] border border-slate-800 rounded-2xl p-3.5 flex items-center justify-between gap-3">
+               No tablet ficam lado a lado em 2 colunas (a tela é sempre
+               paisagem, cabe tudo numa linha só). No notebook (xl+), com
+               o card maior sobrando altura, voltam a ficar empilhados
+               (xl:grid-cols-1) — e o conteúdo cresce (xl:text-*) pra usar
+               o espaço extra em vez de ficar pequeno dentro de um card
+               grande. -->
+          <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-1 gap-2.5 xl:gap-4 shrink-0">
+            <div class="bg-[#121824] border border-slate-800 rounded-2xl p-3.5 xl:p-6 flex items-center justify-between gap-3">
               <div>
-                <span class="text-xs font-semibold text-slate-300 font-mono tracking-wide block">Unidades Produzidas</span>
-                <div class="text-4xl font-black font-mono text-emerald-400 tracking-wider leading-tight">
+                <span class="text-xs xl:text-base font-semibold text-slate-300 font-mono tracking-wide block">Unidades Produzidas</span>
+                <div class="text-4xl xl:text-6xl font-black font-mono text-emerald-400 tracking-wider leading-tight">
                   {{ productionCount }}
                 </div>
               </div>
-              <div class="flex items-center gap-2.5 border-l border-slate-700 pl-3.5 shrink-0">
-                <div class="w-9 h-9 rounded-lg bg-emerald-500/10 border border-emerald-500/40 text-emerald-400 flex items-center justify-center shrink-0">
-                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div class="flex items-center gap-2.5 xl:gap-4 border-l border-slate-700 pl-3.5 xl:pl-6 shrink-0">
+                <div class="w-9 h-9 xl:w-14 xl:h-14 rounded-lg bg-emerald-500/10 border border-emerald-500/40 text-emerald-400 flex items-center justify-center shrink-0">
+                  <svg class="w-5 h-5 xl:w-8 xl:h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m-8-10l8 4m-8-4v10l8 4m0-10L4 7" />
                   </svg>
                 </div>
                 <div>
-                  <span class="text-[10px] text-slate-400 font-semibold block uppercase">Status</span>
-                  <span class="text-sm font-bold text-emerald-400">Iniciada</span>
+                  <span class="text-[10px] xl:text-sm text-slate-400 font-semibold block uppercase">Status</span>
+                  <span class="text-sm xl:text-2xl font-bold text-emerald-400">Iniciada</span>
                 </div>
               </div>
             </div>
 
-            <div class="bg-[#121824] border border-slate-800 rounded-2xl p-3.5 flex flex-col justify-center gap-2">
+            <div class="bg-[#121824] border border-slate-800 rounded-2xl p-3.5 xl:p-6 flex flex-col justify-center gap-2 xl:gap-3">
               <div class="flex items-center justify-between">
                 <div class="flex items-center gap-2">
-                  <span class="text-sm">🎯</span>
-                  <span class="text-xs font-mono font-semibold text-white tracking-wide uppercase">Meta</span>
+                  <span class="text-sm xl:text-xl">🎯</span>
+                  <span class="text-xs xl:text-base font-mono font-semibold text-white tracking-wide uppercase">Meta</span>
                 </div>
-                <div class="flex items-baseline gap-2 font-mono text-xs">
+                <div class="flex items-baseline gap-2 font-mono text-xs xl:text-lg">
                   <span v-if="activeTarget" :class="metaBatida ? 'text-amber-400' : 'text-emerald-400'">
                     {{ productionCount }} / {{ activeTarget.quantity }}
                     <span v-if="metaBatida">✅</span>
@@ -149,13 +160,13 @@
               <!-- Progress Bar Capsule — a largura satura em 100% (não tem como uma
                    div passar disso), mas o número acima (produção/meta) continua
                    subindo de verdade. Vira âmbar quando bate a meta. -->
-              <div v-if="activeTarget" class="w-full bg-[#0b0f17] border border-slate-800 rounded-full h-4 p-0.5 overflow-hidden">
+              <div v-if="activeTarget" class="w-full bg-[#0b0f17] border border-slate-800 rounded-full h-4 xl:h-6 p-0.5 overflow-hidden">
                 <div
                   class="h-full rounded-full transition-all duration-500 flex items-center justify-end px-2 min-w-[2rem]"
                   :class="metaBatida ? 'bg-amber-400' : 'bg-emerald-400'"
                   :style="{ width: `${targetProgressBarWidth}%` }"
                 >
-                  <span class="text-[9px] font-black text-slate-950 leading-none whitespace-nowrap">
+                  <span class="text-[9px] xl:text-xs font-black text-slate-950 leading-none whitespace-nowrap">
                     {{ targetProgressRaw }}%
                   </span>
                 </div>
@@ -164,35 +175,35 @@
           </div>
 
           <!-- ── LOTE & INFORMAÇÕES DA SESSÃO ── -->
-          <div class="bg-[#121824] border border-slate-800 rounded-2xl p-3 grid grid-cols-1 md:grid-cols-3 gap-3 shrink-0">
-            <div class="flex items-center gap-3">
-              <div class="w-8 h-8 rounded-lg bg-emerald-500/10 border border-emerald-500/40 text-emerald-400 flex items-center justify-center shrink-0">📈</div>
+          <div class="bg-[#121824] border border-slate-800 rounded-2xl p-3 xl:p-6 grid grid-cols-1 md:grid-cols-3 gap-3 xl:gap-6 shrink-0">
+            <div class="flex items-center gap-3 xl:gap-4">
+              <div class="w-8 h-8 xl:w-12 xl:h-12 rounded-lg bg-emerald-500/10 border border-emerald-500/40 text-emerald-400 flex items-center justify-center shrink-0 text-base xl:text-2xl">📈</div>
               <div class="min-w-0">
-                <span class="text-[10px] text-slate-400 font-semibold block">Produto</span>
-                <span class="text-sm font-mono font-bold text-emerald-400 truncate block">{{ store.activeSession.product?.name || '—' }}</span>
+                <span class="text-[10px] xl:text-sm text-slate-400 font-semibold block">Produto</span>
+                <span class="text-sm xl:text-2xl font-mono font-bold text-emerald-400 truncate block">{{ store.activeSession.product?.name || '—' }}</span>
               </div>
             </div>
 
             <div
               @click="isLotModalOpen = true"
-              class="flex items-center gap-3 md:border-l border-slate-700 md:pl-4 cursor-pointer group hover:bg-slate-800/40 p-1.5 rounded-xl transition-all border border-transparent hover:border-emerald-500/30 min-w-0"
+              class="flex items-center gap-3 xl:gap-4 md:border-l border-slate-700 md:pl-4 xl:pl-6 cursor-pointer group hover:bg-slate-800/40 p-1.5 rounded-xl transition-all border border-transparent hover:border-emerald-500/30 min-w-0"
               title="Clique para alterar o Lote"
             >
-              <div class="w-8 h-8 rounded-lg bg-emerald-500/10 border border-emerald-500/40 text-emerald-400 flex items-center justify-center group-hover:scale-105 transition-transform shrink-0">🏷️</div>
+              <div class="w-8 h-8 xl:w-12 xl:h-12 rounded-lg bg-emerald-500/10 border border-emerald-500/40 text-emerald-400 flex items-center justify-center group-hover:scale-105 transition-transform shrink-0 text-base xl:text-2xl">🏷️</div>
               <div class="min-w-0">
-                <div class="flex items-center gap-1.5">
-                  <span class="text-[10px] text-slate-400 font-semibold block">LOTE</span>
-                  <span class="text-[9px] text-emerald-400 bg-emerald-500/10 px-1 py-0.5 rounded border border-emerald-500/30 font-bold uppercase tracking-wider group-hover:bg-emerald-500/20 transition-colors">ALTERAR ✏️</span>
+                <div class="flex items-center gap-1.5 xl:gap-2.5">
+                  <span class="text-[10px] xl:text-sm text-slate-400 font-semibold block">LOTE</span>
+                  <span class="text-[9px] xl:text-xs text-emerald-400 bg-emerald-500/10 px-1 xl:px-1.5 py-0.5 rounded border border-emerald-500/30 font-bold uppercase tracking-wider group-hover:bg-emerald-500/20 transition-colors">ALTERAR ✏️</span>
                 </div>
-                <span class="text-sm font-mono font-bold text-emerald-400 group-hover:text-emerald-300 truncate block">{{ store.activeSession.lot?.code || '—' }}</span>
+                <span class="text-sm xl:text-2xl font-mono font-bold text-emerald-400 group-hover:text-emerald-300 truncate block">{{ store.activeSession.lot?.code || '—' }}</span>
               </div>
             </div>
 
-            <div class="flex items-center gap-3 md:border-l border-slate-700 md:pl-4">
-              <div class="w-8 h-8 rounded-lg bg-emerald-500/10 border border-emerald-500/40 text-emerald-400 flex items-center justify-center shrink-0">👷</div>
+            <div class="flex items-center gap-3 xl:gap-4 md:border-l border-slate-700 md:pl-4 xl:pl-6">
+              <div class="w-8 h-8 xl:w-12 xl:h-12 rounded-lg bg-emerald-500/10 border border-emerald-500/40 text-emerald-400 flex items-center justify-center shrink-0 text-base xl:text-2xl">👷</div>
               <div class="min-w-0">
-                <span class="text-[10px] text-slate-400 font-semibold block">Operador</span>
-                <span class="text-sm font-mono font-bold text-emerald-400 truncate block">{{ store.activeSession.operator?.name || '—' }}</span>
+                <span class="text-[10px] xl:text-sm text-slate-400 font-semibold block">Operador</span>
+                <span class="text-sm xl:text-2xl font-mono font-bold text-emerald-400 truncate block">{{ store.activeSession.operator?.name || '—' }}</span>
               </div>
             </div>
           </div>
@@ -256,15 +267,15 @@
       </div>
 
       <!-- ── BOTÕES INICIAR | AJUDA | PARAR (altura fixa) ── -->
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-3 shrink-0">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-3 xl:gap-6 shrink-0">
         <!-- Botão verde: INICIAR -->
         <button
           @click="handleStart"
           :disabled="store.loading.session || !!store.activeSession"
-          class="py-3 bg-[#056e29] hover:bg-[#068532] disabled:opacity-40 disabled:cursor-not-allowed text-white font-black text-sm uppercase tracking-wider rounded-xl flex items-center justify-center gap-3 shadow-lg shadow-emerald-900/30 transition-all active:scale-95 border border-emerald-500/40"
+          class="py-3 xl:py-5 bg-[#056e29] hover:bg-[#068532] disabled:opacity-40 disabled:cursor-not-allowed text-white font-black text-sm xl:text-lg uppercase tracking-wider rounded-xl flex items-center justify-center gap-3 shadow-lg shadow-emerald-900/30 transition-all active:scale-95 border border-emerald-500/40"
         >
-          <svg v-if="store.loading.session" class="w-4 h-4 border border-white border-t-transparent rounded-full animate-spin" viewBox="0 0 24 24"></svg>
-          <svg v-else class="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+          <svg v-if="store.loading.session" class="w-4 h-4 xl:w-6 xl:h-6 border border-white border-t-transparent rounded-full animate-spin" viewBox="0 0 24 24"></svg>
+          <svg v-else class="w-5 h-5 xl:w-7 xl:h-7 fill-current" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
           {{ store.loading.session ? 'AGUARDE...' : store.activeSession ? 'EM SESSÃO' : 'INICIAR' }}
         </button>
 
@@ -272,13 +283,13 @@
         <button
           @click="isHelpModalOpen = true"
           :disabled="!!openStop"
-          class="py-3 bg-[#121824] hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold text-sm uppercase tracking-wider rounded-xl flex items-center justify-center gap-3 border border-slate-700 transition-all active:scale-95"
+          class="py-3 xl:py-5 bg-[#121824] hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold text-sm xl:text-lg uppercase tracking-wider rounded-xl flex items-center justify-center gap-3 border border-slate-700 transition-all active:scale-95"
         >
-          <svg class="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg class="w-5 h-5 xl:w-7 xl:h-7 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
           AJUDA / PARADA
-          <svg class="w-4 h-4 text-slate-400 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg class="w-4 h-4 xl:w-5 xl:h-5 text-slate-400 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
           </svg>
         </button>
@@ -287,9 +298,9 @@
         <button
           @click="handleStop"
           :disabled="store.loading.session || !store.activeSession"
-          class="py-3 bg-[#8b0000] hover:bg-[#a80000] disabled:opacity-40 disabled:cursor-not-allowed text-white font-black text-sm uppercase tracking-wider rounded-xl flex items-center justify-center gap-3 shadow-lg shadow-red-900/30 transition-all active:scale-95 border border-red-500/40"
+          class="py-3 xl:py-5 bg-[#8b0000] hover:bg-[#a80000] disabled:opacity-40 disabled:cursor-not-allowed text-white font-black text-sm xl:text-lg uppercase tracking-wider rounded-xl flex items-center justify-center gap-3 shadow-lg shadow-red-900/30 transition-all active:scale-95 border border-red-500/40"
         >
-          <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+          <svg class="w-5 h-5 xl:w-7 xl:h-7 fill-current" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
           ENCERRAR
         </button>
       </div>
@@ -352,6 +363,8 @@
 
 <script setup>
 import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue';
+import { useIntegrationStore } from '../../stores/integrationStore';
+import { startSensorPipeline } from '../../services/production/ProductionPipeline';
 import { useRoute } from 'vue-router';
 import { useProductionStore } from '../../stores/productionStore';
 import LotEditModal from '../../components/LotEditModal.vue';
@@ -360,6 +373,7 @@ import { travarPaisagem } from '../../composables/useLandscapeLock';
 
 const route = useRoute();
 const store = useProductionStore();
+const integration = useIntegrationStore();
 
 const currentTime = ref('');
 const isHelpModalOpen = ref(false);
@@ -408,6 +422,18 @@ onMounted(async () => {
   // atribuição manual aqui (isso era o motivo de só atualizar com F5).
   if (store.activeSession) await store.fetchProductionTotals(store.activeSession.id);
   await store.fetchPossibleStops({ status: 'pending' });
+  // Sensor Bluetooth (APK): só age quando o plugin existe; na PWA é o mock e não faz nada.
+  if (currentMachine.value?.id) {
+    const machineId = currentMachine.value.id;
+    startSensorPipeline(
+      machineId,
+      () => {
+        const s = store.sessions.find((x) => x.machine_id === machineId && x.status === 'active');
+        return s ? { session_id: s.id, machine_id: machineId } : null;
+      },
+      (patch) => integration.applyStatus(patch),
+    ).catch(() => {});
+  }
   // WebSocket + polling de segurança ligam uma vez só em App.vue.
 });
 
@@ -534,7 +560,10 @@ const activeTarget = computed(() => {
 // paginada (limit=100) — travava em ~100 assim que a sessão passava disso.
 const productionCount = computed(() => {
   if (!store.activeSession) return 0;
-  return store.productionTotals[store.activeSession.id] ?? 0;
+  // Total da API + peças ainda guardadas no aparelho (sem internet / ainda não
+  // enviadas). Pendentes ainda não estão no total da API, então não há dupla contagem.
+  const sid = store.activeSession.id;
+  return (store.productionTotals[sid] ?? 0) + (integration.sync.pendingBySession?.[sid] ?? 0);
 });
 
 // Percentual REAL (sem capar em 100) — o contador de produção nunca travou

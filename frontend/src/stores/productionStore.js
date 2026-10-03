@@ -23,6 +23,7 @@ import {
   apontamentoApi,
 } from '../services/api';
 import { connectRealtime, disconnectRealtime, isRealtimeConnected } from '../services/realtime';
+import { saveCatalog, loadCatalog } from '../services/offline/catalogCache.js';
 
 export const useProductionStore = defineStore('production', {
   state: () => ({
@@ -166,6 +167,13 @@ export const useProductionStore = defineStore('production', {
         const result = await machinesApi.list();
         if (Array.isArray(result)) {
           this.machines = result;
+          saveCatalog('machines', result);
+          if (!this.selectedStationId && this.machines.length) {
+            this.selectedStationId = this.machines[0].id;
+          }
+        } else if (result === null && !this.machines.length) {
+          // Sem API (offline): usa a última lista guardada no aparelho.
+          this.machines = (await loadCatalog('machines')) || [];
           if (!this.selectedStationId && this.machines.length) {
             this.selectedStationId = this.machines[0].id;
           }
@@ -183,7 +191,12 @@ export const useProductionStore = defineStore('production', {
       this.errors.products = null;
       try {
         const result = await productsApi.list();
-        if (Array.isArray(result)) this.products = result;
+        if (Array.isArray(result)) {
+          this.products = result;
+          saveCatalog('products', result);
+        } else if (result === null && !this.products.length) {
+          this.products = (await loadCatalog('products')) || [];
+        }
       } catch (err) {
         this.errors.products = err.message || 'Erro ao carregar produtos';
       } finally {
@@ -247,7 +260,12 @@ export const useProductionStore = defineStore('production', {
       this.errors.stopReasons = null;
       try {
         const result = await stopReasonsApi.list();
-        if (Array.isArray(result)) this.stopReasons = result;
+        if (Array.isArray(result)) {
+          this.stopReasons = result;
+          saveCatalog('stopReasons', result);
+        } else if (result === null && !this.stopReasons.length) {
+          this.stopReasons = (await loadCatalog('stopReasons')) || [];
+        }
       } catch (err) {
         this.errors.stopReasons = err.message || 'Erro ao carregar motivos de parada';
       } finally {
@@ -282,7 +300,12 @@ export const useProductionStore = defineStore('production', {
       this.errors.sessions = null;
       try {
         const result = await sessionsApi.list();
-        if (Array.isArray(result)) this.sessions = result;
+        if (Array.isArray(result)) {
+          this.sessions = result;
+          saveCatalog('sessions', result);
+        } else if (result === null && !this.sessions.length) {
+          this.sessions = (await loadCatalog('sessions')) || [];
+        }
       } catch (err) {
         this.errors.sessions = err.message || 'Erro ao carregar sessões';
       } finally {

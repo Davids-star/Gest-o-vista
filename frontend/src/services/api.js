@@ -8,11 +8,9 @@
  * - Pinia NUNCA é o banco de dados — toda escrita vai para a API
  */
 
-export const BASE_URL =
-  import.meta.env.VITE_API_URL ||
-  (typeof window !== 'undefined'
-    ? `${window.location.protocol}//${window.location.hostname}:3000`
-    : 'http://localhost:3000');
+import { API_URL } from '../config/env';
+
+export const BASE_URL = API_URL;
 
 export function getToken() {
   try {

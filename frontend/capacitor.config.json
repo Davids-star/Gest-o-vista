@@ -1,0 +1,9 @@
+{
+  "appId": "br.com.gp.totem",
+  "appName": "GP Totem",
+  "webDir": "dist",
+  "android": {
+    "allowMixedContent": true,
+    "webContentsDebuggingEnabled": true
+  }
+}

@@ -1,9 +1,17 @@
 @import "tailwindcss";
 
+/*
+ * `dark:` no Tailwind v4 por padrão segue prefers-color-scheme do SO — aqui
+ * a gente amarra ele no [data-gp-theme] que o useTheme.js escreve em <html>,
+ * pra o tema ser uma escolha do app (com padrão dark), não do sistema
+ * operacional do usuário.
+ */
+@custom-variant dark (&:where([data-gp-theme="dark"], [data-gp-theme="dark"] *));
+
 @layer base {
   body {
-    background-color: #f1f5f9;
-    color: #0f172a;
+    background-color: var(--gp-bg);
+    color: var(--gp-text);
     font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
     margin: 0;
     padding: 0;
@@ -12,11 +20,12 @@
 }
 
 /*
- * Tema claro/escuro — só para as telas mobile que optam por usar as classes
- * .gp-* abaixo (MobileSelectorView, ConfigMobileView). O resto do app
- * (Dashboard, Totem, TV) usa cores fixas e não lê essas variáveis, então
- * alternar o tema aqui não muda nada fora dessas telas. Controlado por
- * useTheme.js, que escreve [data-gp-theme] em <html>.
+ * Tema claro/escuro — ligado por padrão em dark (useTheme.js), com toggle
+ * já pronto (useTheme().toggleTheme) mas sem botão na UI ainda. As telas de
+ * escritório (Dashboard, Relatórios, Estações, Apontamento, Metas, Alertas,
+ * Lote) usam `dark:` do Tailwind (ver @custom-variant acima) + estas
+ * variáveis --gp-* pros cards (.dark-panel). Totem e TV ficam de propósito
+ * sempre escuros (.panel-industrial), não seguem o tema.
  */
 :root,
 [data-gp-theme='dark'] {
@@ -49,19 +58,19 @@
 .gp-text-muted { color: var(--gp-text-muted); }
 
 /* Card style — nome "dark-panel" ficou histórico (era mesmo escuro antes),
-   mas hoje é só "o card padrão do sistema": fundo branco, borda clara,
-   sombra suave. Trocar o nome exigiria editar todas as telas que usam a
-   classe, então mantemos o nome e só trocamos a aparência. */
+   depois virou "o card padrão do sistema" com fundo branco fixo; agora
+   segue --gp-surface-2/--gp-border, então acompanha o tema claro/escuro
+   sozinho, sem precisar editar as telas que usam a classe. */
 .dark-panel {
-  background-color: #ffffff;
-  border: 1px solid #e2e8f0;
+  background-color: var(--gp-surface-2);
+  border: 1px solid var(--gp-border);
   border-radius: 12px;
   box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
 }
 
 .dark-panel-interactive {
-  background-color: #ffffff;
-  border: 1px solid #e2e8f0;
+  background-color: var(--gp-surface-2);
+  border: 1px solid var(--gp-border);
   border-radius: 12px;
   transition: all 0.2s ease-in-out;
   cursor: pointer;
@@ -73,7 +82,7 @@
 }
 
 .dark-panel-selected {
-  background-color: #ffffff;
+  background-color: var(--gp-surface-2);
   border: 2px solid #22c55e;
   border-radius: 12px;
   box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.15);
@@ -118,7 +127,7 @@
   height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: #f1f5f9;
+  background: var(--gp-bg);
 }
 ::-webkit-scrollbar-thumb {
   background: #cbd5e1;

@@ -2,7 +2,7 @@
   <Transition name="toast-pop">
     <div
       v-if="visible"
-      class="fixed top-[calc(4rem+0.5rem+env(safe-area-inset-top,0px))] right-4 md:top-4 z-[70] flex items-start gap-3 dark-panel border-red-200 bg-white px-4 py-3 pr-3 max-w-sm cursor-pointer select-none"
+      class="fixed top-[calc(4rem+0.5rem+env(safe-area-inset-top,0px))] right-4 md:top-4 z-[70] flex items-start gap-3 dark-panel border-red-200 dark:border-red-500/40 bg-white dark:bg-[#121824] px-4 py-3 pr-3 max-w-sm cursor-pointer select-none"
       role="status"
       @click="irParaAlertas"
     >
@@ -11,14 +11,14 @@
       </div>
       <div class="flex-1 min-w-0">
         <template v-if="novosAlertas.length === 1">
-          <p class="text-sm font-bold text-slate-900 leading-tight">
+          <p class="text-sm font-bold text-slate-900 dark:text-white leading-tight">
             {{ nomeMaquina(novosAlertas[0]) }}
           </p>
-          <p class="text-xs text-slate-600 leading-snug mt-0.5">{{ novosAlertas[0].message || novosAlertas[0].descricao || 'Novo alerta' }}</p>
+          <p class="text-xs text-slate-600 dark:text-slate-400 leading-snug mt-0.5">{{ novosAlertas[0].message || novosAlertas[0].descricao || 'Novo alerta' }}</p>
         </template>
         <template v-else>
-          <p class="text-sm font-bold text-slate-900 leading-tight">{{ novosAlertas.length }} novos alertas</p>
-          <p class="text-xs text-slate-600 leading-snug mt-0.5 truncate">
+          <p class="text-sm font-bold text-slate-900 dark:text-white leading-tight">{{ novosAlertas.length }} novos alertas</p>
+          <p class="text-xs text-slate-600 dark:text-slate-400 leading-snug mt-0.5 truncate">
             {{ novosAlertas.map(nomeMaquina).join(', ') }}
           </p>
         </template>
@@ -26,7 +26,7 @@
       </div>
       <button
         @click.stop="dispensar"
-        class="shrink-0 w-6 h-6 rounded-lg text-slate-500 hover:text-slate-900 hover:bg-slate-100 flex items-center justify-center text-lg leading-none"
+        class="shrink-0 w-6 h-6 rounded-lg text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/60 flex items-center justify-center text-lg leading-none"
         aria-label="Dispensar"
       >
         &times;

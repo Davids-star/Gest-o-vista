@@ -18,7 +18,7 @@ let chartInstance = null;
 
 const initChart = () => {
   if (!chartRef.value) return;
-  chartInstance = echarts.init(chartRef.value);
+  chartInstance = echarts.init(chartRef.value, 'dark');
   updateChart();
 };
 
@@ -33,9 +33,9 @@ const updateChart = () => {
     backgroundColor: 'transparent',
     tooltip: {
       trigger: 'axis',
-      backgroundColor: '#ffffff',
-      borderColor: '#e2e8f0',
-      textStyle: { color: '#0f172a' },
+      backgroundColor: '#1e293b',
+      borderColor: '#334155',
+      textStyle: { color: '#ffffff' },
     },
     grid: {
       left: '3%',
@@ -47,14 +47,14 @@ const updateChart = () => {
     xAxis: {
       type: 'category',
       data: hours,
-      axisLine: { lineStyle: { color: '#cbd5e1' } },
-      axisLabel: { color: '#64748b' },
+      axisLine: { lineStyle: { color: '#334155' } },
+      axisLabel: { color: '#94a3b8' },
     },
     yAxis: {
       type: 'value',
-      axisLine: { lineStyle: { color: '#cbd5e1' } },
-      splitLine: { lineStyle: { color: '#f1f5f9' } },
-      axisLabel: { color: '#64748b' },
+      axisLine: { lineStyle: { color: '#334155' } },
+      splitLine: { lineStyle: { color: '#1e293b' } },
+      axisLabel: { color: '#94a3b8' },
     },
     series: [
       {

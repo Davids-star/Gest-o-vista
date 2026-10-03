@@ -1,19 +1,35 @@
 /**
  * useTheme.js — GP Frontend V2
  *
- * O app inteiro nasceu 100% escuro (cores fixas em cada view, sem sistema de
- * tema). Refazer isso pra todo mundo de uma vez é um projeto à parte; por
- * enquanto o tema claro/escuro só existe nas telas mobile que optam por
- * consumir as variáveis --gp-* (ver style.css) — MobileSelectorView e
- * ConfigMobileView. O resto do app (Dashboard, Totem, TV) ignora o atributo
- * e continua escuro, sem risco de quebrar nada.
+ * Tema claro/escuro do app: **escuro é o principal** (o padrão pra quem
+ * nunca escolheu nada, e o que qualquer tela nova deve assumir). Claro é
+ * secundário — só existe pra quem escolhe manualmente (hoje, via
+ * /mobile/config), e essa escolha persiste em localStorage.
+ * App.vue chama useTheme() uma vez no boot pra sempre existir um
+ * [data-gp-theme] em <html>, que o `@custom-variant dark` (ver style.css)
+ * usa pra decidir as classes `dark:` do Tailwind nas telas de escritório
+ * (Dashboard, Relatórios, Estações, Apontamento, Metas, Alertas, Lote) e as
+ * variáveis --gp-* dos cards (.dark-panel). Totem e TV ficam de propósito
+ * sempre escuros (.panel-industrial, cores fixas), não seguem esse tema.
  */
 import { ref, watch } from 'vue';
 
 const STORAGE_KEY = 'gp_theme';
+// 'light' salvo ANTES desta migração vem de quando só as telas mobile liam
+// esse valor (escuro nunca foi de fato "o principal" testado pra essas
+// telas) — sem essa marca, quem já tinha clicado "Claro" lá acabaria com o
+// Dashboard/Totem/TV inteiro claro sem ter escolhido isso pra valer.
+// Ignora esse valor antigo uma única vez; escolhas feitas DEPOIS desta
+// migração (inclusive "claro" de novo) persistem normalmente.
+const MIGRATION_KEY = 'gp_theme_migrated_v2';
 
 function readStoredTheme() {
   try {
+    if (localStorage.getItem(MIGRATION_KEY) !== '1') {
+      localStorage.setItem(MIGRATION_KEY, '1');
+      localStorage.removeItem(STORAGE_KEY);
+      return 'dark';
+    }
     const stored = localStorage.getItem(STORAGE_KEY);
     return stored === 'light' || stored === 'dark' ? stored : 'dark';
   } catch {

@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">GP Totem</string>
+    <string name="title_activity_main">GP Totem</string>
+    <string name="package_name">br.com.gp.totem</string>
+    <string name="custom_url_scheme">br.com.gp.totem</string>
+</resources>

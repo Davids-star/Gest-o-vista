@@ -3,17 +3,17 @@
     <table class="w-full text-[11px] font-mono border-collapse">
       <thead>
         <tr>
-          <th class="sticky left-0 bg-white text-left pb-2 pr-3 text-slate-500 uppercase text-[9px] font-sans font-bold whitespace-nowrap">
+          <th class="sticky left-0 bg-white dark:bg-[#121824] text-left pb-2 pr-3 text-slate-500 dark:text-slate-400 uppercase text-[9px] font-sans font-bold whitespace-nowrap">
             Máquina
           </th>
           <th
             v-for="col in columns"
             :key="col.key"
-            class="text-right pb-2 px-2 text-slate-500 uppercase text-[9px] font-sans font-bold whitespace-nowrap"
+            class="text-right pb-2 px-2 text-slate-500 dark:text-slate-400 uppercase text-[9px] font-sans font-bold whitespace-nowrap"
           >
             {{ col.label }}
           </th>
-          <th class="text-right pb-2 pl-2 text-slate-700 uppercase text-[9px] font-sans font-black whitespace-nowrap">
+          <th class="text-right pb-2 pl-2 text-slate-700 dark:text-slate-300 uppercase text-[9px] font-sans font-black whitespace-nowrap">
             Total
           </th>
         </tr>
@@ -24,30 +24,30 @@
             Nenhum dado para este período.
           </td>
         </tr>
-        <tr v-for="row in rows" :key="row.label" class="border-t border-slate-100 hover:bg-slate-50">
-          <td class="sticky left-0 bg-white py-1.5 pr-3 font-sans font-bold text-slate-900 whitespace-nowrap">
+        <tr v-for="row in rows" :key="row.label" class="border-t border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/40">
+          <td class="sticky left-0 bg-white dark:bg-[#121824] py-1.5 pr-3 font-sans font-bold text-slate-900 dark:text-white whitespace-nowrap">
             {{ row.label }}
           </td>
           <td
             v-for="col in columns"
             :key="col.key"
             class="text-right py-1.5 px-2"
-            :class="(row.cells[col.key] || 0) > 0 ? 'text-emerald-600 font-bold' : 'text-slate-300'"
+            :class="(row.cells[col.key] || 0) > 0 ? 'text-emerald-600 dark:text-emerald-400 font-bold' : 'text-slate-300 dark:text-slate-600'"
           >
             {{ (row.cells[col.key] || 0).toLocaleString('pt-BR') }}
           </td>
-          <td class="text-right py-1.5 pl-2 font-bold text-slate-900">
+          <td class="text-right py-1.5 pl-2 font-bold text-slate-900 dark:text-white">
             {{ rowTotal(row).toLocaleString('pt-BR') }}
           </td>
         </tr>
       </tbody>
       <tfoot v-if="rows.length > 1">
-        <tr class="border-t-2 border-slate-200">
-          <td class="sticky left-0 bg-white py-1.5 pr-3 font-sans font-black text-slate-700 whitespace-nowrap">Total</td>
-          <td v-for="col in columns" :key="col.key" class="text-right py-1.5 px-2 font-bold text-slate-700">
+        <tr class="border-t-2 border-slate-200 dark:border-slate-800">
+          <td class="sticky left-0 bg-white dark:bg-[#121824] py-1.5 pr-3 font-sans font-black text-slate-700 dark:text-slate-300 whitespace-nowrap">Total</td>
+          <td v-for="col in columns" :key="col.key" class="text-right py-1.5 px-2 font-bold text-slate-700 dark:text-slate-300">
             {{ columnTotal(col.key).toLocaleString('pt-BR') }}
           </td>
-          <td class="text-right py-1.5 pl-2 font-black text-slate-900">
+          <td class="text-right py-1.5 pl-2 font-black text-slate-900 dark:text-white">
             {{ grandTotal.toLocaleString('pt-BR') }}
           </td>
         </tr>

@@ -1,12 +1,12 @@
 <template>
-  <div class="min-h-screen bg-[#f1f5f9] text-slate-900 font-sans flex select-none">
+  <div class="min-h-screen bg-[#f1f5f9] dark:bg-[#070a0e] text-slate-900 dark:text-white font-sans flex select-none">
     <AppSidebar />
 
     <main class="flex-1 p-4 pt-[calc(4rem+env(safe-area-inset-top))] md:p-6 md:pt-6 lg:p-8 overflow-y-auto max-w-7xl mx-auto w-full space-y-6">
       
       <!-- Header do Dashboard -->
       <div>
-        <h1 class="text-2xl sm:text-3xl font-extrabold uppercase tracking-wider text-slate-900">DASHBOARD INDUSTRIAL</h1>
+        <h1 class="text-2xl sm:text-3xl font-extrabold uppercase tracking-wider text-slate-900 dark:text-white">DASHBOARD INDUSTRIAL</h1>
       </div>
 
       <!-- KPI Cards Globais — nenhum número aqui embaixo depende de
@@ -24,38 +24,38 @@
         <!-- Produção de Hoje -->
         <div class="dark-panel p-5 space-y-2 border-emerald-500/30">
           <div class="flex justify-between items-center">
-            <span class="text-xs font-bold uppercase tracking-wider text-slate-500">PRODUÇÃO HOJE</span>
-            <span class="text-[10px] text-emerald-600 font-bold bg-emerald-500/10 border border-emerald-500/30 px-2 py-0.5 rounded">
+            <span class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">PRODUÇÃO HOJE</span>
+            <span class="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold bg-emerald-500/10 border border-emerald-500/30 px-2 py-0.5 rounded">
               AO VIVO
             </span>
           </div>
           <div class="flex items-baseline gap-2">
-            <span class="font-mono text-3xl font-black text-emerald-600">
+            <span class="font-mono text-3xl font-black text-emerald-600 dark:text-emerald-400">
               {{ (hojeApontamento?.resumo?.producao || 0).toLocaleString('pt-BR') }}
             </span>
-            <span class="text-xs text-slate-500">peças</span>
+            <span class="text-xs text-slate-500 dark:text-slate-400">peças</span>
           </div>
         </div>
 
         <!-- Máquinas em Operação -->
         <div class="dark-panel p-5 space-y-2">
-          <span class="text-xs font-bold uppercase tracking-wider text-slate-500">MÁQUINAS CADASTRADAS</span>
+          <span class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">MÁQUINAS CADASTRADAS</span>
           <div class="flex items-baseline gap-2">
-            <span class="font-mono text-3xl font-black text-slate-900">
+            <span class="font-mono text-3xl font-black text-slate-900 dark:text-white">
               {{ store.machines.length }}
             </span>
-            <span class="text-xs text-slate-500">estações ativas</span>
+            <span class="text-xs text-slate-500 dark:text-slate-400">estações ativas</span>
           </div>
         </div>
 
         <!-- Alertas & Defeitos -->
         <div class="dark-panel p-5 space-y-2" :class="store.alerts.length > 0 ? 'border-red-500/40' : ''">
-          <span class="text-xs font-bold uppercase tracking-wider text-slate-500">ALERTAS / OCORRÊNCIAS</span>
+          <span class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">ALERTAS / OCORRÊNCIAS</span>
           <div class="flex items-baseline gap-2">
-            <span class="font-mono text-3xl font-black" :class="store.alerts.length > 0 ? 'text-red-600' : 'text-emerald-600'">
+            <span class="font-mono text-3xl font-black" :class="store.alerts.length > 0 ? 'text-red-600 dark:text-red-400' : 'text-emerald-600 dark:text-emerald-400'">
               {{ store.alerts.length }}
             </span>
-            <span class="text-xs text-slate-500">
+            <span class="text-xs text-slate-500 dark:text-slate-400">
               {{ store.alerts.length > 0 ? 'requerem atenção' : 'operação normal' }}
             </span>
           </div>
@@ -63,12 +63,12 @@
 
         <!-- Metas Ativas -->
         <div class="dark-panel p-5 space-y-2">
-          <span class="text-xs font-bold uppercase tracking-wider text-slate-500">METAS CADASTRADAS</span>
+          <span class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">METAS CADASTRADAS</span>
           <div class="flex items-baseline gap-2">
-            <span class="font-mono text-3xl font-black text-amber-600">
+            <span class="font-mono text-3xl font-black text-amber-600 dark:text-amber-400">
               {{ store.metas.length }}
             </span>
-            <span class="text-xs text-slate-500">planos de meta</span>
+            <span class="text-xs text-slate-500 dark:text-slate-400">planos de meta</span>
           </div>
         </div>
 
@@ -77,15 +77,15 @@
       <!-- Painel de Máquinas Cadastradas — clique numa pra ver o detalhe
            dela E filtrar "Produção por Hora" só por essa máquina. -->
       <div class="dark-panel p-6">
-        <h3 class="text-xs font-bold uppercase tracking-widest text-slate-900 mb-4 border-b border-slate-200 pb-3 flex items-center gap-2">
-          <span class="text-emerald-600">🏭</span> ESTAÇÕES DA FÁBRICA
+        <h3 class="text-xs font-bold uppercase tracking-widest text-slate-900 dark:text-white mb-4 border-b border-slate-200 dark:border-slate-800 pb-3 flex items-center gap-2">
+          <span class="text-emerald-600 dark:text-emerald-400">🏭</span> ESTAÇÕES DA FÁBRICA
         </h3>
 
         <div v-if="store.loading.machines" class="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <div v-for="i in 4" :key="i" class="h-20 bg-slate-100 rounded-xl animate-pulse"></div>
+          <div v-for="i in 4" :key="i" class="h-20 bg-slate-100 dark:bg-slate-800/60 rounded-xl animate-pulse"></div>
         </div>
 
-        <div v-else-if="!store.machines.length" class="text-center py-6 text-slate-500 text-sm">
+        <div v-else-if="!store.machines.length" class="text-center py-6 text-slate-500 dark:text-slate-400 text-sm">
           Nenhuma máquina cadastrada no sistema.
         </div>
 
@@ -97,21 +97,21 @@
             class="p-4 rounded-xl cursor-pointer transition-all border"
             :class="store.selectedStationId === m.id
               ? 'bg-emerald-500/10 border-emerald-500 shadow-lg'
-              : 'bg-slate-50 border-slate-200 hover:border-slate-300'"
+              : 'bg-slate-50 dark:bg-[#070a0e] border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-600'"
           >
             <div class="flex items-center gap-3 mb-2">
-              <span class="w-9 h-9 rounded-lg border border-emerald-500/40 bg-emerald-500/10 text-emerald-600 flex items-center justify-center font-mono font-extrabold text-sm">
+              <span class="w-9 h-9 rounded-lg border border-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-mono font-extrabold text-sm">
                 {{ getMachineNumber(m) }}
               </span>
               <div class="min-w-0">
-                <p class="text-xs font-extrabold uppercase tracking-wider text-slate-900 truncate">
+                <p class="text-xs font-extrabold uppercase tracking-wider text-slate-900 dark:text-white truncate">
                   Máquina {{ getMachineNumber(m) }}
                 </p>
               </div>
             </div>
             <span
               class="inline-flex items-center gap-1 px-2 py-0.5 rounded border text-[10px] font-bold uppercase"
-              :class="m.active !== false ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-600' : 'border-slate-400 bg-slate-100 text-slate-500'"
+              :class="m.active !== false ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' : 'border-slate-400 dark:border-slate-600 bg-slate-100 dark:bg-slate-800/60 text-slate-500 dark:text-slate-400'"
             >
               <span class="w-1.5 h-1.5 rounded-full" :class="m.active !== false ? 'bg-emerald-400 animate-pulse' : 'bg-slate-500'"/>
               {{ m.active !== false ? 'OPERANDO' : 'INATIVO' }}
@@ -120,14 +120,14 @@
         </div>
 
         <!-- Detalhe da máquina selecionada (produção/paradas de hoje) -->
-        <div v-if="maquinaSelecionada" class="mt-5 pt-5 border-t border-slate-200 space-y-4">
+        <div v-if="maquinaSelecionada" class="mt-5 pt-5 border-t border-slate-200 dark:border-slate-800 space-y-4">
           <div class="flex items-center justify-between">
-            <h4 class="text-xs font-extrabold uppercase tracking-wider text-emerald-600">
+            <h4 class="text-xs font-extrabold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
               Máquina {{ getMachineNumber(maquinaSelecionada) }} — {{ maquinaSelecionada.name || maquinaSelecionada.code }}
             </h4>
             <span
               class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase border"
-              :class="sessaoAtivaSelecionada ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-600' : 'bg-slate-100 border-slate-300 text-slate-500'"
+              :class="sessaoAtivaSelecionada ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400' : 'bg-slate-100 dark:bg-slate-800/60 border-slate-300 dark:border-slate-700 text-slate-500 dark:text-slate-400'"
             >
               <span class="w-1.5 h-1.5 rounded-full" :class="sessaoAtivaSelecionada ? 'bg-emerald-400 animate-pulse' : 'bg-slate-500'" />
               {{ sessaoAtivaSelecionada ? 'EM PRODUÇÃO' : 'SEM SESSÃO ATIVA' }}
@@ -135,27 +135,27 @@
           </div>
 
           <div v-if="sessaoAtivaSelecionada" class="grid grid-cols-3 gap-3 text-xs">
-            <div><span class="text-slate-500 block">Produto</span><span class="font-bold text-slate-900">{{ sessaoAtivaSelecionada.product?.name || '—' }}</span></div>
-            <div><span class="text-slate-500 block">Lote</span><span class="font-bold text-slate-900">{{ sessaoAtivaSelecionada.lot?.code || '—' }}</span></div>
-            <div><span class="text-slate-500 block">Operador</span><span class="font-bold text-slate-900">{{ sessaoAtivaSelecionada.operator?.name || '—' }}</span></div>
+            <div><span class="text-slate-500 dark:text-slate-400 block">Produto</span><span class="font-bold text-slate-900 dark:text-white">{{ sessaoAtivaSelecionada.product?.name || '—' }}</span></div>
+            <div><span class="text-slate-500 dark:text-slate-400 block">Lote</span><span class="font-bold text-slate-900 dark:text-white">{{ sessaoAtivaSelecionada.lot?.code || '—' }}</span></div>
+            <div><span class="text-slate-500 dark:text-slate-400 block">Operador</span><span class="font-bold text-slate-900 dark:text-white">{{ sessaoAtivaSelecionada.operator?.name || '—' }}</span></div>
           </div>
 
           <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <div class="dark-panel p-3 space-y-0.5">
-              <span class="text-[10px] font-bold uppercase text-slate-500">Produção Hoje</span>
-              <p class="font-mono text-lg font-black text-emerald-600">{{ resumoMaquinaSelecionada.producao.toLocaleString('pt-BR') }}</p>
+              <span class="text-[10px] font-bold uppercase text-slate-500 dark:text-slate-400">Produção Hoje</span>
+              <p class="font-mono text-lg font-black text-emerald-600 dark:text-emerald-400">{{ resumoMaquinaSelecionada.producao.toLocaleString('pt-BR') }}</p>
             </div>
             <div class="dark-panel p-3 space-y-0.5">
-              <span class="text-[10px] font-bold uppercase text-slate-500">T. Produzido</span>
-              <p class="font-mono text-lg font-black text-slate-900">{{ formatDuracao(resumoMaquinaSelecionada.tempo_produzido_segundos) }}</p>
+              <span class="text-[10px] font-bold uppercase text-slate-500 dark:text-slate-400">T. Produzido</span>
+              <p class="font-mono text-lg font-black text-slate-900 dark:text-white">{{ formatDuracao(resumoMaquinaSelecionada.tempo_produzido_segundos) }}</p>
             </div>
             <div class="dark-panel p-3 space-y-0.5">
-              <span class="text-[10px] font-bold uppercase text-slate-500">T. Parado</span>
-              <p class="font-mono text-lg font-black text-red-600">{{ formatDuracao(resumoMaquinaSelecionada.tempo_parado_segundos) }}</p>
+              <span class="text-[10px] font-bold uppercase text-slate-500 dark:text-slate-400">T. Parado</span>
+              <p class="font-mono text-lg font-black text-red-600 dark:text-red-400">{{ formatDuracao(resumoMaquinaSelecionada.tempo_parado_segundos) }}</p>
             </div>
             <div class="dark-panel p-3 space-y-0.5">
-              <span class="text-[10px] font-bold uppercase text-slate-500">Paradas</span>
-              <p class="font-mono text-lg font-black text-amber-600">{{ resumoMaquinaSelecionada.paradas }}</p>
+              <span class="text-[10px] font-bold uppercase text-slate-500 dark:text-slate-400">Paradas</span>
+              <p class="font-mono text-lg font-black text-amber-600 dark:text-amber-400">{{ resumoMaquinaSelecionada.paradas }}</p>
             </div>
           </div>
 
@@ -163,21 +163,21 @@
                mesmo dia, mostra cada uma separada (não só o total somado) —
                pedido explícito do usuário. Some sozinho com sessão única. -->
           <div v-if="sessoesMaquinaSelecionadaHoje.length > 1" class="pt-1 space-y-1.5">
-            <span class="text-[10px] font-bold uppercase text-slate-500 block">Produções de Hoje ({{ sessoesMaquinaSelecionadaHoje.length }})</span>
+            <span class="text-[10px] font-bold uppercase text-slate-500 dark:text-slate-400 block">Produções de Hoje ({{ sessoesMaquinaSelecionadaHoje.length }})</span>
             <div
               v-for="(s, idx) in sessoesMaquinaSelecionadaHoje"
               :key="s.id"
-              class="flex items-center justify-between text-xs bg-white border border-slate-200 rounded-lg px-3 py-2"
+              class="flex items-center justify-between text-xs bg-white dark:bg-[#121824] border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2"
             >
               <div class="flex items-center gap-2">
-                <span class="w-5 h-5 rounded bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 font-bold text-[10px] flex items-center justify-center shrink-0">{{ idx + 1 }}</span>
-                <span class="font-mono text-slate-500">{{ formatHoraCurta(s.started_at) }} → {{ s.ended_at ? formatHoraCurta(s.ended_at) : 'Em aberto' }}</span>
+                <span class="w-5 h-5 rounded bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 font-bold text-[10px] flex items-center justify-center shrink-0">{{ idx + 1 }}</span>
+                <span class="font-mono text-slate-500 dark:text-slate-400">{{ formatHoraCurta(s.started_at) }} → {{ s.ended_at ? formatHoraCurta(s.ended_at) : 'Em aberto' }}</span>
               </div>
-              <span class="font-mono font-bold text-emerald-600">{{ (s.producao || 0).toLocaleString('pt-BR') }} un.</span>
+              <span class="font-mono font-bold text-emerald-600 dark:text-emerald-400">{{ (s.producao || 0).toLocaleString('pt-BR') }} un.</span>
             </div>
-            <div class="flex items-center justify-between text-xs px-3 pt-1 border-t border-slate-200">
-              <span class="font-bold text-slate-700 uppercase text-[10px]">Total</span>
-              <span class="font-mono font-black text-slate-900">{{ resumoMaquinaSelecionada.producao.toLocaleString('pt-BR') }} un.</span>
+            <div class="flex items-center justify-between text-xs px-3 pt-1 border-t border-slate-200 dark:border-slate-800">
+              <span class="font-bold text-slate-700 dark:text-slate-300 uppercase text-[10px]">Total</span>
+              <span class="font-mono font-black text-slate-900 dark:text-white">{{ resumoMaquinaSelecionada.producao.toLocaleString('pt-BR') }} un.</span>
             </div>
           </div>
         </div>
@@ -194,15 +194,15 @@
         class="dark-panel p-5 flex items-center justify-between gap-4 hover:border-emerald-500/40 transition-all group"
       >
         <div class="flex items-center gap-4">
-          <div class="w-11 h-11 rounded-xl bg-emerald-500/10 border border-emerald-500/40 text-emerald-600 flex items-center justify-center text-xl shrink-0">
+          <div class="w-11 h-11 rounded-xl bg-emerald-500/10 border border-emerald-500/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-xl shrink-0">
             📊
           </div>
           <div>
-            <h3 class="text-sm font-extrabold uppercase tracking-wider text-slate-900">Relatórios Detalhados</h3>
-            <p class="text-xs text-slate-500 mt-0.5">Produção, paradas e comparativo entre máquinas por dia, semana ou mês — com exportação para Excel</p>
+            <h3 class="text-sm font-extrabold uppercase tracking-wider text-slate-900 dark:text-white">Relatórios Detalhados</h3>
+            <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Produção, paradas e comparativo entre máquinas por dia, semana ou mês — com exportação para Excel</p>
           </div>
         </div>
-        <span class="text-emerald-600 text-lg font-bold shrink-0 group-hover:translate-x-1 transition-transform">→</span>
+        <span class="text-emerald-600 dark:text-emerald-400 text-lg font-bold shrink-0 group-hover:translate-x-1 transition-transform">→</span>
       </router-link>
 
       <!-- ══════════════════════════════════════════════════════════════
@@ -211,9 +211,9 @@
            DISTRIBUIÇÃO DO TEMPO ainda não foi conectada — adiado (ver plano).
            ══════════════════════════════════════════════════════════════ -->
       <div class="dark-panel p-4">
-        <h4 class="text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">
+        <h4 class="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-2">
           Produção por Hora (Hoje)
-          <span class="text-emerald-600 normal-case font-normal">— {{ maquinaSelecionada ? `Máquina ${getMachineNumber(maquinaSelecionada)}` : 'Todas as Máquinas' }}</span>
+          <span class="text-emerald-600 dark:text-emerald-400 normal-case font-normal">— {{ maquinaSelecionada ? `Máquina ${getMachineNumber(maquinaSelecionada)}` : 'Todas as Máquinas' }}</span>
         </h4>
         <HourlyProductionChart :data="producaoPorHoraChart" />
       </div>
@@ -221,7 +221,7 @@
       <!-- Resumo das 4 máquinas — produção e paradas de hoje, lado a lado.
            Fica logo acima de OCORRÊNCIAS & ALERTAS (pedido do usuário). -->
       <div v-if="store.machines.length" class="dark-panel p-4 sm:p-6">
-        <h4 class="text-xs font-extrabold uppercase tracking-wider text-slate-700 mb-3">Resumo das Máquinas (Hoje)</h4>
+        <h4 class="text-xs font-extrabold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-3">Resumo das Máquinas (Hoje)</h4>
         <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
           <div
             v-for="m in store.machines"
@@ -230,34 +230,34 @@
             :class="store.selectedStationId === m.id ? 'border-emerald-500/50' : ''"
             @click="toggleSelecaoMaquina(m.id)"
           >
-            <p class="text-[10px] font-bold uppercase text-slate-500">Máquina {{ getMachineNumber(m) }}</p>
-            <p class="font-mono text-base font-black text-emerald-600">
-              {{ (resumoPorMaquina[m.id]?.producao || 0).toLocaleString('pt-BR') }} <span class="text-[10px] text-slate-500 font-normal">un.</span>
+            <p class="text-[10px] font-bold uppercase text-slate-500 dark:text-slate-400">Máquina {{ getMachineNumber(m) }}</p>
+            <p class="font-mono text-base font-black text-emerald-600 dark:text-emerald-400">
+              {{ (resumoPorMaquina[m.id]?.producao || 0).toLocaleString('pt-BR') }} <span class="text-[10px] text-slate-500 dark:text-slate-400 font-normal">un.</span>
             </p>
-            <p class="text-[10px] text-slate-500">{{ resumoPorMaquina[m.id]?.paradas || 0 }} parada{{ (resumoPorMaquina[m.id]?.paradas || 0) !== 1 ? 's' : '' }}</p>
+            <p class="text-[10px] text-slate-500 dark:text-slate-400">{{ resumoPorMaquina[m.id]?.paradas || 0 }} parada{{ (resumoPorMaquina[m.id]?.paradas || 0) !== 1 ? 's' : '' }}</p>
           </div>
         </div>
       </div>
 
       <!-- Alertas & Ocorrências (GET /alertas/abertos) -->
       <div class="dark-panel p-6">
-        <h3 class="text-xs font-bold uppercase tracking-widest text-slate-900 mb-4 border-b border-slate-200 pb-3 flex items-center gap-2">
-          <span class="text-red-600">🚨</span> OCORRÊNCIAS & ALERTAS EM ABERTO
+        <h3 class="text-xs font-bold uppercase tracking-widest text-slate-900 dark:text-white mb-4 border-b border-slate-200 dark:border-slate-800 pb-3 flex items-center gap-2">
+          <span class="text-red-600 dark:text-red-400">🚨</span> OCORRÊNCIAS & ALERTAS EM ABERTO
         </h3>
 
         <!-- `&& !store.alerts.length`: sem isso, a lista inteira (que já
              tem alertas de verdade) sumia e virava esse texto por um
              instante a CADA ciclo do polling de 6s — só mostra a
              mensagem de carregamento na primeira busca, nunca mais depois. -->
-        <div v-if="store.loading.alerts && !store.alerts.length" class="text-slate-500 text-sm">Carregando alertas...</div>
+        <div v-if="store.loading.alerts && !store.alerts.length" class="text-slate-500 dark:text-slate-400 text-sm">Carregando alertas...</div>
 
         <div v-else-if="!store.alerts.length" class="flex items-center gap-3 py-4">
-          <div class="w-8 h-8 rounded-full bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-600 font-bold">
+          <div class="w-8 h-8 rounded-full bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-600 dark:text-emerald-400 font-bold">
             ✓
           </div>
           <div>
-            <p class="text-emerald-600 font-bold text-sm">Nenhum alerta pendente</p>
-            <p class="text-slate-500 text-xs">Fábrica operando sem interrupções críticas</p>
+            <p class="text-emerald-600 dark:text-emerald-400 font-bold text-sm">Nenhum alerta pendente</p>
+            <p class="text-slate-500 dark:text-slate-400 text-xs">Fábrica operando sem interrupções críticas</p>
           </div>
         </div>
 
@@ -265,13 +265,13 @@
           <div
             v-for="alert in store.alerts"
             :key="alert.id"
-            class="flex items-start justify-between gap-4 p-4 rounded-xl border bg-white border-red-500/30"
+            class="flex items-start justify-between gap-4 p-4 rounded-xl border bg-white dark:bg-[#121824] border-red-500/30"
           >
             <div class="flex items-start gap-3">
               <span class="mt-0.5 text-base">🔴</span>
               <div>
-                <p class="text-sm font-semibold text-slate-900">{{ alert.message || alert.descricao }}</p>
-                <p class="text-xs text-slate-500 mt-0.5">
+                <p class="text-sm font-semibold text-slate-900 dark:text-white">{{ alert.message || alert.descricao }}</p>
+                <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                   {{ alert.machine?.name || alert.maquina?.nome || 'Máquina' }}
                   — {{ formatDateTime(alert.created_at || alert.criado_em) }}
                 </p>
@@ -279,7 +279,7 @@
             </div>
             <button
               @click="acknowledgeAlert(alert.id)"
-              class="shrink-0 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-lg uppercase transition-all"
+              class="shrink-0 px-3 py-1.5 bg-slate-100 dark:bg-slate-800/60 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-bold rounded-lg uppercase transition-all"
             >
               Reconhecer
             </button>

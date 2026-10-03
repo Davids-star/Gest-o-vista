@@ -4,6 +4,13 @@ import PwaInstallBanner from './components/PwaInstallBanner.vue';
 import ConnectionStatusBanner from './components/ConnectionStatusBanner.vue';
 import AlertToast from './components/AlertToast.vue';
 import { useProductionStore } from './stores/productionStore';
+import { useTheme } from './composables/useTheme';
+
+// Aplica [data-gp-theme] em <html> uma vez, pra vida inteira do app — sem
+// isso, o atributo só existia depois que o usuário passasse por uma tela
+// que já chamava useTheme() (MobileSelector/ConfigMobile), então o Dashboard
+// e as outras telas de escritório abriam sem tema nenhum aplicado.
+useTheme();
 
 // WebSocket + polling de segurança ligam UMA vez pra vida inteira do app,
 // não por tela. Antes, cada tela (Dashboard/Estações/Metas/Totem/TV) ligava
