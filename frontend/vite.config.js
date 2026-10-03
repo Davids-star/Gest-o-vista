@@ -1,10 +1,15 @@
-import { defineConfig } from 'vite'
+import { defineConfig, loadEnv } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import tailwindcss from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa'
 
 // https://vite.dev/config/
-export default defineConfig({
+export default defineConfig(({ mode }) => {
+  // Build de produção sem API definida: o app cairia em host:3000 do próprio site.
+  if (mode === 'production' && !loadEnv(mode, '..', 'VITE_API_URL').VITE_API_URL) {
+    console.warn('\n[build] VITE_API_URL não definido: o frontend tentará a API em host:3000. Defina no painel do Render.\n')
+  }
+  return {
   // Um único .env, na raiz do projeto (ver .env.example).
   envDir: '..',
   plugins: [
@@ -85,4 +90,5 @@ export default defineConfig({
     host: true, // Ou '0.0.0.0' para permitir acesso pela rede local (ex: celular)
     port: 5173,
   },
+}
 })
