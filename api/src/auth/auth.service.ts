@@ -1,6 +1,9 @@
 import { Injectable, UnauthorizedException, NotFoundException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 import { UsuariosService } from '../usuarios/usuarios.service';
+import { Company } from '../database/entities/company.entity';
 import { User as Usuario } from '../database/entities/user.entity';
 
 @Injectable()
@@ -8,7 +11,17 @@ export class AuthService {
   constructor(
     private readonly usuariosService: UsuariosService,
     private readonly jwtService: JwtService,
+    @InjectRepository(Company)
+    private readonly companyRepo: Repository<Company>,
   ) {}
+
+  /** Contexto usado só no modo local sem token (ver modo-local.ts). */
+  async obterContextoLocal() {
+    const [empresa] = await this.companyRepo.find({ order: { created_at: 'ASC' }, take: 1 });
+    if (!empresa) return null;
+    const usuario = await this.usuariosService.obterOuCriarUsuarioDispositivo(empresa.id);
+    return { id: usuario.id, companyId: usuario.company_id, role: 'operador', email: usuario.email ?? '' };
+  }
 
   /** Valida email + senha e retorna o token JWT e dados do usuário */
   async login(email: string, senha: string) {

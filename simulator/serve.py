@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-serve.py — Sensor (USB) → MQTT → API
+serve.py — Sensor (USB) → API (HTTP, com fila local)
 
 Lê a porta serial de um sensor de contagem ligado por cabo USB (em vez
 do ESP32 por WiFi) e publica cada peça detectada no broker MQTT
@@ -50,6 +50,8 @@ import socket
 import termios
 import threading
 import time
+import urllib.error
+import urllib.request
 import uuid
 from datetime import datetime, timezone
 
@@ -73,6 +75,30 @@ HEARTBEAT_SECONDS = 10
 # uma limitação de hardware que não dá pra resolver por software nenhum).
 FILA_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "fila_eventos.jsonl")
 FILA_RETRY_SECONDS = 10  # de quanto em quanto tempo tenta esvaziar a fila sozinha
+
+# ── API ──────────────────────────────────────────────────────────────────
+# Para onde as peças são enviadas. Padrão: API local. Para a nuvem, defina
+# as variáveis só no terminal (não grave o token em arquivo):
+#   GP_API_URL=https://gest-o-vista.onrender.com GP_DEVICE_TOKEN=... python3 serve.py
+# GP_MACHINE_CODE é o código da máquina cadastrada (ex.: MQ-01).
+def _ler_env_raiz():
+    caminho = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".env")
+    valores = {}
+    if os.path.exists(caminho):
+        with open(caminho, "r", encoding="utf-8") as f:
+            for linha in f:
+                linha = linha.strip()
+                if linha and not linha.startswith("#") and "=" in linha:
+                    chave, valor = linha.split("=", 1)
+                    valores[chave.strip()] = valor.strip()
+    return valores
+
+_ENV_RAIZ = _ler_env_raiz()
+API_URL = os.environ.get("GP_API_URL") or _ENV_RAIZ.get("GP_API_URL") or "http://localhost:3000"
+DEVICE_TOKEN = os.environ.get("GP_DEVICE_TOKEN") or _ENV_RAIZ.get("GP_DEVICE_TOKEN") or ""
+MACHINE_CODE = os.environ.get("GP_MACHINE_CODE") or _ENV_RAIZ.get("GP_MACHINE_CODE") or "MQ-01"
+# Peças que a API recusou de vez (ex.: turno encerrado). Ficam aqui para auditoria.
+REJEITADOS_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "eventos_rejeitados.jsonl")
 
 
 # ============================================================
@@ -216,6 +242,46 @@ def enfileirar_producao(quantidade: int):
         estado["fila_pendente"] = len(eventos)
 
 
+def api_chamar(metodo: str, caminho: str, corpo=None):
+    """Chama a API com o token do dispositivo. Devolve (status, resposta).
+    Erro de rede/timeout propaga como exceção (o chamador trata)."""
+    dados = json.dumps(corpo).encode("utf-8") if corpo is not None else None
+    req = urllib.request.Request(
+        API_URL.rstrip("/") + caminho,
+        data=dados,
+        method=metodo,
+        headers={"Content-Type": "application/json", "Authorization": f"Bearer {DEVICE_TOKEN}"},
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=15) as r:
+            corpo_resp = r.read()
+            return r.status, (json.loads(corpo_resp) if corpo_resp else None)
+    except urllib.error.HTTPError as erro:
+        return erro.code, erro.read().decode("utf-8", errors="ignore")
+
+
+def contexto_da_maquina():
+    """(machine_id, session_id) da máquina configurada, ou None se não houver turno aberto."""
+    status, maquinas = api_chamar("GET", "/machines")
+    if status != 200:
+        raise RuntimeError(f"API respondeu {status} ao listar máquinas (token ou URL?)")
+    maquina = next((m for m in maquinas if m.get("code") == MACHINE_CODE), None)
+    if not maquina:
+        raise RuntimeError(f"máquina {MACHINE_CODE} não cadastrada na API")
+    status, sessoes = api_chamar("GET", "/production-sessions")
+    if status != 200:
+        raise RuntimeError(f"API respondeu {status} ao listar sessões")
+    ativa = next((s for s in sessoes if s.get("machine_id") == maquina["id"] and s.get("status") == "active"), None)
+    if not ativa:
+        return None
+    return maquina["id"], ativa["id"]
+
+
+def registrar_rejeitado(evento: dict, motivo):
+    with open(REJEITADOS_PATH, "a", encoding="utf-8") as f:
+        f.write(json.dumps({"evento": evento, "motivo": motivo, "em": datetime.now(timezone.utc).isoformat()}, ensure_ascii=False) + "\n")
+
+
 def tentar_esvaziar_fila():
     """
     Tenta publicar, em ordem, cada evento ainda pendente na fila. Para
@@ -231,10 +297,33 @@ def tentar_esvaziar_fila():
         restantes = list(eventos)
         for evento in eventos:
             try:
-                mqtt_publish(f"gp/{DEVICE_ID}/production", json.dumps(evento))
+                contexto = contexto_da_maquina()
+                if contexto is None:
+                    raise RuntimeError(f"sem turno aberto para {MACHINE_CODE} na API")
+                machine_id, session_id = contexto
+                status, resposta = api_chamar("POST", "/production-events", {
+                    "session_id": session_id,
+                    "machine_id": machine_id,
+                    "event_uid": evento["event_uid"],
+                    "quantity": evento["quantity"],
+                    "occurred_at": evento["occurred_at"],
+                    "source": "sensor",
+                })
             except Exception as error:
                 with estado_lock:
-                    estado["ultimo_erro"] = f"Fila com {len(restantes)} pendente(s) — falha ao publicar: {error}"
+                    estado["ultimo_erro"] = f"Fila com {len(restantes)} pendente(s) — falha ao enviar: {error}"
+                break
+            if status in (400, 404):
+                # Recusa definitiva (ex.: sessão encerrada): não adianta tentar de novo.
+                registrar_rejeitado(evento, resposta)
+                restantes.pop(0)
+                with estado_lock:
+                    estado["ultimo_erro"] = f"Peça recusada pela API ({status}), guardada em eventos_rejeitados.jsonl"
+                continue
+            if not (200 <= status < 300):
+                # 401/403/5xx: token, permissão ou servidor — mantém na fila e tenta depois.
+                with estado_lock:
+                    estado["ultimo_erro"] = f"Fila com {len(restantes)} pendente(s) — API respondeu {status}"
                 break
             restantes.pop(0)
             with estado_lock:

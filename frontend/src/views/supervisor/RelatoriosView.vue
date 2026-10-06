@@ -85,6 +85,7 @@
           :data="tabAtivo === 'semana' ? store.apontamentoSemanal : store.apontamentoMensal"
           :loading="tabAtivo === 'semana' ? store.loading.apontamentoSemanal : store.loading.apontamentoMensal"
           :error="tabAtivo === 'semana' ? store.errors.apontamentoSemanal : store.errors.apontamentoMensal"
+          :anterior="anterior"
           :shifts="store.shifts"
           :machines="store.machines"
           @consultar="(filtros) => consultarPeriodo(tabAtivo, filtros)"
@@ -103,6 +104,7 @@ import DailyReportPanel from '../../components/DailyReportPanel.vue';
 import PeriodReportPanel from '../../components/PeriodReportPanel.vue';
 import { exportarApontamentoExcel } from '../../utils/exportarApontamentoExcel';
 import { hojeIso } from '../../composables/useFormatters';
+import { apontamentoApi } from '../../services/api';
 
 const store = useProductionStore();
 
@@ -117,9 +119,39 @@ const consultarDia = () => {
   store.fetchApontamento({ date: diaData.value, shift_id: diaTurnoId.value || undefined, machine_id: diaMachineId.value || undefined });
 };
 
+// Período anterior (semana passada ou mês passado) com os mesmos filtros,
+// para o comparativo do painel. Falha aqui não quebra o relatório atual.
+const anterior = ref(null);
+const isoDeData = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+const carregarAnterior = async (periodo, filtros = {}) => {
+  const base = {
+    shift_id: filtros.shift_id || undefined,
+    machine_id: filtros.machine_id || undefined,
+    product_id: filtros.product_id || undefined,
+    lot_id: filtros.lot_id || undefined,
+  };
+  try {
+    if (periodo === 'semana') {
+      const [ano, mes, dia] = (filtros.date || hojeIso()).split('-').map(Number);
+      const data = new Date(ano, mes - 1, dia);
+      data.setDate(data.getDate() - 7);
+      anterior.value = await apontamentoApi.semanal({ ...base, date: isoDeData(data) });
+    } else {
+      const ano = filtros.year ?? new Date().getFullYear();
+      const mes = filtros.month ?? new Date().getMonth() + 1;
+      const anteriorMes = mes === 1 ? 12 : mes - 1;
+      const anteriorAno = mes === 1 ? ano - 1 : ano;
+      anterior.value = await apontamentoApi.mensal({ ...base, year: anteriorAno, month: anteriorMes });
+    }
+  } catch {
+    anterior.value = null;
+  }
+};
+
 const consultarPeriodo = (periodo, filtros) => {
   if (periodo === 'semana') store.fetchApontamentoSemanal(filtros);
   else store.fetchApontamentoMensal(filtros);
+  carregarAnterior(periodo, filtros);
 };
 
 // Ao trocar de aba pela primeira vez, já carrega o período atual (semana/mês
@@ -127,10 +159,15 @@ const consultarPeriodo = (periodo, filtros) => {
 // aparecia vazia ("Nenhum dado encontrado") mesmo quando existia produção
 // real no período, só porque ninguém tinha buscado ainda.
 watch(tabAtivo, (novo) => {
-  if (novo === 'semana' && !store.apontamentoSemanal) store.fetchApontamentoSemanal({});
+  if (novo === 'semana' && !store.apontamentoSemanal) {
+    store.fetchApontamentoSemanal({});
+    carregarAnterior('semana', {});
+  }
   if (novo === 'mes' && !store.apontamentoMensal) {
     const agora = new Date();
-    store.fetchApontamentoMensal({ year: agora.getFullYear(), month: agora.getMonth() + 1 });
+    const filtros = { year: agora.getFullYear(), month: agora.getMonth() + 1 };
+    store.fetchApontamentoMensal(filtros);
+    carregarAnterior('mes', filtros);
   }
 });
 

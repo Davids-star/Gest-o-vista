@@ -107,6 +107,55 @@
         </div>
       </div>
 
+      <!-- Comparativo com o período anterior -->
+      <div v-if="comparativos.length" class="dark-panel p-4 space-y-3">
+        <h4 class="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
+          Comparativo com {{ periodo === 'semana' ? 'a semana anterior' : 'o mês anterior' }}
+        </h4>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div v-for="item in comparativos" :key="item.label" class="rounded-xl border border-slate-200 dark:border-slate-800 p-3">
+            <span class="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">{{ item.label }}</span>
+            <p class="font-mono text-xl font-black text-slate-900 dark:text-white">{{ item.atualTexto }}</p>
+            <p class="text-xs text-slate-500 dark:text-slate-400">antes: {{ item.anteriorTexto }}</p>
+            <p class="text-xs font-bold mt-1" :class="item.corVariacao">{{ item.variacaoTexto }}</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Motivo com mais parada no período -->
+      <div v-if="motivoTop" class="dark-panel p-4 border-l-4 border-red-500">
+        <span class="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Motivo com mais parada no período</span>
+        <p class="text-xl font-black text-slate-900 dark:text-white mt-1">{{ motivoTop.label }}</p>
+        <p class="text-sm text-slate-600 dark:text-slate-300">
+          {{ formatDuracao(motivoTop.segundos) }} parado — {{ motivoTop.percentual }}% do tempo parado total
+        </p>
+      </div>
+
+      <!-- Tempo parado por dia -->
+      <div class="dark-panel p-4">
+        <h4 class="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-3">Tempo parado por dia</h4>
+        <div class="overflow-x-auto">
+          <table class="w-full text-xs">
+            <thead>
+              <tr class="text-left text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                <th class="py-2 pr-3">Dia</th>
+                <th class="py-2 pr-3 text-right">Produção</th>
+                <th class="py-2 pr-3 text-right">T. Produzido</th>
+                <th class="py-2 text-right">T. Parado</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="d in diasTabela" :key="d.data" class="border-t border-slate-200 dark:border-slate-800">
+                <td class="py-2 pr-3 font-mono text-slate-900 dark:text-white">{{ d.data }}</td>
+                <td class="py-2 pr-3 text-right font-mono text-slate-900 dark:text-white">{{ d.producao.toLocaleString('pt-BR') }}</td>
+                <td class="py-2 pr-3 text-right font-mono text-slate-900 dark:text-white">{{ formatDuracao(d.produzido) }}</td>
+                <td class="py-2 text-right font-mono" :class="d.parado > 0 ? 'text-red-600 dark:text-red-400' : 'text-slate-500'">{{ formatDuracao(d.parado) }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
       <!-- Tabela comparativa: produção por dia, lado a lado por máquina -->
       <div v-if="data.por_maquina_por_dia?.length > 1" class="dark-panel p-4">
         <h4 class="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-3">
@@ -165,6 +214,8 @@ const props = defineProps({
   data: { type: Object, default: null },
   loading: { type: Boolean, default: false },
   error: { type: String, default: null },
+  // Dados do período anterior (semana/mês passado) pro comparativo.
+  anterior: { type: Object, default: null },
   shifts: { type: Array, default: () => [] },
   machines: { type: Array, default: () => [] },
   // 'semana' ou 'mes' — troca o seletor de período e como `consultar` monta
@@ -209,6 +260,52 @@ const formatarDataBr = (dataIso) => {
   const [ano, mes, dia] = dataIso.split('-');
   return `${dia}/${mes}/${ano}`;
 };
+
+// Comparativo: "menorMelhor" inverte a cor (ex.: mais tempo parado é ruim).
+const comparar = (label, atual, anterior, menorMelhor, formatar) => {
+  let variacaoTexto = 'sem base';
+  let corVariacao = 'text-slate-500';
+  if (anterior > 0) {
+    const pct = Math.round(((atual - anterior) / anterior) * 1000) / 10;
+    const subiu = pct > 0;
+    variacaoTexto = `${subiu ? '▲' : pct < 0 ? '▼' : '='} ${Math.abs(pct)}%`;
+    const bom = menorMelhor ? !subiu : subiu;
+    if (pct !== 0) corVariacao = bom ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400';
+  } else if (atual > 0) {
+    variacaoTexto = 'novo no período';
+  }
+  return { label, atualTexto: formatar(atual), anteriorTexto: formatar(anterior), variacaoTexto, corVariacao };
+};
+
+const comparativos = computed(() => {
+  if (!props.anterior || !props.data) return [];
+  const a = props.data.resumo;
+  const b = props.anterior.resumo;
+  return [
+    comparar('Produção', a.producao, b.producao, false, (n) => (n || 0).toLocaleString('pt-BR')),
+    comparar('Tempo parado', a.tempo_parado_segundos, b.tempo_parado_segundos, true, (n) => formatDuracao(n || 0)),
+    comparar('Paradas', a.paradas, b.paradas, true, (n) => String(n || 0)),
+  ];
+});
+
+// Motivo que mais parou a máquina no período (lista já vem ordenada por segundos).
+const motivoTop = computed(() => {
+  const motivos = props.data?.paradas_por_motivo || [];
+  if (!motivos.length) return null;
+  const total = motivos.reduce((acc, m) => acc + m.segundos, 0);
+  const top = motivos[0];
+  return { label: top.label, segundos: top.segundos, percentual: total ? Math.round((top.segundos / total) * 1000) / 10 : 0 };
+});
+
+// Tempo parado por dia do período (um dia sem parada aparece como 0).
+const diasTabela = computed(() =>
+  (props.data?.producao_por_dia || []).map((d) => ({
+    data: formatarDataBr(d.data),
+    producao: d.producao,
+    produzido: d.tempo_produzido_segundos,
+    parado: d.tempo_parado_segundos,
+  })),
+);
 
 const producaoPorMaquinaChart = computed(() =>
   (props.data?.por_maquina || []).map((m) => ({ name: m.machine_code, value: m.producao })),

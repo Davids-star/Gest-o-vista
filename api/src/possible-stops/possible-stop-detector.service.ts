@@ -78,6 +78,8 @@ export class PossibleStopDetectorService implements OnModuleInit, OnModuleDestro
           this.logger.error(`Erro verificando sessão ${sessao.id}: ${err.message}`, err.stack);
         }
       }
+    } catch (err: any) {
+      this.logger.error(`Erro na varredura de possíveis paradas: ${err.message}`, err.stack);
     } finally {
       this.rodando = false;
     }

@@ -8,6 +8,8 @@ import { Logger } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { Server, Socket } from 'socket.io';
 import { corsOrigins } from '../common/config/cors.config';
+import { AuthService } from '../auth/auth.service';
+import { modoLocalSemToken } from '../auth/modo-local';
 
 /**
  * Canal de tempo real do sistema GP.
@@ -39,14 +41,25 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayDisconnect
 
   private readonly logger = new Logger(RealtimeGateway.name);
 
-  constructor(private readonly jwtService: JwtService) {}
+  constructor(
+    private readonly jwtService: JwtService,
+    private readonly authService: AuthService,
+  ) {}
 
   /**
    * Sem token válido a conexão é recusada. Não existe mais fallback anônimo:
    * qualquer cliente anônimo recebendo eventos da empresa era vazamento.
    */
-  handleConnection(client: Socket) {
+  async handleConnection(client: Socket) {
     const token = this.extractToken(client);
+    if (!token && modoLocalSemToken()) {
+      const contexto = await this.authService.obterContextoLocal();
+      if (contexto) {
+        client.data.companyId = contexto.companyId;
+        client.join(this.roomFor(contexto.companyId));
+        return;
+      }
+    }
     if (!token) {
       this.logger.warn('Conexão WS recusada: sem token');
       client.disconnect(true);

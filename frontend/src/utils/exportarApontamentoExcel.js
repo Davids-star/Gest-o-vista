@@ -19,7 +19,16 @@ function linha(celulas) {
     : { type: String, value: v == null ? '' : String(v) }));
 }
 
-function sheetResumo(resumo) {
+// Motivo que mais parou a máquina no período (lista já vem ordenada por tempo).
+function motivoPrincipal(paradasPorMotivo) {
+  const motivos = paradasPorMotivo || [];
+  if (!motivos.length) return null;
+  const total = motivos.reduce((acc, m) => acc + (m.segundos || 0), 0);
+  const top = motivos[0];
+  return { label: top.label, segundos: top.segundos, percentual: total ? Math.round((top.segundos / total) * 1000) / 10 : 0 };
+}
+
+function sheetResumo(resumo, paradasPorMotivo) {
   const linhas = [cabecalho(['Indicador', 'Valor'])];
   linhas.push(linha(['Produção', resumo.producao]));
   linhas.push(linha(['Tempo Produzido', formatDuracao(resumo.tempo_produzido_segundos)]));
@@ -29,6 +38,12 @@ function sheetResumo(resumo) {
   if (resumo.operadores != null) linhas.push(linha(['Operadores', resumo.operadores]));
   if (resumo.maquinas_utilizadas != null) linhas.push(linha(['Máquinas Utilizadas', resumo.maquinas_utilizadas]));
   if (resumo.lotes != null) linhas.push(linha(['Lotes', resumo.lotes]));
+  const principal = motivoPrincipal(paradasPorMotivo);
+  if (principal) {
+    linhas.push(linha(['Motivo com mais parada', principal.label]));
+    linhas.push(linha(['Tempo desse motivo', formatDuracao(principal.segundos)]));
+    linhas.push(linha(['% do tempo parado', `${principal.percentual}%`]));
+  }
   return { sheet: 'Resumo', data: linhas };
 }
 
@@ -123,6 +138,50 @@ function sheetParadasPorMotivo(paradasPorMotivo) {
   return { sheet: 'Paradas por Motivo', data: linhas };
 }
 
+// ── Visual ──────────────────────────────────────────────────────────────
+// Cabeçalho verde escuro com texto branco, linhas alternadas, bordas finas,
+// números com separador de milhar alinhados à direita, largura de coluna
+// pelo conteúdo e cabeçalho fixo ao rolar. Só muda aparência — os dados são os mesmos.
+const COR = {
+  cabecalho: '#0F766E',
+  cabecalhoTexto: '#FFFFFF',
+  zebra: '#F1F5F9',
+  linha: '#FFFFFF',
+  borda: '#CBD5E1',
+  texto: '#0F172A',
+};
+
+function estilizarPlanilha({ sheet, data }) {
+  const colunas = data[0]?.length || 0;
+  const larguras = Array.from({ length: colunas }, (_, c) => {
+    const maior = Math.max(...data.map((linhaAtual) => String(linhaAtual[c]?.value ?? '').length));
+    return { width: Math.min(45, Math.max(12, maior + 4)) };
+  });
+
+  const estiloDaCelula = (celula, indice, cabecalho) => ({
+    ...celula,
+    fontFamily: 'Calibri',
+    fontSize: cabecalho ? 11 : 10,
+    fontWeight: cabecalho ? 'bold' : celula.fontWeight,
+    textColor: cabecalho ? COR.cabecalhoTexto : COR.texto,
+    backgroundColor: cabecalho ? COR.cabecalho : (indice % 2 === 0 ? COR.zebra : COR.linha),
+    borderStyle: 'thin',
+    borderColor: COR.borda,
+    alignVertical: 'center',
+    align: cabecalho ? 'center' : (celula.type === Number ? 'right' : 'left'),
+    ...(celula.type === Number ? { format: '#,##0' } : {}),
+    ...(cabecalho ? { height: 24 } : {}),
+  });
+
+  return {
+    sheet,
+    columns: larguras,
+    stickyRowsCount: 1,
+    showGridLines: false,
+    data: data.map((linhaAtual, i) => linhaAtual.map((celula) => estiloDaCelula(celula, i - 1, i === 0))),
+  };
+}
+
 /**
  * Exporta o relatório carregado na tela (aba Dia, Semana ou Mês) pra um
  * .xlsx com uma planilha por tópico — mesma lógica de agregação já
@@ -141,7 +200,7 @@ export async function exportarApontamentoExcel({ periodo, dados, machines = [], 
       sheetParadasDia(dados.paradas, machines),
     ]
     : [
-      sheetResumo(dados.resumo),
+      sheetResumo(dados.resumo, periodo === 'mes' ? dados.paradas_por_motivo : null),
       sheetProducaoPorDia(dados.producao_por_dia),
       sheetPorMaquina(dados.por_maquina),
       sheetPorMaquinaPorDia(dados.por_maquina_por_dia),
@@ -149,5 +208,5 @@ export async function exportarApontamentoExcel({ periodo, dados, machines = [], 
     ];
 
   const sufixo = rotulo ? `_${rotulo.replace(/[^\d\w-]+/g, '_')}` : '';
-  await writeExcelFile(sheets).toFile(`Relatorio_Apontamento${sufixo}.xlsx`);
+  await writeExcelFile(sheets.map(estilizarPlanilha)).toFile(`Relatorio_Apontamento${sufixo}.xlsx`);
 }

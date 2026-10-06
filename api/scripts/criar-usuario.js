@@ -1,5 +1,5 @@
 // Cria um usuário (supervisor ou administrador) no banco do .env da raiz.
-// Uso: node scripts/criar-usuario.js
+// Uso: node scripts/criar-usuario.js   (ou DATABASE_URL=... node scripts/criar-usuario.js)
 // A senha é digitada aqui e não aparece na tela nem fica salva em arquivo.
 const fs = require('fs');
 const path = require('path');
@@ -35,10 +35,14 @@ function perguntar(texto, oculta = false) {
   if (senha.length < 8) throw new Error('A senha precisa de pelo menos 8 caracteres');
   if (senha !== confirma) throw new Error('As senhas não batem');
 
-  const c = new Client({
-    host: env.DB_HOST, port: Number(env.DB_PORT), user: env.DB_USERNAME,
-    password: env.DB_PASSWORD, database: env.DB_NAME, ssl: env.DB_SSL === 'true' ? { rejectUnauthorized: true } : false,
-  });
+  // Por padrão usa o banco do .env. Para outro banco (ex.: Neon), passe DATABASE_URL na linha de comando.
+  const url = process.env.DATABASE_URL;
+  const c = url
+    ? new Client({ connectionString: url, ssl: { rejectUnauthorized: true } })
+    : new Client({
+        host: env.DB_HOST, port: Number(env.DB_PORT), user: env.DB_USERNAME,
+        password: env.DB_PASSWORD, database: env.DB_NAME, ssl: env.DB_SSL === 'true' ? { rejectUnauthorized: true } : false,
+      });
   await c.connect();
   try {
     const empresa = await c.query('select id from companies order by created_at limit 1');

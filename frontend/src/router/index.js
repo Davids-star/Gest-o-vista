@@ -1,5 +1,6 @@
 import { createRouter, createWebHashHistory } from 'vue-router';
 import { useAuth } from '../composables/useAuth';
+import { DEVICE_TOKEN } from '../config/env.js';
 
 // Único manifest.webmanifest pra tudo (gerado pelo vite-plugin-pwa) — nada
 // de trocar `<link rel="manifest">` em runtime: em Chrome/Android real, o
@@ -19,6 +20,7 @@ import ApontamentoView from '../views/supervisor/ApontamentoView.vue';
 import RelatoriosView from '../views/supervisor/RelatoriosView.vue';
 import MetasView from '../views/supervisor/MetasView.vue';
 import AlertasView from '../views/supervisor/AlertasView.vue';
+import MaquinasView from '../views/supervisor/MaquinasView.vue';
 import EstacoesView from '../views/supervisor/EstacoesView.vue';
 import LoteDetalheView from '../views/supervisor/LoteDetalheView.vue';
 
@@ -72,6 +74,12 @@ const routes = [
   // Relatórios (dia/semana/mês, comparativo por máquina, exportação Excel)
   // — diferente de /apontamento (operação do dia a dia, só supervisor),
   // esta é análise/histórico e vale tanto pra supervisor quanto admin.
+  {
+    path: '/maquinas',
+    name: 'Maquinas',
+    component: MaquinasView,
+    meta: { requiresAuth: true, roles: ['supervisor', 'administrador', 'admin'] },
+  },
   {
     path: '/relatorios',
     name: 'Relatorios',
@@ -154,6 +162,13 @@ function ativarDispositivoSeNecessario(to) {
 
 // ── Guard JWT ─────────────────────────────────────────────────────────────
 router.beforeEach((to, _from, next) => {
+  // Totem no PWA (desenvolvimento local): sem sessão, usa o token de dispositivo
+  // do .env. No APK isso já acontece no main.js. Em produção (build) o token não entra.
+  if (to.path.startsWith('/totem') && import.meta.env.DEV && DEVICE_TOKEN) {
+    const { isLoggedIn, setSession } = useAuth();
+    if (!isLoggedIn.value) setSession({ name: 'Dispositivo (Totem, dev)', role: 'operador' }, DEVICE_TOKEN);
+  }
+
   if (ativarDispositivoSeNecessario(to)) {
     const { device_token, ...restoQuery } = to.query;
     return next({ path: to.path, query: restoQuery, params: to.params, replace: true });
