@@ -3,6 +3,7 @@ import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { AuthModule } from '../auth/auth.module';
 import { RealtimeGateway } from './realtime.gateway';
+import { DevicesModule } from '../devices/devices.module';
 
 /**
  * @Global(): registrado uma única vez em AppModule e disponível para
@@ -13,6 +14,7 @@ import { RealtimeGateway } from './realtime.gateway';
 @Module({
   imports: [
     AuthModule,
+    DevicesModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],

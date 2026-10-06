@@ -44,6 +44,7 @@ export const BLUETOOTH_DEVICE_NAME = env.VITE_BLUETOOTH_DEVICE_NAME || 'HC-06';
  * Token do aparelho Totem (APK), definido no build (.env.android.local).
  * Só o app nativo usa; a PWA não recebe este valor.
  */
+export const DEVICE_ID = env.VITE_DEVICE_ID || '';
 export const DEVICE_TOKEN = env.VITE_DEVICE_TOKEN || '';
 
 /** Intervalo de tentativa de envio da fila para a API (ms). */

@@ -10,6 +10,7 @@ import { Server, Socket } from 'socket.io';
 import { corsOrigins } from '../common/config/cors.config';
 import { AuthService } from '../auth/auth.service';
 import { modoLocalSemToken } from '../auth/modo-local';
+import { DevicesService } from '../devices/devices.service';
 
 /**
  * Canal de tempo real do sistema GP.
@@ -44,6 +45,7 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayDisconnect
   constructor(
     private readonly jwtService: JwtService,
     private readonly authService: AuthService,
+    private readonly devicesService: DevicesService,
   ) {}
 
   /**
@@ -61,6 +63,20 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayDisconnect
       }
     }
     if (!token) {
+      // Token por dispositivo: auth.deviceId + auth.deviceToken no handshake.
+      const deviceId = client.handshake.auth?.deviceId as string | undefined;
+      const deviceToken = client.handshake.auth?.deviceToken as string | undefined;
+      if (deviceId && deviceToken) {
+        const dispositivo = await this.devicesService.validarDeviceToken(deviceId, deviceToken);
+        if (dispositivo) {
+          client.data.companyId = dispositivo.machine.company_id;
+          client.join(this.roomFor(dispositivo.machine.company_id));
+          return;
+        }
+        this.logger.warn('Conexão WS recusada: dispositivo inválido ou revogado');
+        client.disconnect(true);
+        return;
+      }
       this.logger.warn('Conexão WS recusada: sem token');
       client.disconnect(true);
       return;

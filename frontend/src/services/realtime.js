@@ -10,6 +10,7 @@
 import { ref } from 'vue';
 import { io } from 'socket.io-client';
 import { BASE_URL, getToken } from './api';
+import { DEVICE_ID, DEVICE_TOKEN } from '../config/env';
 
 let socket = null;
 
@@ -45,7 +46,7 @@ export function connectRealtime(handlers = {}) {
   realtimeAttempted.value = true;
 
   socket = io(BASE_URL, {
-    auth: token ? { token } : {},
+    auth: token ? { token } : (DEVICE_ID && DEVICE_TOKEN ? { deviceId: DEVICE_ID, deviceToken: DEVICE_TOKEN } : {}),
     transports: ['websocket'],
     reconnection: true,
     reconnectionDelay: 1000,

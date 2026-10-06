@@ -1,9 +1,10 @@
-import { Injectable, ExecutionContext } from '@nestjs/common';
+import { Injectable, ExecutionContext, UnauthorizedException } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { Reflector } from '@nestjs/core';
 import { IS_PUBLIC_KEY } from '../common/decorators/public.decorator';
 import { AuthService } from './auth.service';
 import { modoLocalSemToken } from './modo-local';
+import { DevicesService } from '../devices/devices.service';
 
 /**
  * Todas as rotas exigem token válido (usuário logado ou token de dispositivo),
@@ -12,7 +13,11 @@ import { modoLocalSemToken } from './modo-local';
  */
 @Injectable()
 export class JwtAuthGuard extends AuthGuard('jwt') {
-  constructor(private reflector: Reflector, private readonly authService: AuthService) {
+  constructor(
+    private reflector: Reflector,
+    private readonly authService: AuthService,
+    private readonly devicesService: DevicesService,
+  ) {
     super();
   }
 
@@ -23,8 +28,25 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
     ]);
     if (isPublic) return true;
 
-    // Modo local (só em desenvolvimento, ver modo-local.ts): sem token, entra como operador local.
     const request = context.switchToHttp().getRequest();
+
+    // Token por dispositivo (tablet/celular): X-Device-Id + X-Device-Token.
+    // Revogado (active = false) ou inválido → 401, mesmo em modo local.
+    const deviceId = request.headers?.['x-device-id'];
+    const deviceToken = request.headers?.['x-device-token'];
+    if (!request.headers?.authorization && deviceId && deviceToken) {
+      const dispositivo = await this.devicesService.validarDeviceToken(String(deviceId), String(deviceToken));
+      if (!dispositivo) throw new UnauthorizedException('Dispositivo inválido ou revogado');
+      request.user = {
+        id: dispositivo.id,
+        companyId: dispositivo.machine.company_id,
+        role: 'operador',
+        email: dispositivo.identifier,
+      };
+      return true;
+    }
+
+    // Modo local (só em desenvolvimento, ver modo-local.ts): sem token, entra como operador local.
     if (!request.headers?.authorization && modoLocalSemToken()) {
       const contexto = await this.authService.obterContextoLocal();
       if (contexto) {

@@ -8,7 +8,7 @@
  * - Pinia NUNCA é o banco de dados — toda escrita vai para a API
  */
 
-import { API_URL } from '../config/env';
+import { API_URL, DEVICE_ID, DEVICE_TOKEN } from '../config/env';
 
 export const BASE_URL = API_URL;
 
@@ -25,9 +25,13 @@ export function getToken() {
 
 async function request(endpoint, options = {}) {
   const token = getToken();
+  // Sem login, o aparelho (Totem) se identifica com o próprio id e token.
+  const credenciaisDoAparelho = !token && DEVICE_ID && DEVICE_TOKEN
+    ? { 'X-Device-Id': DEVICE_ID, 'X-Device-Token': DEVICE_TOKEN }
+    : {};
   const headers = {
     'Content-Type': 'application/json',
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    ...(token ? { Authorization: `Bearer ${token}` } : credenciaisDoAparelho),
     ...options.headers,
   };
 

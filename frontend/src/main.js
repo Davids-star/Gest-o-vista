@@ -5,16 +5,6 @@ import './style.css'
 import App from './App.vue'
 import router from './router'
 import { isNativeApp } from './config/platform.js'
-import { DEVICE_TOKEN } from './config/env.js'
-import { useAuth } from './composables/useAuth'
-
-// APK = Totem: entra já autenticado como dispositivo, sem tela de ativação.
-if (isNativeApp() && DEVICE_TOKEN) {
-  const { token, setSession } = useAuth()
-  if (token.value !== DEVICE_TOKEN) {
-    setSession({ name: 'Dispositivo (Totem)', role: 'operador' }, DEVICE_TOKEN)
-  }
-}
 
 const app = createApp(App)
 app.use(createPinia())
