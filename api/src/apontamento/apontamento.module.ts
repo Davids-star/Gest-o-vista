@@ -5,11 +5,12 @@ import { ProductionEvent } from '../database/entities/production-event.entity';
 import { Stop } from '../database/entities/stop.entity';
 import { AuditLog } from '../database/entities/audit-log.entity';
 import { User } from '../database/entities/user.entity';
+import { PossibleStop } from '../database/entities/possible-stop.entity';
 import { ApontamentoService } from './apontamento.service';
 import { ApontamentoController } from './apontamento.controller';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([ProductionSession, ProductionEvent, Stop, AuditLog, User])],
+  imports: [TypeOrmModule.forFeature([ProductionSession, ProductionEvent, Stop, AuditLog, User, PossibleStop])],
   providers: [ApontamentoService],
   controllers: [ApontamentoController],
 })

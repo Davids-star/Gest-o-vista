@@ -15,6 +15,8 @@ export enum PossibleStopStatus {
   PENDING = 'pending',
   CONFIRMED = 'confirmed',
   DISMISSED = 'dismissed',
+  /** A produção voltou sozinha antes de alguém classificar: o intervalo parado continua valendo como parada sem motivo. */
+  AUTO_RESOLVED = 'auto_resolved',
 }
 
 @Entity('possible_stops')

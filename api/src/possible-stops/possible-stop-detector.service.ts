@@ -125,10 +125,11 @@ export class PossibleStopDetectorService implements OnModuleInit, OnModuleDestro
     });
     if (jaPendente) {
       // A produção voltou sozinha (chegou evento novo) antes de alguém
-      // confirmar ou descartar — cancela a suspeita automaticamente, ela
-      // mesma sabe que não era uma parada de verdade.
+      // confirmar ou descartar — encerra a suspeita. O intervalo sem produção
+      // NÃO some: continua contando como tempo parado (sem motivo) no apontamento
+      // (antes era 'dismissed' e esse tempo parado desaparecia do dashboard).
       if (segundosSemProducao < STOP_DETECTION_SECONDS) {
-        jaPendente.status = PossibleStopStatus.DISMISSED;
+        jaPendente.status = PossibleStopStatus.AUTO_RESOLVED;
         jaPendente.resolved_at = agora;
         await this.possibleStopRepo.save(jaPendente);
         this.realtime.emitToCompany(companyId, 'possible_stop.resolved', {

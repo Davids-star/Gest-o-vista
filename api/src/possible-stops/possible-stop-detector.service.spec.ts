@@ -117,7 +117,7 @@ describe('PossibleStopDetectorService (varredura privada via verificarTodas)', (
     expect(possibleStopRepo.create).not.toHaveBeenCalled();
     expect(possibleStopRepo.save).toHaveBeenCalledTimes(1);
     expect(possibleStopRepo.save).toHaveBeenCalledWith(
-      expect.objectContaining({ id: 'ja-existe', status: PossibleStopStatus.DISMISSED }),
+      expect.objectContaining({ id: 'ja-existe', status: PossibleStopStatus.AUTO_RESOLVED }),
     );
     expect(realtime.emitToCompany).toHaveBeenCalledWith(
       'empresa-1', 'possible_stop.resolved', expect.objectContaining({ possible_stop_id: 'ja-existe' }),

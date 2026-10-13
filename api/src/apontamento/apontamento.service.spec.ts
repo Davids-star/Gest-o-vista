@@ -5,6 +5,9 @@ import {
 import { StopStatus } from '../database/entities/stop.entity';
 import { SessionStatus } from '../database/entities/production-session.entity';
 
+// Sem possíveis paradas pendentes/resolvidas sozinhas: não muda a conta dos testes originais.
+const possibleStopRepoVazio = { find: jest.fn().mockResolvedValue([]) };
+
 describe('formatarDataLocal / limitesDoDia (horário de fábrica, America/Fortaleza)', () => {
   it('formata a data em YYYY-MM-DD no fuso local, não em UTC', () => {
     // 2026-08-31T02:00:00Z = 2026-08-30T23:00:00 em -03:00 (ainda dia 30 local)
@@ -247,7 +250,7 @@ describe('ApontamentoService.obter — exemplo da seção 9 do briefing (tempo p
     const auditRepo = { find: jest.fn().mockResolvedValue([]) }; // sem troca de operador
     const userRepo = { find: jest.fn().mockResolvedValue([]) };
 
-    return new ApontamentoService(sessionRepo as any, eventRepo as any, stopRepo as any, auditRepo as any, userRepo as any);
+    return new ApontamentoService(sessionRepo as any, eventRepo as any, stopRepo as any, auditRepo as any, userRepo as any, possibleStopRepoVazio as any);
   }
 
   it('desconta corretamente as paradas do tempo total (não é só ended_at - started_at)', async () => {
@@ -296,7 +299,7 @@ describe('ApontamentoService.obter — exemplo da seção 9 do briefing (tempo p
     };
     const auditRepo = { find: jest.fn().mockResolvedValue([]) };
     const userRepo = { find: jest.fn().mockResolvedValue([]) };
-    const service = new ApontamentoService(sessionRepo as any, eventRepo as any, stopRepo as any, auditRepo as any, userRepo as any);
+    const service = new ApontamentoService(sessionRepo as any, eventRepo as any, stopRepo as any, auditRepo as any, userRepo as any, possibleStopRepoVazio as any);
 
     const resultado = await service.obter('empresa-1', { date: '2026-08-31' });
 
@@ -336,7 +339,7 @@ describe('ApontamentoService.obter — exemplo da seção 9 do briefing (tempo p
     const stopRepo = { find: jest.fn().mockResolvedValue([]), createQueryBuilder: jest.fn().mockReturnValue(fakeQb([])) };
     const auditRepo = { find: jest.fn().mockResolvedValue([]) };
     const userRepo = { find: jest.fn().mockResolvedValue([]) };
-    const service = new ApontamentoService(sessionRepo as any, eventRepo as any, stopRepo as any, auditRepo as any, userRepo as any);
+    const service = new ApontamentoService(sessionRepo as any, eventRepo as any, stopRepo as any, auditRepo as any, userRepo as any, possibleStopRepoVazio as any);
 
     const resultado = await service.obter('empresa-1', { date: '2026-08-31' });
 
@@ -355,7 +358,7 @@ describe('ApontamentoService.obter — exemplo da seção 9 do briefing (tempo p
     const stopRepo = { find: jest.fn(), createQueryBuilder: jest.fn().mockReturnValue(fakeQb([])) };
     const auditRepo = { find: jest.fn() };
     const userRepo = { find: jest.fn() };
-    const service = new ApontamentoService(sessionRepo as any, eventRepo as any, stopRepo as any, auditRepo as any, userRepo as any);
+    const service = new ApontamentoService(sessionRepo as any, eventRepo as any, stopRepo as any, auditRepo as any, userRepo as any, possibleStopRepoVazio as any);
 
     const resultado = await service.obter('empresa-1', { date: '2099-01-01' });
 
@@ -410,7 +413,7 @@ describe('ApontamentoService.obterMensal — exemplo de consistência do briefin
     };
     const auditRepo = { find: jest.fn().mockResolvedValue([]) };
     const userRepo = { find: jest.fn().mockResolvedValue([]) };
-    return new ApontamentoService(sessionRepo as any, eventRepo as any, stopRepo as any, auditRepo as any, userRepo as any);
+    return new ApontamentoService(sessionRepo as any, eventRepo as any, stopRepo as any, auditRepo as any, userRepo as any, possibleStopRepoVazio as any);
   }
 
   it('soma produção total do mês corretamente', async () => {
@@ -446,7 +449,7 @@ describe('ApontamentoService.obterMensal — exemplo de consistência do briefin
     const stopRepo = { find: jest.fn(), createQueryBuilder: jest.fn().mockReturnValue(fakeQb([])) };
     const auditRepo = { find: jest.fn() };
     const userRepo = { find: jest.fn() };
-    const service = new ApontamentoService(sessionRepo as any, eventRepo as any, stopRepo as any, auditRepo as any, userRepo as any);
+    const service = new ApontamentoService(sessionRepo as any, eventRepo as any, stopRepo as any, auditRepo as any, userRepo as any, possibleStopRepoVazio as any);
 
     const resultado = await service.obterMensal('empresa-1', { year: 2099, month: 1 });
 
@@ -514,7 +517,7 @@ describe('ApontamentoService.obterSemanal', () => {
     const stopRepo = { find: jest.fn().mockResolvedValue([]), createQueryBuilder: jest.fn().mockReturnValue(fakeQb([])) };
     const auditRepo = { find: jest.fn().mockResolvedValue([]) };
     const userRepo = { find: jest.fn().mockResolvedValue([]) };
-    return new ApontamentoService(sessionRepo as any, eventRepo as any, stopRepo as any, auditRepo as any, userRepo as any);
+    return new ApontamentoService(sessionRepo as any, eventRepo as any, stopRepo as any, auditRepo as any, userRepo as any, possibleStopRepoVazio as any);
   }
 
   it('resolve a semana comercial (seg-dom) que contém a data e soma a produção — mesma agregação do mensal', async () => {
@@ -539,5 +542,60 @@ describe('ApontamentoService.obterSemanal', () => {
     const resultado = await service.obterSemanal('empresa-1', {});
     expect(resultado.periodo.dias).toBe(7);
     expect(resultado.filtros.date).toBe(formatarDataLocal(new Date()));
+  });
+});
+
+describe('ApontamentoService.obter — tempo ocioso sem motivo conta como parada', () => {
+  const sessao = {
+    id: 's1', machine_id: 'm1', product_id: 'p1', lot_id: 'l1', operator_id: 'o1', shift_id: null,
+    started_at: new Date(), ended_at: null, status: 'active',
+    machine: { id: 'm1', code: 'MQ-01', name: 'Máquina 1' }, product: { id: 'p1', name: 'Biscoito' },
+    lot: { id: 'l1', code: 'L1' }, operator: { id: 'o1', name: 'Op' }, shift: null,
+  };
+
+  function montar(possiveis: any[]) {
+    const qb: any = {
+      innerJoinAndSelect: jest.fn().mockReturnThis(), leftJoinAndSelect: jest.fn().mockReturnThis(), leftJoin: jest.fn().mockReturnThis(),
+      where: jest.fn().mockReturnThis(), andWhere: jest.fn().mockReturnThis(), orderBy: jest.fn().mockReturnThis(),
+      select: jest.fn().mockReturnThis(), addSelect: jest.fn().mockReturnThis(), groupBy: jest.fn().mockReturnThis(), addGroupBy: jest.fn().mockReturnThis(),
+      getMany: jest.fn().mockResolvedValue([]), getRawMany: jest.fn().mockResolvedValue([]),
+    };
+    const sessionQb = { ...qb, getMany: jest.fn().mockResolvedValue([sessao]) };
+    const sessionRepo = { createQueryBuilder: jest.fn(() => sessionQb) };
+    const eventRepo = { createQueryBuilder: jest.fn(() => qb) };
+    const stopRepo = { find: jest.fn().mockResolvedValue([]), createQueryBuilder: jest.fn(() => qb) };
+    const auditRepo = { find: jest.fn().mockResolvedValue([]) };
+    const userRepo = { find: jest.fn().mockResolvedValue([]) };
+    const possibleStopRepo = { find: jest.fn().mockResolvedValue(possiveis) };
+    return new ApontamentoService(sessionRepo as any, eventRepo as any, stopRepo as any, auditRepo as any, userRepo as any, possibleStopRepo as any);
+  }
+
+  it('possível parada resolvida sozinha (produção voltou) entra como parada sem motivo', async () => {
+    const detectada = new Date();
+    const possivel = {
+      id: 'ps1', machine_id: 'm1', session_id: 's1', status: 'auto_resolved',
+      detected_at: new Date(detectada.getTime() - 60_000), duration_seconds: 120,
+      resolved_at: new Date(detectada.getTime() - 30_000),
+    };
+    const r = await montar([possivel]).obter('c1', { date: undefined } as any);
+    expect(r.resumo.paradas).toBe(1);
+    // 120 s sem produção + 30 s até a produção voltar = 150 s parado
+    expect(r.resumo.tempo_parado_segundos).toBe(150);
+    expect(r.tempo_parado_por_motivo[0]).toMatchObject({ label: 'Sem motivo (não classificada)', segundos: 150 });
+  });
+
+  it('possível parada pendente (máquina parada agora) conta o tempo até agora', async () => {
+    const possivel = {
+      id: 'ps2', machine_id: 'm1', session_id: 's1', status: 'pending',
+      detected_at: new Date(Date.now() - 10_000), duration_seconds: 120, resolved_at: null,
+    };
+    const r = await montar([possivel]).obter('c1', { date: undefined } as any);
+    expect(r.resumo.tempo_parado_segundos).toBeGreaterThanOrEqual(129);
+    expect(r.resumo.paradas).toBe(1);
+  });
+
+  it('sem possíveis paradas, o tempo parado continua 0', async () => {
+    const r = await montar([]).obter('c1', { date: undefined } as any);
+    expect(r.resumo.tempo_parado_segundos).toBe(0);
   });
 });

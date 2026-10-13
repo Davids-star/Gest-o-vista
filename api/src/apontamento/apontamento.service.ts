@@ -6,6 +6,7 @@ import { ProductionEvent } from '../database/entities/production-event.entity';
 import { Stop } from '../database/entities/stop.entity';
 import { AuditLog } from '../database/entities/audit-log.entity';
 import { User } from '../database/entities/user.entity';
+import { PossibleStop, PossibleStopStatus } from '../database/entities/possible-stop.entity';
 
 export interface ApontamentoFiltros {
   date?: string;
@@ -202,7 +203,43 @@ export class ApontamentoService {
     private readonly auditRepo: Repository<AuditLog>,
     @InjectRepository(User)
     private readonly userRepo: Repository<User>,
+    @InjectRepository(PossibleStop)
+    private readonly possibleStopRepo: Repository<PossibleStop>,
   ) {}
+
+  /**
+   * Tempo sem produção que ninguém classificou ainda, tratado como parada SEM MOTIVO:
+   * - possível parada pendente (a máquina está parada agora, aguardando o operador); e
+   * - possível parada que se resolveu sozinha (a produção voltou antes de alguém classificar).
+   * Sem isso o dashboard só contava parada confirmada com motivo, e tempo ocioso real
+   * aparecia como 0. As descartadas à mão pelo operador ("não é parada") NÃO entram.
+   * Devolve objetos no formato de Stop para reaproveitar toda a conta já existente.
+   */
+  private async paradasProvisorias(sessionIds: string[], agora: Date): Promise<Stop[]> {
+    if (!sessionIds.length) return [];
+    const possiveis = await this.possibleStopRepo.find({
+      where: { session_id: In(sessionIds), status: In([PossibleStopStatus.PENDING, PossibleStopStatus.AUTO_RESOLVED]) },
+      relations: { machine: true },
+    });
+    return possiveis.map((ps) => {
+      const inicio = new Date(ps.detected_at.getTime() - ps.duration_seconds * 1000);
+      const fim = ps.status === PossibleStopStatus.PENDING ? null : (ps.resolved_at ?? agora);
+      return {
+        id: `possivel-${ps.id}`,
+        machine_id: ps.machine_id,
+        session_id: ps.session_id,
+        started_at: inicio,
+        ended_at: fim,
+        duration_seconds: fim ? Math.max(0, Math.round((fim.getTime() - inicio.getTime()) / 1000)) : null,
+        status: ps.status === PossibleStopStatus.PENDING ? 'open' : 'closed',
+        observation: ps.status === PossibleStopStatus.PENDING
+          ? 'Sem produção — aguardando o operador classificar'
+          : 'Sem produção (a produção voltou sem o operador classificar)',
+        reason_id: null,
+        reason: { id: null, code: 'SEM_MOTIVO', label: 'Sem motivo (não classificada)', default_priority: 'media', planned: false },
+      } as unknown as Stop;
+    });
+  }
 
   async obter(companyId: string, filtros: ApontamentoFiltros) {
     const dataStr = filtros.date || formatarDataLocal(new Date());
@@ -333,11 +370,15 @@ export class ApontamentoService {
     }
 
     // Paradas ligadas a essas sessões...
-    const paradasComSessao = await this.stopRepo.find({
-      where: { session_id: In(sessionIds) },
-      relations: { reason: true },
-      order: { started_at: 'ASC' },
-    });
+    const paradasComSessao = [
+      ...(await this.stopRepo.find({
+        where: { session_id: In(sessionIds) },
+        relations: { reason: true },
+        order: { started_at: 'ASC' },
+      })),
+      // ...e o tempo sem produção ainda não classificado (conta como parada sem motivo)
+      ...(await this.paradasProvisorias(sessionIds, agora)),
+    ].sort((a, b) => a.started_at.getTime() - b.started_at.getTime());
     // ...mais paradas da(s) máquina(s) no dia que por algum motivo não têm
     // session_id (ex.: registro manual antigo) — não ficam de fora do total
     // do dia só por causa disso.
@@ -612,11 +653,14 @@ export class ApontamentoService {
     const producaoPorSessao: Record<string, number> = {};
     for (const r of producaoRows) producaoPorSessao[r.session_id] = Number(r.total);
 
-    const paradasComSessao = await this.stopRepo.find({
-      where: { session_id: In(sessionIds) },
-      relations: { reason: true },
-      order: { started_at: 'ASC' },
-    });
+    const paradasComSessao = [
+      ...(await this.stopRepo.find({
+        where: { session_id: In(sessionIds) },
+        relations: { reason: true },
+        order: { started_at: 'ASC' },
+      })),
+      ...(await this.paradasProvisorias(sessionIds, agora)),
+    ].sort((a, b) => a.started_at.getTime() - b.started_at.getTime());
     const paradasSemSessao = await this.stopRepo
       .createQueryBuilder('stop')
       .leftJoinAndSelect('stop.reason', 'reason')
