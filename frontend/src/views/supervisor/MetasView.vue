@@ -253,7 +253,8 @@ const metaForm = reactive({
   machine_id: '',
   product_id: '',
   period_type: 'monthly',
-  period_start: new Date().toISOString().slice(0, 10),
+  // Datas começam vazias: quem define o período é o supervisor, o sistema não sugere.
+  period_start: '',
   period_end: '',
   quantity: null,
 });
@@ -288,17 +289,14 @@ onMounted(async () => {
 const openNewMetaModal = () => {
   editingMeta.value = null;
   metaError.value = '';
-  const today = new Date();
-  const startDate = today.toISOString().slice(0, 10);
-  const endDate = new Date(today.getFullYear(), today.getMonth() + 1, 0).toISOString().slice(0, 10);
   Object.assign(metaForm, {
     // Sem pré-seleção de máquina nem quantidade de exemplo — o supervisor
     // escolhe e digita os valores reais (nada fictício é salvo por engano).
     machine_id: '',
     product_id: '',
     period_type: 'monthly',
-    period_start: startDate,
-    period_end: endDate,
+    period_start: '',
+    period_end: '',
     quantity: null,
   });
   isMetaModalOpen.value = true;
@@ -325,10 +323,10 @@ const handleSaveMeta = async () => {
   if (!metaForm.quantity || metaForm.quantity < 1) { metaError.value = 'Quantidade inválida.'; return; }
   const isoDate = /^\d{4}-\d{2}-\d{2}$/;
   if (!isoDate.test(metaForm.period_start) || Number.isNaN(Date.parse(`${metaForm.period_start}T00:00:00`))) {
-    metaError.value = 'Informe a data de início no formato AAAA-MM-DD.'; return;
+    metaError.value = 'Escolha a data de início.'; return;
   }
   if (!isoDate.test(metaForm.period_end) || Number.isNaN(Date.parse(`${metaForm.period_end}T00:00:00`))) {
-    metaError.value = 'Informe a data de fim no formato AAAA-MM-DD.'; return;
+    metaError.value = 'Escolha a data de fim.'; return;
   }
   if (metaForm.period_end < metaForm.period_start) { metaError.value = 'A data final não pode ser anterior à inicial.'; return; }
 

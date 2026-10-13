@@ -30,8 +30,9 @@ export const API_URL = resolveApiUrl();
 
 /**
  * Origem do sensor de produção no Totem:
- * - 'auto'      → Bluetooth (cordova-plugin-bluetooth-serial) se o plugin
- *                 existir no aparelho (APK); senão Mock (PWA/navegador).
+ * - 'auto'      → no APK, USB (cabo OTG) e Bluetooth JUNTOS, o que o aparelho tiver
+ *                 (o app mostra qual está valendo); no navegador/PWA, Mock.
+ * - 'usb'       → só o cabo USB (OTG).
  * - 'mock'      → nunca usa Bluetooth, mesmo no APK (testes).
  * - 'bluetooth' → força o gateway Bluetooth.
  */
@@ -46,6 +47,9 @@ export const BLUETOOTH_DEVICE_NAME = env.VITE_BLUETOOTH_DEVICE_NAME || 'HC-06';
  */
 export const DEVICE_ID = env.VITE_DEVICE_ID || '';
 export const DEVICE_TOKEN = env.VITE_DEVICE_TOKEN || '';
+
+/** Janela de envio (ms): peças que chegam nela vão num lote só; peça sozinha sai quando ela fecha. */
+export const SYNC_WINDOW_MS = Number(env.VITE_SYNC_WINDOW_MS) || 5000;
 
 /** Intervalo de tentativa de envio da fila para a API (ms). */
 export const SYNC_INTERVAL_MS = Number(env.VITE_SYNC_INTERVAL_MS) || 5000;

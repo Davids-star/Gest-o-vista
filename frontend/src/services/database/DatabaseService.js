@@ -98,6 +98,61 @@ export class DatabaseService {
     return rows.sort((a, b) => (a.created_at < b.created_at ? -1 : 1));
   }
 
+  /**
+   * Junta peças pendentes seguidas (mesma sessão/máquina/origem, dentro de `maxSpanMs`) em UM
+   * evento com a quantidade somada — para servidor sem a rota de lote, onde cada evento é uma
+   * requisição de ~2 s. Sem isso, 1,6 peça/s contra 0,5 requisição/s = fila que só cresce.
+   *
+   * Seguro contra reenvio: o evento junto é gravado ANTES de os originais saírem de 'pending'
+   * e o uid vem só dos extremos do grupo; refazer a junção depois de uma queda gera o mesmo
+   * uid (a API ignora duplicata). Eventos já juntos (grouped) nunca são juntados de novo.
+   * `occurred_at` do grupo é o da última peça (erro de no máximo `maxSpanMs` no relatório por hora).
+   */
+  async coalescePending({ maxSpanMs = 60000, maxPerGroup = 50 } = {}, now = new Date()) {
+    const pend = (await this.pendingEvents()).filter((e) => !e.grouped);
+    const groups = [];
+    let cur = [];
+    const key = (e) => `${e.session_id}|${e.machine_id}|${e.source}`;
+    for (const e of pend) {
+      const first = cur[0];
+      const fits = first
+        && key(first) === key(e)
+        && cur.length < maxPerGroup
+        && Date.parse(e.occurred_at) - Date.parse(first.occurred_at) <= maxSpanMs;
+      if (fits) cur.push(e);
+      else { if (cur.length) groups.push(cur); cur = [e]; }
+    }
+    if (cur.length) groups.push(cur);
+
+    let merged = 0;
+    for (const g of groups) {
+      if (g.length < 2) continue;
+      const first = g[0];
+      const last = g[g.length - 1];
+      const uid = `G:${first.event_uid}>${last.event_uid}`;
+      if (!(await this.driver.get('events', uid))) {
+        await this.driver.put('events', {
+          event_uid: uid,
+          session_id: first.session_id,
+          machine_id: first.machine_id,
+          quantity: g.reduce((sum, e) => sum + e.quantity, 0),
+          occurred_at: last.occurred_at,
+          source: first.source,
+          grouped: true,
+          pieces: g.length,
+          status: 'pending',
+          attempts: 0,
+          last_error: null,
+          created_at: first.created_at,
+          synced_at: null,
+        });
+      }
+      for (const e of g) await this.driver.put('events', { ...e, status: 'merged', merged_into: uid });
+      merged += g.length;
+    }
+    return merged;
+  }
+
   async countByStatus(status) {
     return (await this.driver.getByStatus('events', status)).length;
   }

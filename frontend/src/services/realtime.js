@@ -36,7 +36,8 @@ export function connectRealtime(handlers = {}) {
   // ver RealtimeGateway.handleConnection, que cai pro fallback de empresa
   // padrão. `auth: {}` é enviado nesse caso, não `undefined` — socket.io
   // manda `auth` como está, mas alguns proxies removem headers vazios.
-  const token = getToken();
+  // Credencial do aparelho (APK do Totem) tem prioridade sobre qualquer JWT guardado.
+  const token = DEVICE_ID && DEVICE_TOKEN ? null : getToken();
 
   // Evita conexões duplicadas ao trocar de tela
   if (socket) {

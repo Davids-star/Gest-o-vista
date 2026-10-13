@@ -100,3 +100,19 @@ test('ProductionService: reset do sensor gera evento com nova época', async () 
   assert.equal(saved[1].event_uid, 'HC06-01:s1:1:1');
   assert.equal(saved[1].quantity, 1);
 });
+
+test('mesma contagem chegando por USB e por Bluetooth conta UMA vez', async () => {
+  let state = { lastTotal: 4, epoch: 0 };
+  const eventos = [];
+  const service = new ProductionService({
+    deviceId: 'HC06-m1',
+    getActiveSession: () => ({ session_id: 's1', machine_id: 'm1' }),
+    getState: async () => state,
+    saveState: async (s) => { state = s; },
+    saveEvent: async (e) => { eventos.push(e); },
+  });
+  await service.handleLine('COUNT:5'); // veio pelo cabo
+  await service.handleLine('COUNT:5'); // o mesmo COUNT, agora pelo Bluetooth
+  assert.equal(eventos.length, 1);
+  assert.equal(eventos[0].quantity, 1);
+});

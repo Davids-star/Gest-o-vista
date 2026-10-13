@@ -108,54 +108,12 @@
 
       <!-- TÍTULO DA SELEÇÃO DE MODO -->
       <div class="text-center space-y-1">
-        <h2 class="text-xl font-extrabold gp-text tracking-wide">Escolha sua função no celular</h2>
-        <p class="text-xs gp-text-muted">Selecione como deseja utilizar a aplicação:</p>
+        <h2 class="text-xl font-extrabold gp-text tracking-wide">Entrar no celular</h2>
+        <p class="text-xs gp-text-muted">Acesse a supervisão e os dashboards:</p>
       </div>
 
       <!-- SELEÇÃO DE PERFIL / MODO -->
       <div class="grid grid-cols-1 gap-4">
-
-        <!-- OPÇÃO 1: TOTEM OPERACIONAL DE MÁQUINA -->
-        <div
-          @click="selectMode('totem')"
-          class="group relative overflow-hidden rounded-2xl gp-surface border gp-border hover:border-emerald-500/50 p-5 transition-all cursor-pointer hover:shadow-xl hover:shadow-emerald-500/10 active:scale-[0.98]">
-          <div class="flex items-center justify-between mb-3">
-            <div class="flex items-center gap-3">
-              <div class="w-12 h-12 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 group-hover:bg-emerald-500 group-hover:text-slate-950 transition-colors">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                </svg>
-              </div>
-              <div>
-                <h3 class="text-base font-bold gp-text group-hover:text-emerald-400 transition-colors">Totem do Operador</h3>
-                <p class="text-xs gp-text-muted">Apontamento de produção & paradas por máquina</p>
-              </div>
-            </div>
-            <div class="w-8 h-8 rounded-full bg-[var(--gp-border)] group-hover:bg-emerald-500 group-hover:text-slate-950 flex items-center justify-center gp-text-muted transition-colors">
-              →
-            </div>
-          </div>
-
-          <!-- SELETOR RÁPIDO DE ESTAÇÃO DENTRO DO MODO TOTEM -->
-          <div v-if="activeMode === 'totem'" class="mt-4 pt-4 border-t gp-border space-y-3" @click.stop>
-            <label class="block text-xs uppercase font-bold gp-text-muted">Selecione a Estação da Fábrica *</label>
-            <select
-              v-model="selectedStationId"
-              class="w-full bg-[var(--gp-code-bg)] border gp-border gp-text rounded-xl p-3 text-sm font-semibold focus:border-emerald-500 focus:outline-none">
-              <option value="" disabled>Selecione uma estação...</option>
-              <option v-for="m in store.machines" :key="m.id" :value="m.id">
-                Máquina {{ getMachineNumber(m) }} — {{ m.name || 'Estação' }}
-              </option>
-            </select>
-
-            <button
-              @click="confirmTotemStation"
-              :disabled="!selectedStationId"
-              class="w-full py-3 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold rounded-xl text-xs uppercase tracking-wider disabled:opacity-50 transition-all shadow-md">
-              Abrir Operação da Máquina →
-            </button>
-          </div>
-        </div>
 
         <!-- OPÇÃO 2: DASHBOARD SUPERVISOR -->
         <div
@@ -174,28 +132,6 @@
               </div>
             </div>
             <div class="w-8 h-8 rounded-full bg-[var(--gp-border)] group-hover:bg-blue-500 group-hover:text-slate-950 flex items-center justify-center gp-text-muted transition-colors">
-              →
-            </div>
-          </div>
-        </div>
-
-        <!-- OPÇÃO 3: PAINEL TV / MONITORAMENTO -->
-        <div
-          @click="selectMode('tv')"
-          class="group relative overflow-hidden rounded-2xl gp-surface border gp-border hover:border-purple-500/50 p-5 transition-all cursor-pointer hover:shadow-xl hover:shadow-purple-500/10 active:scale-[0.98]">
-          <div class="flex items-center justify-between">
-            <div class="flex items-center gap-3">
-              <div class="w-12 h-12 rounded-xl bg-purple-500/10 border border-purple-500/30 flex items-center justify-center text-purple-400 group-hover:bg-purple-500 group-hover:text-slate-950 transition-colors">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                </svg>
-              </div>
-              <div>
-                <h3 class="text-base font-bold gp-text group-hover:text-purple-400 transition-colors">Painel TV ANDON</h3>
-                <p class="text-xs gp-text-muted">Visão geral contínua para telas e displays da fábrica</p>
-              </div>
-            </div>
-            <div class="w-8 h-8 rounded-full bg-[var(--gp-border)] group-hover:bg-purple-500 group-hover:text-slate-950 flex items-center justify-center gp-text-muted transition-colors">
               →
             </div>
           </div>

@@ -60,7 +60,7 @@
               class="flex-1 bg-white dark:bg-[#121824] border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-3 text-sm text-slate-900 dark:text-white focus:border-orange-500 focus:outline-none"
             >
               <option value="" disabled>Selecione o motivo...</option>
-              <option v-for="reason in store.stopReasons" :key="reason.id" :value="reason.id">{{ reason.label }}</option>
+              <option v-for="reason in store.activeStopReasons" :key="reason.id" :value="reason.id">{{ reason.label }}</option>
             </select>
             <button
               @click="handleConfirmarPossivel(p.id)"

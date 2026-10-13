@@ -5,7 +5,7 @@
     <main class="flex-1 p-4 pt-[calc(4rem+env(safe-area-inset-top))] md:p-6 md:pt-6 lg:p-8 overflow-y-auto max-w-5xl mx-auto w-full space-y-6">
       <div>
         <h1 class="text-2xl sm:text-3xl font-extrabold uppercase tracking-wider">MÁQUINAS</h1>
-        <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Cadastre as máquinas da fábrica e defina o nome de cada uma.</p>
+        <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Cadastre as máquinas da fábrica, defina o nome de cada uma e os motivos de parada.</p>
       </div>
 
       <!-- Cadastro -->
@@ -56,13 +56,18 @@
           </template>
         </div>
       </section>
+
+      <!-- Motivos de parada (o operador escolhe um deles no Totem) -->
+      <StopReasonsPanel />
     </main>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, nextTick, watch } from 'vue';
+import { useRoute } from 'vue-router';
 import AppSidebar from '../../components/AppSidebar.vue';
+import StopReasonsPanel from '../../components/StopReasonsPanel.vue';
 import { machinesApi } from '../../services/api';
 
 const maquinas = ref([]);
@@ -124,5 +129,17 @@ const alternarAtiva = async (m) => {
   }
 };
 
-onMounted(carregar);
+// Atalho "PARADAS" do menu: /maquinas?secao=paradas rola até os motivos de parada.
+const route = useRoute();
+const irParaSecao = async () => {
+  if (route.query.secao !== 'paradas') return;
+  await nextTick();
+  document.getElementById('paradas')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+};
+watch(() => route.query.secao, irParaSecao);
+
+onMounted(async () => {
+  await carregar();
+  irParaSecao();
+});
 </script>

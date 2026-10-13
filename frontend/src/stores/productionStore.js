@@ -25,6 +25,14 @@ import {
 import { connectRealtime, disconnectRealtime, isRealtimeConnected } from '../services/realtime';
 import { saveCatalog, loadCatalog } from '../services/offline/catalogCache.js';
 
+// Ordem das respostas de totais. Uma resposta de GET /totals que saiu ANTES de um
+// lote ser aceito chega depois dele com o número velho e fazia o contador do
+// tablet voltar para trás. Cada pedido recebe um número; só vale se for mais novo
+// que o último já aplicado.
+let seqTotais = 0;
+let ultimoTotalAplicado = 0;
+let timerTotais = null;
+
 export const useProductionStore = defineStore('production', {
   state: () => ({
     // ── Dados vindos exclusivamente da API ──────────────────────────────
@@ -106,6 +114,13 @@ export const useProductionStore = defineStore('production', {
   }),
 
   getters: {
+    // Motivos de parada que o operador pode escolher: os desativados pelo supervisor
+    // (tela Máquinas → Motivos de parada) deixam de aparecer no Totem e nos alertas.
+    activeStopReasons: (state) =>
+      state.stopReasons
+        .filter((r) => r.active !== false)
+        .sort((a, b) => String(a.label || '').localeCompare(String(b.label || ''), 'pt-BR')),
+
     // Máquina selecionada no painel do supervisor
     selectedMachine: (state) => {
       let m = null;
@@ -331,14 +346,35 @@ export const useProductionStore = defineStore('production', {
     // chamada só (usado pelo TV/Estações, que mostram várias máquinas de
     // uma vez); com `sessionId`, só daquela (usado pelo Totem).
     async fetchProductionTotals(sessionId = null) {
+      const minhaVez = ++seqTotais;
       try {
         const result = await eventsApi.totals(sessionId);
+        if (minhaVez < ultimoTotalAplicado) return; // resposta velha: já veio algo mais novo
         if (result && typeof result === 'object') {
+          ultimoTotalAplicado = minhaVez;
           this.productionTotals = { ...this.productionTotals, ...result };
         }
       } catch {
         // Não derruba a tela por isso — mantém o último total conhecido.
       }
+    },
+
+    // Totais que a própria API devolveu ao aceitar um lote do tablet (já são a verdade do
+    // servidor): aplica direto, sem outra requisição, e invalida GETs que ainda estão voando.
+    applyProductionTotals(totals) {
+      if (!totals || typeof totals !== 'object') return;
+      ultimoTotalAplicado = ++seqTotais;
+      this.productionTotals = { ...this.productionTotals, ...totals };
+    },
+
+    // O servidor já agrupa os avisos 'production.updated'; aqui agrupa de novo os que
+    // chegam em sequência, para uma rajada de peças virar UM GET /totals.
+    _agendarTotais() {
+      if (timerTotais) return;
+      timerTotais = setTimeout(() => {
+        timerTotais = null;
+        this.fetchProductionTotals();
+      }, 400);
     },
 
     // ── PARADAS: GET /paradas-registros ───────────────────────────
@@ -625,7 +661,7 @@ export const useProductionStore = defineStore('production', {
         'alert.resolved': () => this.fetchAlerts(),
         'alert.acknowledged': () => this.fetchAlerts(),
         'target.updated': () => this.fetchMetas(),
-        'production.updated': (payload) => this.fetchProductionTotals(payload?.session_id),
+        'production.updated': () => this._agendarTotais(),
         'possible_stop.created': () => this.fetchPossibleStops({ status: 'pending' }),
         'possible_stop.resolved': () => this.fetchPossibleStops({ status: 'pending' }),
       });

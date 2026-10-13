@@ -29,11 +29,14 @@
         </div>
 
         <!-- Sensor Bluetooth (só no APK): 🟢 conectado / 🔴 sem sensor -->
-        <div v-if="integration.sensorKind === 'cordova'" class="bg-slate-900/90 border border-slate-800 px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-2 shrink-0"
+        <div v-if="integration.sensorKind && integration.sensorKind !== 'mock'" class="bg-slate-900/90 border border-slate-800 px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-2 shrink-0"
              :title="integration.sensorDetail || integration.sensorStatus">
           <span>{{ integration.sensorStatus === 'connected' ? '🟢' : '🔴' }}</span>
           <span class="text-slate-300 uppercase">{{ integration.sensorStatus === 'connected' ? 'Sensor' : integration.sensorStatus === 'reconnecting' ? 'Reconectando' : 'Sem sensor' }}</span>
+          <!-- Qual caminho está valendo: cabo (USB/OTG) ou Bluetooth -->
+          <span v-if="integration.sensorLink" class="text-emerald-300 font-mono text-[10px] border border-emerald-500/40 rounded px-1">{{ integration.sensorLink === 'usb' ? 'USB' : 'BLUETOOTH' }}</span>
           <span v-if="integration.sync.pending" class="text-amber-300 font-mono">{{ integration.sync.pending }} a enviar</span>
+          <span class="text-slate-500 font-mono text-[10px]">{{ ultimaLeitura }}</span>
         </div>
 
         <!-- Clock -->
@@ -68,6 +71,10 @@
         <!-- Se o supervisor já definiu a próxima produção (PATCH /machines/:id/planned-production) -->
         <!-- ou a meta do dia (GET /metas/maquina/:id) com produto, isso vem pronto — só falta o resto. -->
         <section v-else-if="!store.activeSession" class="bg-[#121824] border border-slate-800 rounded-2xl p-4 space-y-3">
+          <div v-if="avisoEncerrada" class="bg-amber-500/10 border border-amber-500/60 rounded-xl p-3 text-amber-300 text-xs font-bold flex items-center justify-between gap-3">
+            <span>{{ avisoEncerrada }}</span>
+            <button type="button" class="text-amber-200 underline shrink-0" @click="avisoEncerrada = ''">OK</button>
+          </div>
           <div>
             <h2 class="text-sm font-bold uppercase tracking-wide">Nova produção</h2>
             <p class="text-xs text-slate-400 mt-1">
@@ -224,7 +231,7 @@
           <div class="flex flex-col sm:flex-row gap-2">
             <select v-model="possibleStopReasonId" class="flex-1 bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white">
               <option value="" disabled>Selecione o motivo...</option>
-              <option v-for="reason in store.stopReasons" :key="reason.id" :value="reason.id">{{ reason.label }}</option>
+              <option v-for="reason in store.activeStopReasons" :key="reason.id" :value="reason.id">{{ reason.label }}</option>
             </select>
             <button
               @click="handleConfirmarPossibleStop"
@@ -326,11 +333,11 @@
 
         <!-- Stop reasons from GET /motivos-parada -->
         <div v-else class="grid grid-cols-1 gap-2.5 max-h-60 overflow-y-auto pr-1">
-          <div v-if="!store.stopReasons.length" class="text-xs text-slate-400 text-center py-4">
+          <div v-if="!store.activeStopReasons.length" class="text-xs text-slate-400 text-center py-4">
             Nenhum motivo cadastrado. Verifique conexão com a API.
           </div>
           <button
-            v-for="reason in store.stopReasons"
+            v-for="reason in store.activeStopReasons"
             :key="reason.id"
             @click="selectStopReason(reason)"
             class="w-full p-3 bg-slate-900/90 hover:bg-emerald-500/20 border border-slate-800 hover:border-emerald-500/50 rounded-xl text-left flex justify-between items-center transition-all group"
@@ -388,6 +395,15 @@ const operatorName = ref(localStorage.getItem(OPERATOR_STORAGE_KEY) || '');
 
 let clockInterval = null;
 
+// "último: COUNT:42 há 5s" — mostra no Totem se o HC-06 está mesmo mandando dados.
+const ultimaLeitura = computed(() => {
+  void currentTime.value; // reavalia a cada segundo
+  if (!integration.lastLineAt) return 'sem leitura';
+  const seg = Math.max(0, Math.round((Date.now() - integration.lastLineAt) / 1000));
+  const quando = seg < 60 ? `${seg}s` : `${Math.floor(seg / 60)}min`;
+  return `${integration.lastLine} · ${quando}`;
+});
+
 const updateTime = () => {
   currentTime.value = new Date().toLocaleTimeString();
 };
@@ -431,7 +447,12 @@ onMounted(async () => {
         const s = store.sessions.find((x) => x.machine_id === machineId && x.status === 'active');
         return s ? { session_id: s.id, machine_id: machineId } : null;
       },
-      (patch) => integration.applyStatus(patch),
+      (patch) => {
+        // Total da API vem ANTES do status de sync (mesma ordem em que o SyncService avisa),
+        // para o contador não cair entre "pendência enviada" e "total atualizado".
+        if (patch.totals) store.applyProductionTotals(patch.totals);
+        integration.applyStatus(patch);
+      },
     ).catch(() => {});
   }
   // WebSocket + polling de segurança ligam uma vez só em App.vue.
@@ -662,15 +683,34 @@ const handleStart = async () => {
   }
 };
 
+// Produção encerrada em OUTRO aparelho (celular/supervisor): o Totem já volta sozinho
+// para "Nova produção" (activeSession é derivado de store.sessions, atualizado pelo
+// WebSocket e pelo polling), mas sem avisar — o operador via a tela mudar sem saber por quê.
+const avisoEncerrada = ref('');
+let encerrandoAqui = false;
+watch(
+  () => store.activeSession?.id ?? null,
+  (agora, antes) => {
+    if (antes && !agora && !encerrandoAqui) {
+      avisoEncerrada.value = 'Esta produção foi encerrada por outro aparelho (supervisor/celular).';
+    }
+    if (agora) avisoEncerrada.value = '';
+  },
+);
+
 // ── ENCERRAR SESSÃO via POST /totem/sessions/current/close ─────────
 const handleStop = async () => {
   if (!currentMachine.value || !store.activeSession) return;
 
   try {
+    encerrandoAqui = true;
     await store.closeSession({ machine_id: currentMachine.value.id });
     // productionCount volta a 0 sozinho: o computed depende de store.activeSession
   } catch (err) {
     sessionError.value = err.message || 'Erro ao encerrar sessão';
+  } finally {
+    // O watcher acima roda depois do await (próximo tick): solta a trava só depois dele.
+    setTimeout(() => { encerrandoAqui = false; }, 0);
   }
 };
 

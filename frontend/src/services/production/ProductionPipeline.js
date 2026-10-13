@@ -15,7 +15,7 @@ import { getLocalDatabase } from '../database/localDatabase.js';
 import { waitForNativeReady } from '../../config/platform.js';
 import { SyncService } from '../sync/SyncService.js';
 import { eventsApi } from '../api.js';
-import { SYNC_INTERVAL_MS } from '../../config/env.js';
+import { SYNC_INTERVAL_MS, SYNC_WINDOW_MS } from '../../config/env.js';
 
 let pipeline = null;
 
@@ -33,7 +33,9 @@ async function buildPipeline() {
     db,
     api: eventsApi,
     intervalMs: SYNC_INTERVAL_MS,
+    windowMs: SYNC_WINDOW_MS,
     onlineEvents,
+    onTotals: (totals) => report?.({ totals }),
     onChange: (snap) => report?.({ sync: snap }),
   });
   return { gateway, db, sync, service: null, machineId: null, started: false };
@@ -61,12 +63,18 @@ export async function startSensorPipeline(machineId, getActiveSession, onStatus)
       saveState: (state) => p.db.saveSensorState(state),
       saveEvent: async (evento) => {
         await p.db.enqueueEvent(evento);
-        // Envia já (se houver rede) e atualiza as pendências exibidas no Totem.
-        p.sync.flush();
+        // Envia já (se houver rede), juntando peças seguidas num lote só.
+        p.sync.requestFlush();
       },
     });
-    p.gateway.onLine((line) => p.service.handleLine(line));
+    p.gateway.onLine((line) => {
+      // Última linha crua que o HC-06 mandou (diagnóstico: mostra no Totem se o sensor está falando).
+      report?.({ lastLine: String(line).slice(0, 40), lastLineAt: Date.now() });
+      p.service.handleLine(line);
+    });
     p.gateway.onStatus((status, detail) => report?.({ sensorStatus: status, sensorDetail: detail }));
+    // USB + Bluetooth juntos: avisa qual caminho está valendo ('usb' | 'bluetooth').
+    p.gateway.onLink?.((snap) => report?.({ sensorLink: snap.active, sensorLinks: snap.links }));
   }
 
   report?.({ sensorKind: p.gateway.kind });

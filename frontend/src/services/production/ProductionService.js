@@ -93,22 +93,24 @@ export class ProductionService {
 
     const state = await this.getState();
     const { delta, epoch, nextState } = computeProductionDelta(state, reading.total);
+
+    const session = delta > 0 ? this.getActiveSession() : null;
+    let evento = null;
+    if (session) {
+      evento = {
+        event_uid: buildEventUid(this.deviceId, session.session_id, epoch, reading.total),
+        session_id: session.session_id,
+        machine_id: session.machine_id,
+        quantity: delta,
+        occurred_at: this.now().toISOString(),
+        source: 'bluetooth',
+      };
+      // O evento entra na fila ANTES de a referência avançar: se a gravação falhar,
+      // a referência continua antiga e a próxima linha recalcula a mesma diferença
+      // (mesmo event_uid, sem duplicar). Na ordem inversa a peça sumia para sempre.
+      await this.saveEvent(evento);
+    }
     await this.saveState({ ...nextState, deviceId: this.deviceId });
-
-    if (delta <= 0) return null;
-
-    const session = this.getActiveSession();
-    if (!session) return null;
-
-    const evento = {
-      event_uid: buildEventUid(this.deviceId, session.session_id, epoch, reading.total),
-      session_id: session.session_id,
-      machine_id: session.machine_id,
-      quantity: delta,
-      occurred_at: this.now().toISOString(),
-      source: 'bluetooth',
-    };
-    await this.saveEvent(evento);
     return evento;
   }
 }

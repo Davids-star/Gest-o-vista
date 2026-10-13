@@ -24,9 +24,12 @@ export function getToken() {
 }
 
 async function request(endpoint, options = {}) {
-  const token = getToken();
-  // Sem login, o aparelho (Totem) se identifica com o próprio id e token.
-  const credenciaisDoAparelho = !token && DEVICE_ID && DEVICE_TOKEN
+  // APK do Totem tem credencial própria do aparelho (definida no build): ela vale SEMPRE.
+  // Antes um JWT velho guardado no localStorage (de login anterior ou de outra API) tinha
+  // prioridade, dava 401 em tudo e o Totem ficava em "Nenhuma estação disponível".
+  const aparelho = DEVICE_ID && DEVICE_TOKEN;
+  const token = aparelho ? null : getToken();
+  const credenciaisDoAparelho = aparelho
     ? { 'X-Device-Id': DEVICE_ID, 'X-Device-Token': DEVICE_TOKEN }
     : {};
   const headers = {
@@ -162,6 +165,25 @@ export const totemApi = {
 
 // ─── EVENTOS DE PRODUÇÃO (sensor ESP32/MQTT) ───────────────────────────────
 // NOTA: Por enquanto sem sensor. Eventos gerados manualmente via este endpoint.
+// Envio sem a rota de lote: um POST por evento. Rota inexistente é o único 404 do lote;
+// erro por evento (400/404) vira 'rejected' no resultado.
+async function enviarUmAUm(events) {
+  const results = [];
+  for (const e of events) {
+    try {
+      await request('/production-events', { method: 'POST', body: JSON.stringify(e) });
+      results.push({ event_uid: e.event_uid, status: 'accepted' });
+    } catch (erroEvento) {
+      if (erroEvento.status === 400 || erroEvento.status === 404) {
+        results.push({ event_uid: e.event_uid, status: 'rejected', error: erroEvento.message });
+      } else {
+        throw erroEvento; // sem rede/5xx: o que já foi aceito é reenviado depois (idempotente)
+      }
+    }
+  }
+  return { results, totals: {} };
+}
+
 export const eventsApi = {
   list: (query = {}) => {
     const params = new URLSearchParams(query).toString();
@@ -169,6 +191,28 @@ export const eventsApi = {
   },
   create: (data) =>
     request('/production-events', { method: 'POST', body: JSON.stringify(data) }),
+  // Fila do tablet de uma vez: { results: [{ event_uid, status }], totals: { [session_id]: total } }.
+  // `false` quando o servidor ainda não tem POST /production-events/batch (versão antiga):
+  // o SyncService passa a juntar peças em eventos com quantidade maior (coalescePending).
+  batchSupported: true,
+  _batchTestadoEm: 0,
+  createBatch: async (events) => {
+    // Servidor antigo: não perde tempo com a rota de lote a cada envio; testa de novo a cada 10 min
+    // (para aproveitar quando o servidor for atualizado).
+    if (eventsApi.batchSupported === false && Date.now() - eventsApi._batchTestadoEm < 600000) {
+      return enviarUmAUm(events);
+    }
+    try {
+      const resposta = await request('/production-events/batch', { method: 'POST', body: JSON.stringify({ events }) });
+      eventsApi.batchSupported = true;
+      return resposta;
+    } catch (err) {
+      if (err.status !== 404) throw err;
+      eventsApi.batchSupported = false;
+      eventsApi._batchTestadoEm = Date.now();
+      return enviarUmAUm(events);
+    }
+  },
   // Soma real via SQL (sem paginação) — usar SEMPRE pra "unidades produzidas",
   // nunca somar `list()` no cliente (é paginado, trava no tamanho da página).
   totals: (sessionId) =>

@@ -141,12 +141,25 @@
           to="/maquinas"
           @click="mobileOpen = false"
           class="flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-semibold transition-all"
-          :class="$route.path === '/maquinas' ? 'bg-emerald-600/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30' : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-white'"
+          :class="$route.path === '/maquinas' && $route.query.secao !== 'paradas' ? 'bg-emerald-600/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30' : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-white'"
         >
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
           </svg>
           MÁQUINAS
+        </router-link>
+
+        <!-- Paradas: atalho para a seção "Motivos de parada" da tela Máquinas -->
+        <router-link
+          to="/maquinas?secao=paradas"
+          @click="mobileOpen = false"
+          class="flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-semibold transition-all"
+          :class="$route.path === '/maquinas' && $route.query.secao === 'paradas' ? 'bg-emerald-600/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30' : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-white'"
+        >
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          PARADAS
         </router-link>
 
         <!-- Metas -->
@@ -210,36 +223,6 @@
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
           </svg>
           CONFIGURAÇÕES
-        </router-link>
-
-        <!-- Divisor -->
-        <div class="border-t border-slate-200 dark:border-slate-800 my-1"></div>
-
-        <!-- Painel TV -->
-        <router-link
-          to="/tv"
-          @click="mobileOpen = false"
-          class="flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-semibold transition-all"
-          :class="$route.path === '/tv' ? 'bg-emerald-600/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-white'"
-        >
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-          </svg>
-          PAINEL TV
-        </router-link>
-
-        <!-- Totem -->
-        <router-link
-          v-if="!isAdmin"
-          to="/totem/login"
-          @click="mobileOpen = false"
-          class="flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-semibold transition-all"
-          :class="$route.path.startsWith('/totem') ? 'bg-emerald-600/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-white'"
-        >
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
-          </svg>
-          TOTEM
         </router-link>
       </nav>
     </div>
