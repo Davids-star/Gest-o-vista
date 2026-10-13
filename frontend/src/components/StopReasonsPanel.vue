@@ -5,39 +5,41 @@
       <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Os motivos cadastrados aqui aparecem para o operador no Totem ao registrar uma parada.</p>
     </div>
 
-    <!-- Cadastro -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-[140px_1fr_150px_1fr] gap-3 items-end">
-      <div>
-        <label :class="ROTULO">Código</label>
-        <input v-model="novo.code" maxlength="100" placeholder="LIMPEZA" :class="CAMPO+' font-mono uppercase'" />
+    <!-- Cadastro: só o nome é obrigatório (o código é gerado) -->
+    <div class="flex flex-col sm:flex-row gap-3 sm:items-end">
+      <div class="flex-1">
+        <label :class="ROTULO">Nome do motivo de parada</label>
+        <input v-model="novo.label" maxlength="255" placeholder="Ex.: Limpeza da máquina, Falta de energia, Quebra de peça"
+          @keyup.enter="cadastrar" :class="CAMPO" />
       </div>
-      <div>
-        <label :class="ROTULO">Nome da parada</label>
-        <input v-model="novo.label" maxlength="255" placeholder="Limpeza da máquina" :class="CAMPO" />
-      </div>
-      <div>
-        <label :class="ROTULO">Prioridade</label>
-        <select v-model="novo.default_priority" :class="CAMPO">
-          <option v-for="p in PRIORIDADES" :key="p.value" :value="p.value">{{ p.label }}</option>
-        </select>
-      </div>
-      <div>
-        <label :class="ROTULO">Ao encerrar a parada</label>
-        <select v-model="novo.session_action" :class="CAMPO">
-          <option v-for="a in ACOES" :key="a.value" :value="a.value">{{ a.label }}</option>
-        </select>
-      </div>
+      <button @click="cadastrar" :disabled="salvando || !novo.label.trim()"
+        class="px-6 py-2.5 bg-emerald-500 hover:bg-emerald-400 disabled:opacity-40 disabled:cursor-not-allowed text-slate-950 font-bold text-xs rounded-xl uppercase tracking-wider">
+        Adicionar
+      </button>
     </div>
-    <div class="flex flex-wrap items-center gap-4">
-      <label class="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
+
+    <!-- Opções extras (já vêm com valores prontos) -->
+    <details class="text-sm">
+      <summary class="cursor-pointer text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Opções do motivo (opcional)</summary>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
+        <div>
+          <label :class="ROTULO">Prioridade</label>
+          <select v-model="novo.default_priority" :class="CAMPO">
+            <option v-for="p in PRIORIDADES" :key="p.value" :value="p.value">{{ p.label }}</option>
+          </select>
+        </div>
+        <div>
+          <label :class="ROTULO">Ao encerrar a parada</label>
+          <select v-model="novo.session_action" :class="CAMPO">
+            <option v-for="a in ACOES" :key="a.value" :value="a.value">{{ a.label }}</option>
+          </select>
+        </div>
+      </div>
+      <label class="flex items-center gap-2 mt-3 text-sm text-slate-700 dark:text-slate-300">
         <input v-model="novo.planned" type="checkbox" class="w-4 h-4 accent-emerald-500" />
         Parada planejada (não conta como falha)
       </label>
-      <button @click="cadastrar" :disabled="salvando || !podeCadastrar"
-        class="ml-auto px-6 py-2 bg-emerald-500 hover:bg-emerald-400 disabled:opacity-40 disabled:cursor-not-allowed text-slate-950 font-bold text-xs rounded-xl uppercase tracking-wider">
-        Adicionar parada
-      </button>
-    </div>
+    </details>
     <p v-if="mensagem" :class="mensagemOk ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'" class="text-sm font-semibold">{{ mensagem }}</p>
 
     <!-- Paradas padrão da fábrica: cadastra só as que ainda não existem -->
@@ -107,14 +109,24 @@ const PADRAO = [
 ];
 
 const motivos = ref([]);
-const novo = ref({ code: '', label: '', default_priority: 'media', session_action: 'end_session', planned: false });
+// Padrão: a produção continua e o operador é perguntado ao encerrar a parada.
+const NOVO_VAZIO = () => ({ label: '', default_priority: 'media', session_action: 'ask_to_resume', planned: false });
+const novo = ref(NOVO_VAZIO());
 const salvando = ref(false);
 const mensagem = ref('');
 const mensagemOk = ref(false);
 const editandoId = ref(null);
 const editandoNome = ref('');
 
-const podeCadastrar = computed(() => /^[A-Za-z0-9_-]+$/.test(novo.value.code.trim()) && novo.value.label.trim());
+// Código gerado do nome: sem acento, maiúsculo, "_" no lugar de espaço; número no fim se já existir.
+const gerarCodigo = (nome) => {
+  const base = nome.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase()
+    .replace(/[^A-Z0-9]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 60) || 'PARADA';
+  const usados = new Set(motivos.value.map((m) => m.code));
+  let codigo = base;
+  for (let i = 2; usados.has(codigo); i += 1) codigo = `${base}_${i}`;
+  return codigo;
+};
 const padraoQueFalta = computed(() => PADRAO.filter((p) => !motivos.value.some((m) => m.code === p.code)));
 const faltamPadrao = computed(() => padraoQueFalta.value.length);
 const rotuloPrioridade = (v) => PRIORIDADES.find((p) => p.value === v)?.label || v;
@@ -132,14 +144,19 @@ const carregar = async () => {
 const cadastrar = async () => {
   salvando.value = true;
   try {
+    const nome = novo.value.label.trim();
+    if (motivos.value.some((m) => m.label.trim().toLowerCase() === nome.toLowerCase())) {
+      avisar(`Já existe um motivo chamado "${nome}".`, false);
+      return;
+    }
     await stopReasonsApi.create({
-      code: novo.value.code.trim().toUpperCase(),
-      label: novo.value.label.trim(),
+      code: gerarCodigo(nome),
+      label: nome,
       default_priority: novo.value.default_priority,
       session_action: novo.value.session_action,
       planned: novo.value.planned,
     });
-    novo.value = { code: '', label: '', default_priority: 'media', session_action: 'end_session', planned: false };
+    novo.value = NOVO_VAZIO();
     avisar('Parada adicionada.', true);
     await carregar();
   } catch (err) {
