@@ -1,0 +1,174 @@
+/*
+  PROJETO: CONTADOR DE DOCINHOS COM HC-SR04 E BUZZER
+  Hardware: Arduino Uno, HC-SR04, Buzzer
+  Comunicacao: Serial (Bluetooth/USB)
+  Feedback: Sonoro (bip a cada doce contado)
+*/
+
+// =================================================================
+// 1. MAPEAMENTO DE HARDWARE
+// =================================================================
+const int TRIG_PIN = 9;      // Pino de disparo do HC-SR04
+const int ECHO_PIN = 10;     // Pino de retorno do eco
+const int BUZZER_PIN = 8;    // Buzzer para feedback sonoro
+
+// =================================================================
+// 2. PARAMETROS DE CALIBRACAO
+// =================================================================
+float distanciaBase = 0.0;          // Distancia da mesa vazia (medida no setup)
+const float LIMIAR_DETECCAO = 3.0;  // Variacao minima em cm para detectar um doce
+
+// =================================================================
+// 3. CONTROLE DE DEBOUNCE (Evita contagens duplas)
+// =================================================================
+unsigned long tempoUltimaContagem = 0;
+const unsigned long INTERVALO_BLOQUEIO = 300;  // milissegundos
+
+// =================================================================
+// 4. VARIAVEIS DE ESTADO
+// =================================================================
+int contador = 0;
+bool docePresente = false;  // Indica se um doce esta sob o sensor neste exato momento
+
+// =================================================================
+// 5. INICIALIZACAO
+// =================================================================
+void setup() {
+  Serial.begin(9600);
+  pinMode(TRIG_PIN, OUTPUT);
+  pinMode(ECHO_PIN, INPUT);
+  pinMode(BUZZER_PIN, OUTPUT);
+
+  // Aguarda estabilizacao e mede a distancia da mesa vazia
+  delay(2000);
+  distanciaBase = medirDistanciaHC();
+
+  // Valida a leitura; se falhar, usa valor padrao
+  if (distanciaBase <= 0 || distanciaBase > 80) {
+    distanciaBase = 20.0;
+    Serial.println("WARNING: Leitura instavel. Distancia base definida como 20cm.");
+  } else {
+    Serial.print("Distancia base: ");
+    Serial.print(distanciaBase);
+    Serial.println(" cm");
+  }
+
+  Serial.println("Sistema pronto.");
+  Serial.println("Comandos: RESET, STATUS, CALIBRAR, HELP");
+  Serial.print("Contagem atual: ");
+  Serial.println(contador);
+}
+
+// =================================================================
+// 6. LACO PRINCIPAL
+// =================================================================
+void loop() {
+  float distanciaAtual = medirDistanciaHC();
+
+  // Verifica se um doce esta presente (distancia diminuiu alem do limiar)
+  bool obstaculoDetectado = (distanciaBase - distanciaAtual) > LIMIAR_DETECCAO;
+
+  // Transicao de estado: ausente -> presente (borda de subida do obstaculo)
+  if (obstaculoDetectado && !docePresente) {
+    if (millis() - tempoUltimaContagem > INTERVALO_BLOQUEIO) {
+      contador++;
+      tempoUltimaContagem = millis();
+
+      // --- FEEDBACK SONORO (Buzzer) ---
+      // Emite um bipe curto (frequencia 1000Hz por 150ms)
+      tone(BUZZER_PIN, 1000, 150);
+      delay(150); // Aguarda o som terminar para nao cortar o proximo
+
+      // --- Envia dados para o software externo via Serial ---
+      Serial.print("COUNT:");
+      Serial.println(contador);
+
+      // Log interno (opcional para monitoramento)
+      Serial.print("Doce detectado. Distancia: ");
+      Serial.print(distanciaAtual);
+      Serial.print(" cm. Total: ");
+      Serial.println(contador);
+
+      docePresente = true;
+    }
+  }
+
+  // Transicao de estado: presente -> ausente (libera para o proximo)
+  if (!obstaculoDetectado && docePresente) {
+    docePresente = false;
+  }
+
+  // Processa comandos recebidos via Serial (Bluetooth ou USB)
+  if (Serial.available() > 0) {
+    String comando = Serial.readStringUntil('\n');
+    comando.trim();
+    comando.toUpperCase();
+
+    if (comando == "RESET") {
+      contador = 0;
+      Serial.println("Contagem zerada.");
+      Serial.print("COUNT:0");
+    }
+    else if (comando == "STATUS") {
+      Serial.print("Contagem atual: ");
+      Serial.println(contador);
+      Serial.print("Distancia atual: ");
+      Serial.print(distanciaAtual);
+      Serial.println(" cm");
+      Serial.print("Distancia base: ");
+      Serial.print(distanciaBase);
+      Serial.println(" cm");
+    }
+    else if (comando == "CALIBRAR") {
+      delay(500);
+      distanciaBase = medirDistanciaHC();
+      Serial.print("Nova distancia base: ");
+      Serial.print(distanciaBase);
+      Serial.println(" cm");
+    }
+    else if (comando == "HELP") {
+      Serial.println("Comandos disponiveis:");
+      Serial.println("  RESET    - Zera o contador");
+      Serial.println("  STATUS   - Exibe informacoes atuais");
+      Serial.println("  CALIBRAR - Recalibra a distancia da mesa vazia");
+      Serial.println("  HELP     - Exibe esta lista");
+    }
+    else {
+      // Comando nao reconhecido: ignora silenciosamente
+    }
+  }
+
+  delay(80);  // Intervalo entre medicoes para estabilidade
+}
+
+// =================================================================
+// 7. FUNCAO DE LEITURA DO SENSOR HC-SR04 (4 pinos)
+// =================================================================
+float medirDistanciaHC() {
+  // Limpa o pino TRIG para garantir um pulso limpo
+  digitalWrite(TRIG_PIN, LOW);
+  delayMicroseconds(2);
+  
+  // Envia o pulso ultrassonico de 10 microssegundos
+  digitalWrite(TRIG_PIN, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(TRIG_PIN, LOW);
+
+  // Mede o tempo de duracao do pulso ECHO (em microssegundos)
+  long duracao = pulseIn(ECHO_PIN, HIGH, 30000);  // Timeout de 30ms
+
+  // Tratamento de falha na leitura
+  if (duracao == 0) {
+    return (distanciaBase > 0) ? distanciaBase : 20.0;
+  }
+
+  // Converte tempo em distancia (cm) - Velocidade do som: 340m/s
+  float distancia = duracao * 0.034 / 2;
+
+  // Filtro para leituras invalidas (muito perto ou muito longe)
+  if (distancia < 2 || distancia > 400) {
+    return (distanciaBase > 0) ? distanciaBase : 20.0;
+  }
+
+  return distancia;
+}
