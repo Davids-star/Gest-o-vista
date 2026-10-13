@@ -1,10 +1,14 @@
 import { Injectable, UnauthorizedException, NotFoundException } from '@nestjs/common';
+import * as bcrypt from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { UsuariosService } from '../usuarios/usuarios.service';
 import { Company } from '../database/entities/company.entity';
 import { User as Usuario } from '../database/entities/user.entity';
+
+/** Hash descartável: igualar o tempo de "e-mail não existe" ao de "senha errada". */
+const HASH_FALSO = bcrypt.hashSync('gp-hash-falso', 10);
 
 @Injectable()
 export class AuthService {
@@ -26,16 +30,14 @@ export class AuthService {
   /** Valida email + senha e retorna o token JWT e dados do usuário */
   async login(email: string, senha: string) {
     const usuario = await this.usuariosService.buscarPorEmail(email);
-    if (!usuario) {
-      throw new UnauthorizedException('Credenciais inválidas');
-    }
 
-    if (!usuario.active) {
-      throw new UnauthorizedException('Usuário inativo');
-    }
-
-    const senhaValida = await this.usuariosService.validarSenha(usuario, senha);
-    if (!senhaValida) {
+    // Sempre roda um bcrypt e responde a MESMA mensagem para e-mail inexistente,
+    // senha errada e usuário inativo — senão o tempo e o texto da resposta
+    // revelam quais e-mails existem (enumeração de usuários).
+    const senhaValida = usuario?.password_hash
+      ? await this.usuariosService.validarSenha(usuario, senha)
+      : (await bcrypt.compare(senha, HASH_FALSO), false);
+    if (!usuario || !usuario.active || !senhaValida) {
       throw new UnauthorizedException('Credenciais inválidas');
     }
 
@@ -55,8 +57,11 @@ export class AuthService {
   }
 
   /**
-   * Token de dispositivo — vida longa (10 anos), pra Totem/TV configurarem
+   * Token de dispositivo — vida longa (1 ano), pra Totem/TV configurarem
    * uma vez e nunca mais depender de login humano nem de outra aba logada.
+   * (Era 10 anos e sem como revogar: aparelho perdido = acesso eterno. Para
+   * aparelho novo prefira o token por dispositivo X-Device-Id/X-Device-Token,
+   * que pode ser revogado em /devices.)
    * Só um ADMINISTRADOR pode emitir (ver AuthController).
    */
   async gerarTokenDispositivo(companyId: string) {
@@ -67,7 +72,7 @@ export class AuthService {
       role: usuario.role,
       email: usuario.email,
     };
-    const token = this.jwtService.sign(payload, { expiresIn: '3650d' });
+    const token = this.jwtService.sign(payload, { expiresIn: '365d' });
     return { access_token: token, accessToken: token };
   }
 

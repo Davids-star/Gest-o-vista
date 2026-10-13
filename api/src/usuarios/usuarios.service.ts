@@ -1,4 +1,4 @@
-import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import { ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User as Usuario, UserRole as Role } from '../database/entities/user.entity';
@@ -32,36 +32,50 @@ export class UsuariosService {
 
     /** Login: busca global por email — não tem companyId disponível ainda nesse ponto */
     async buscarPorEmail(email: string) {
-        return this.repo.findOne({ where: { email } });
+        // Sem diferenciar maiúscula/minúscula: "Ana@x.com" e "ana@x.com" são a mesma conta.
+        return this.repo
+            .createQueryBuilder('u')
+            .where('LOWER(u.email) = LOWER(:email)', { email: email.trim() })
+            .getOne();
     }
 
     /**
      * Cria usuário SEMPRE dentro da empresa do usuário autenticado que está
      * criando — nunca aceitar company_id vindo do corpo da requisição.
      */
-    async criar(companyId: string, dados: { name?: string; nome?: string; email: string; senha?: string; password_hash?: string; role: Role }) {
+    async criar(companyId: string, dados: { name?: string; nome?: string; email: string; senha?: string; role: Role }) {
         const existente = await this.buscarPorEmail(dados.email);
         if (existente) throw new ConflictException('Email já cadastrado');
 
-        const password_hash = dados.senha ? await bcrypt.hash(dados.senha, 10) : (dados.password_hash || null);
+        const password_hash = dados.senha ? await bcrypt.hash(dados.senha, 10) : null;
         const usuario = this.repo.create({
             company_id: companyId,
             name: dados.name || dados.nome || '',
-            email: dados.email,
+            email: dados.email.trim().toLowerCase(),
             password_hash,
             role: dados.role,
         });
         return this.repo.save(usuario);
     }
 
-    async atualizar(id: string, companyId: string, dados: Partial<Usuario>) {
+    async atualizar(id: string, companyId: string, dados: { name?: string; email?: string; senha?: string; role?: Role; active?: boolean }) {
         await this.buscarPorId(id, companyId);
-        delete (dados as any).company_id;
-        await this.repo.update(id, dados);
+        // Lista fixa de campos: antes o corpo inteiro ia pro UPDATE (dava pra gravar
+        // password_hash cru, trocar id etc.). A senha sempre passa pelo bcrypt.
+        const campos: Partial<Usuario> = {};
+        if (dados.name !== undefined) campos.name = dados.name;
+        if (dados.email !== undefined) campos.email = dados.email.trim().toLowerCase();
+        if (dados.role !== undefined) campos.role = dados.role;
+        if (dados.active !== undefined) campos.active = dados.active;
+        if (dados.senha) campos.password_hash = await bcrypt.hash(dados.senha, 10);
+        if (Object.keys(campos).length) await this.repo.update(id, campos);
         return this.buscarPorId(id, companyId);
     }
 
-    async remover(id: string, companyId: string) {
+    async remover(id: string, companyId: string, solicitanteId?: string) {
+        if (solicitanteId && solicitanteId === id) {
+            throw new ForbiddenException('Você não pode excluir o próprio usuário');
+        }
         await this.buscarPorId(id, companyId);
         return this.repo.delete(id);
     }

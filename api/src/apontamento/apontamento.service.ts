@@ -212,6 +212,9 @@ export class ApontamentoService {
     // Sessão "pertence" ao dia/turno em que ela COMEÇOU — uma sessão que
     // atravessa a meia-noite não é cortada em duas, fica inteira no turno
     // em que iniciou (convenção normal de fábrica).
+    // EXCEÇÃO: sessão que começou ANTES do dia e continua rodando (ou terminou dentro
+    // dele) também entra, contando só o que aconteceu no dia. Sem isso, uma produção
+    // aberta há dias sumia do dashboard ("Produção Hoje" = 0) com a máquina produzindo.
     const qb = this.sessionRepo
       .createQueryBuilder('session')
       .innerJoinAndSelect('session.machine', 'machine')
@@ -220,7 +223,10 @@ export class ApontamentoService {
       .innerJoinAndSelect('session.operator', 'operator')
       .leftJoinAndSelect('session.shift', 'shift')
       .where('machine.company_id = :companyId', { companyId })
-      .andWhere('session.started_at BETWEEN :inicio AND :fim', { inicio, fim });
+      .andWhere(
+        '(session.started_at BETWEEN :inicio AND :fim OR (session.started_at < :inicio AND (session.ended_at IS NULL OR session.ended_at >= :inicio)))',
+        { inicio, fim },
+      );
 
     if (filtros.shift_id) qb.andWhere('session.shift_id = :shiftId', { shiftId: filtros.shift_id });
     if (filtros.machine_id) qb.andWhere('session.machine_id = :machineId', { machineId: filtros.machine_id });
@@ -228,6 +234,10 @@ export class ApontamentoService {
     if (filtros.lot_id) qb.andWhere('session.lot_id = :lotId', { lotId: filtros.lot_id });
 
     const sessoes = await qb.orderBy('session.started_at', 'ASC').getMany();
+    // Sessões que começaram no próprio dia ficam inteiras; as que vieram de antes só contam o dia.
+    const inteiras = sessoes.filter((s) => s.started_at >= inicio).map((s) => s.id);
+    const inteiraOuNoDia = '(event.session_id = ANY(:inteiras) OR event.occurred_at BETWEEN :inicio AND :fim)';
+    const filtroEventos = { inteiras, inicio, fim };
 
     const filtrosResposta = {
       date: dataStr,
@@ -269,6 +279,7 @@ export class ApontamentoService {
       .select('event.session_id', 'session_id')
       .addSelect('COALESCE(SUM(COALESCE(correction.corrected_quantity, event.quantity)), 0)', 'total')
       .where('event.session_id IN (:...sessionIds)', { sessionIds })
+      .andWhere(inteiraOuNoDia, filtroEventos)
       .groupBy('event.session_id')
       .getRawMany<{ session_id: string; total: string }>();
     const producaoPorSessao: Record<string, number> = {};
@@ -291,6 +302,7 @@ export class ApontamentoService {
       .select("to_char(event.occurred_at AT TIME ZONE 'America/Fortaleza', 'HH24')", 'hora')
       .addSelect('COALESCE(SUM(COALESCE(correction.corrected_quantity, event.quantity)), 0)', 'total')
       .where('event.session_id IN (:...sessionIds)', { sessionIds })
+      .andWhere(inteiraOuNoDia, filtroEventos)
       .groupBy("to_char(event.occurred_at AT TIME ZONE 'America/Fortaleza', 'HH24')")
       .getRawMany<{ hora: string; total: string }>();
     const producaoPorHora = horasVazias();
@@ -310,6 +322,7 @@ export class ApontamentoService {
       .addSelect("to_char(event.occurred_at AT TIME ZONE 'America/Fortaleza', 'HH24')", 'hora')
       .addSelect('COALESCE(SUM(COALESCE(correction.corrected_quantity, event.quantity)), 0)', 'total')
       .where('event.session_id IN (:...sessionIds)', { sessionIds })
+      .andWhere(inteiraOuNoDia, filtroEventos)
       .groupBy('event.session_id')
       .addGroupBy("to_char(event.occurred_at AT TIME ZONE 'America/Fortaleza', 'HH24')")
       .getRawMany<{ session_id: string; hora: string; total: string }>();
@@ -336,7 +349,10 @@ export class ApontamentoService {
       .andWhere('stop.started_at BETWEEN :inicio AND :fim', { inicio, fim })
       .getMany();
 
-    const todasParadas = [...paradasComSessao, ...paradasSemSessao];
+    // Sessão que veio de antes do dia: só as paradas que tocam o dia (as de dias anteriores não entram).
+    const doDia = (p: Stop) => inteiras.includes(p.session_id as string)
+      || (p.started_at <= fim && (p.ended_at ?? agora) >= inicio);
+    const todasParadas = [...paradasComSessao.filter(doDia), ...paradasSemSessao];
 
     // Histórico de troca de operador (audit_logs) — pra reconstituir "quem
     // operou quando" dentro da sessão (troca de operador NÃO cria sessão nova).
@@ -355,10 +371,18 @@ export class ApontamentoService {
     const nomePorOperadorId = new Map(usuariosAntigos.map((u) => [u.id, u.name]));
 
     const sessoesDetalhadas = sessoes.map((session) => {
-      const paradasDaSessao = paradasComSessao.filter((p) => p.session_id === session.id);
-      const tempoParadoSeg = paradasDaSessao.reduce((acc, p) => acc + duracaoParada(p, agora), 0);
-      const fimEfetivo = session.ended_at ?? agora;
-      const tempoTotalSeg = Math.max(0, (fimEfetivo.getTime() - session.started_at.getTime()) / 1000);
+      const paradasDaSessao = paradasComSessao.filter((p) => p.session_id === session.id && doDia(p));
+      const veioDeAntes = !inteiras.includes(session.id);
+      // Sessão que veio de antes conta só o tempo dentro do dia.
+      const inicioEfetivo = veioDeAntes ? inicio : session.started_at;
+      const fimEfetivo = new Date(Math.min((session.ended_at ?? agora).getTime(), veioDeAntes ? fim.getTime() : Infinity));
+      const tempoParadoSeg = paradasDaSessao.reduce(
+        (acc, p) => acc + (veioDeAntes
+          ? overlapSegundos(p.started_at, p.ended_at ?? agora, inicio, fim)
+          : duracaoParada(p, agora)),
+        0,
+      );
+      const tempoTotalSeg = Math.max(0, (fimEfetivo.getTime() - inicioEfetivo.getTime()) / 1000);
       const tempoProduzidoSeg = Math.max(0, tempoTotalSeg - tempoParadoSeg);
 
       const trocasDaSessao = trocasOperador.filter((t) => t.entity_id === session.id);

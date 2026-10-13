@@ -42,6 +42,7 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
         companyId: dispositivo.machine.company_id,
         role: 'operador',
         email: dispositivo.identifier,
+        machineId: dispositivo.machine_id,
       };
       return true;
     }

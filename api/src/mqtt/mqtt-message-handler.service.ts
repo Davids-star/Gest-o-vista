@@ -5,6 +5,7 @@ import { Device } from '../database/entities/device.entity';
 import { ProductionSession, SessionStatus } from '../database/entities/production-session.entity';
 import { EventsService } from '../events/events.service';
 import { EventSource } from '../database/entities/production-event.entity';
+import { MAX_QUANTIDADE_POR_EVENTO } from '../events/dto/create-event.dto';
 
 @Injectable()
 export class MqttMessageHandlerService {
@@ -67,8 +68,19 @@ export class MqttMessageHandlerService {
       }
 
       const { event_uid, quantity = 1, occurred_at } = data || {};
-      if (!event_uid) {
-        this.logger.warn(`Payload MQTT sem event_uid no tópico ${topic}`);
+      if (!event_uid || typeof event_uid !== 'string' || event_uid.length > 255) {
+        this.logger.warn(`Payload MQTT sem event_uid válido no tópico ${topic}`);
+        return false;
+      }
+      // O MQTT não passa pelo ValidationPipe: aplica aqui os mesmos limites da API HTTP.
+      const quantidade = Number(quantity);
+      if (!Number.isInteger(quantidade) || quantidade < 1 || quantidade > MAX_QUANTIDADE_POR_EVENTO) {
+        this.logger.warn(`Quantidade inválida (${String(quantity)}) no tópico ${topic}`);
+        return false;
+      }
+      const ocorridoEm = occurred_at ? new Date(occurred_at) : new Date();
+      if (Number.isNaN(ocorridoEm.getTime())) {
+        this.logger.warn(`occurred_at inválido no tópico ${topic}`);
         return false;
       }
 
@@ -85,9 +97,8 @@ export class MqttMessageHandlerService {
         return false;
       }
 
-      // Atualizar last_seen_at
-      device.last_seen_at = new Date();
-      await this.deviceRepo.save(device);
+      // Só a coluna last_seen_at (um save() do objeto inteiro reescreveria tudo a cada peça).
+      await this.deviceRepo.update(device.id, { last_seen_at: new Date() });
 
       const machine = device.machine;
       if (!machine || !machine.company_id) {
@@ -110,8 +121,8 @@ export class MqttMessageHandlerService {
         session_id: activeSession.id,
         machine_id: machine.id,
         event_uid,
-        quantity: Number(quantity) || 1,
-        occurred_at: occurred_at ? new Date(occurred_at).toISOString() : new Date().toISOString(),
+        quantity: quantidade,
+        occurred_at: ocorridoEm.toISOString(),
         source: EventSource.SENSOR,
       });
 

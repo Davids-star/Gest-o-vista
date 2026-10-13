@@ -10,6 +10,7 @@ import {
 
 } from '@nestjs/common';
 import { MotivosParadaService } from './motivos-parada.service';
+import { CreateMotivoParadaDto, UpdateMotivoParadaDto } from './dto/motivo-parada.dto';
 import { Roles } from '../common/decorators/roles.decorator';
 import { Role } from '../usuarios/usuario.entity';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
@@ -31,21 +32,18 @@ export class MotivosParadaController {
     return this.motivosParadaService.buscarPorId(id, user.companyId);
   }
 
-  @Roles(Role.SUPERVISOR, Role.ADMIN)
   @Post()
-  @Roles(Role.ADMIN)
-  criar(@CurrentUser() user: UserPayload, @Body() dto: any) {
+  @Roles(Role.SUPERVISOR, Role.ADMIN)
+  criar(@CurrentUser() user: UserPayload, @Body() dto: CreateMotivoParadaDto) {
     return this.motivosParadaService.criar(user.companyId, dto);
   }
 
-  @Roles(Role.SUPERVISOR, Role.ADMIN)
   @Patch(':id')
-  @Roles(Role.ADMIN)
-  atualizar(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: UserPayload, @Body() dto: any) {
+  @Roles(Role.SUPERVISOR, Role.ADMIN)
+  atualizar(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: UserPayload, @Body() dto: UpdateMotivoParadaDto) {
     return this.motivosParadaService.atualizar(id, user.companyId, dto);
   }
 
-  @Roles(Role.SUPERVISOR, Role.ADMIN)
   @Delete(':id')
   @Roles(Role.ADMIN)
   remover(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: UserPayload) {

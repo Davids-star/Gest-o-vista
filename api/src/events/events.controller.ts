@@ -2,10 +2,12 @@ import { Controller, Get, Post, Body, Query } from '@nestjs/common';
 import { EventsService } from './events.service';
 import { Roles } from '../common/decorators/roles.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
+import { assertMaquinaDoAparelho } from '../common/decorators/current-user.decorator';
 import type { UserPayload } from '../common/decorators/current-user.decorator';
 import { UserRole } from '../database/entities/user.entity';
 import { CreateEventDto } from './dto/create-event.dto';
 import { QueryEventsDto } from './dto/query-events.dto';
+import { CreateEventsBatchDto } from './dto/create-events-batch.dto';
 
 @Controller('production-events')
 export class EventsController {
@@ -32,8 +34,7 @@ export class EventsController {
   }
 
   /**
-   * Público (modo de teste, como as rotas do Totem): o tablet do Bluetooth envia
-   * a contagem sem login. Endurecer depois com autenticação de dispositivo.
+   * Exige login ou credencial de aparelho (X-Device-Id + X-Device-Token).
    * Idempotente por event_uid — reenvio não duplica.
    */
   @Post()
@@ -42,6 +43,21 @@ export class EventsController {
     @CurrentUser() user: UserPayload,
     @Body() dto: CreateEventDto,
   ) {
+    assertMaquinaDoAparelho(user, dto.machine_id);
     return this.eventsService.criarEvento(user.companyId, dto);
+  }
+
+  /**
+   * POST /production-events/batch — a fila do tablet vai toda de uma vez.
+   * Resposta: { results: [{ event_uid, status }], totals: { [session_id]: total } }.
+   */
+  @Post('batch')
+  @Roles(UserRole.SUPERVISOR, UserRole.ADMINISTRADOR, UserRole.OPERADOR)
+  criarEmLote(
+    @CurrentUser() user: UserPayload,
+    @Body() dto: CreateEventsBatchDto,
+  ) {
+    for (const e of dto.events) assertMaquinaDoAparelho(user, e.machine_id);
+    return this.eventsService.criarEventosEmLote(user.companyId, dto.events);
   }
 }

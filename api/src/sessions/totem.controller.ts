@@ -2,6 +2,7 @@ import { Controller, Post, Patch, Body, HttpCode, HttpStatus } from '@nestjs/com
 import { SessionsService } from './sessions.service';
 import { Roles } from '../common/decorators/roles.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
+import { assertMaquinaDoAparelho } from '../common/decorators/current-user.decorator';
 import type { UserPayload } from '../common/decorators/current-user.decorator';
 import { UserRole } from '../database/entities/user.entity';
 import { StartSessionDto } from './dto/start-session.dto';
@@ -21,6 +22,7 @@ export class TotemController {
     @CurrentUser() user: UserPayload,
     @Body() dto: StartSessionDto,
   ) {
+    assertMaquinaDoAparelho(user, dto.machine_id);
     return this.sessionsService.iniciarSessao(user.companyId, user.id, dto);
   }
 
@@ -29,6 +31,7 @@ export class TotemController {
     @CurrentUser() user: UserPayload,
     @Body() dto: ChangeLotDto,
   ) {
+    assertMaquinaDoAparelho(user, dto.machine_id);
     return this.sessionsService.trocarLote(user.companyId, dto);
   }
 
@@ -37,6 +40,7 @@ export class TotemController {
     @CurrentUser() user: UserPayload,
     @Body() dto: ChangeOperatorDto,
   ) {
+    assertMaquinaDoAparelho(user, dto.machine_id);
     return this.sessionsService.trocarOperador(user.companyId, user.id, dto);
   }
 
@@ -46,6 +50,7 @@ export class TotemController {
     @CurrentUser() user: UserPayload,
     @Body() dto: CloseSessionDto,
   ) {
+    assertMaquinaDoAparelho(user, dto.machine_id);
     return this.sessionsService.encerrarSessao(user.companyId, dto);
   }
 }

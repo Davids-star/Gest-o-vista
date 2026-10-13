@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsString, IsUUID } from 'class-validator';
+import { IsNotEmpty, IsString, IsUUID, MaxLength } from 'class-validator';
 
 export class StartSessionDto {
   @IsUUID('4', { message: 'machine_id deve ser um UUID válido' })
@@ -11,9 +11,11 @@ export class StartSessionDto {
 
   @IsString({ message: 'lot_code deve ser texto' })
   @IsNotEmpty({ message: 'lot_code é obrigatório' })
+  @MaxLength(100)
   lot_code: string;
 
   @IsString({ message: 'operator_name deve ser texto' })
   @IsNotEmpty({ message: 'operator_name é obrigatório' })
+  @MaxLength(255)
   operator_name: string;
 }

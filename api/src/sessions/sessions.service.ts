@@ -146,10 +146,15 @@ export class SessionsService {
     // 5. Determinar operador
     let operatorId = currentUserId;
     if (dto.operator_name) {
-      const users = await this.userRepo.find({ where: { company_id: companyId } });
-      const matchedUser = users.find(
-        (u) => u.name.toLowerCase().includes(dto.operator_name!.toLowerCase()) || (u.email && u.email.toLowerCase().includes(dto.operator_name!.toLowerCase())),
-      );
+      // Nome (ou e-mail) IGUAL, sem diferenciar maiúscula. Antes era "contém" sobre
+      // todos os usuários carregados na memória: digitar "a" atribuía a sessão ao
+      // primeiro usuário com "a" no nome (até um administrador).
+      const nomeBuscado = dto.operator_name.trim();
+      const matchedUser = await this.userRepo
+        .createQueryBuilder('u')
+        .where('u.company_id = :companyId', { companyId })
+        .andWhere('(LOWER(u.name) = LOWER(:nome) OR LOWER(u.email) = LOWER(:nome))', { nome: nomeBuscado })
+        .getOne();
 
       if (matchedUser) {
         operatorId = matchedUser.id;

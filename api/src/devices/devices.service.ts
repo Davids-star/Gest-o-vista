@@ -8,8 +8,19 @@ import { Machine } from '../database/entities/machine.entity';
 import { CreateDeviceDto } from './dto/create-device.dto';
 import { UpdateDeviceDto } from './dto/update-device.dto';
 
+/** Quanto tempo uma credencial de aparelho já conferida fica em memória (ms). */
+const TTL_CACHE_CREDENCIAL_MS = 60_000;
+const MAX_CREDENCIAIS_EM_CACHE = 500;
+
 @Injectable()
 export class DevicesService {
+  // bcrypt.compare custa ~60-100 ms de CPU. Sem cache ele rodava em TODA
+  // requisição do tablet (inclusive os GETs de polling) e travava a API —
+  // era uma das causas do envio lento. A chave é um SHA-256 do par
+  // identificador+token, nunca o token puro. Revogar/rotacionar limpa o cache
+  // na hora; no pior caso (outra instância da API) vale em até 60 s.
+  private readonly credenciaisValidas = new Map<string, { device: Device; expira: number }>();
+
   constructor(
     @InjectRepository(Device)
     private readonly deviceRepo: Repository<Device>,
@@ -99,6 +110,7 @@ export class DevicesService {
     if (dto.type !== undefined) device.type = dto.type;
     if (dto.config !== undefined) device.config = dto.config;
     if (dto.active !== undefined) device.active = dto.active;
+    this.esquecerCredenciais(device.identifier);
 
     const saved = await this.deviceRepo.save(device);
     const { secret_hash: _, ...rest } = saved as any;
@@ -118,6 +130,7 @@ export class DevicesService {
     const rawToken = `dev_tok_${crypto.randomBytes(16).toString('hex')}`;
     device.secret_hash = await bcrypt.hash(rawToken, 10);
     await this.deviceRepo.save(device);
+    this.esquecerCredenciais(device.identifier);
 
     return {
       id: device.id,
@@ -126,7 +139,22 @@ export class DevicesService {
     };
   }
 
+  private chaveCredencial(identifier: string, token: string) {
+    return crypto.createHash('sha256').update(`${identifier}\0${token}`).digest('hex');
+  }
+
+  private esquecerCredenciais(identifier: string) {
+    for (const [chave, { device }] of this.credenciaisValidas) {
+      if (device.identifier === identifier) this.credenciaisValidas.delete(chave);
+    }
+  }
+
   async validarDeviceToken(identifier: string, token: string) {
+    const chave = this.chaveCredencial(identifier, token);
+    const emCache = this.credenciaisValidas.get(chave);
+    if (emCache && emCache.expira > Date.now()) return emCache.device;
+    this.credenciaisValidas.delete(chave);
+
     const device = await this.deviceRepo
       .createQueryBuilder('device')
       .innerJoinAndSelect('device.machine', 'machine')
@@ -135,11 +163,16 @@ export class DevicesService {
       .andWhere('device.active = true')
       .getOne();
 
-    if (!device || !device.secret_hash) return null;
+    // Dispositivo inexistente gasta o mesmo bcrypt que um existente: sem isso o
+    // tempo de resposta revelaria quais identificadores existem.
+    const valid = await bcrypt.compare(token, device?.secret_hash || HASH_FALSO);
+    if (!device || !device.secret_hash || !valid) return null;
 
-    const valid = await bcrypt.compare(token, device.secret_hash);
-    if (!valid) return null;
-
+    if (this.credenciaisValidas.size >= MAX_CREDENCIAIS_EM_CACHE) this.credenciaisValidas.clear();
+    this.credenciaisValidas.set(chave, { device, expira: Date.now() + TTL_CACHE_CREDENCIAL_MS });
     return device;
   }
 }
+
+/** Hash bcrypt (custo 10) de um valor descartável, só para igualar o tempo de resposta. */
+const HASH_FALSO = bcrypt.hashSync('gp-hash-falso', 10);

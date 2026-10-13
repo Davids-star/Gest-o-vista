@@ -101,8 +101,7 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayDisconnect
     const fromAuth = client.handshake.auth?.token as string | undefined;
     if (fromAuth) return fromAuth;
 
-    const fromQuery = client.handshake.query?.token;
-    if (typeof fromQuery === 'string') return fromQuery;
+    // Sem ?token= na URL: URL vai parar em log de proxy/servidor com o JWT dentro.
 
     const header = client.handshake.headers.authorization;
     if (header?.startsWith('Bearer ')) return header.slice(7);

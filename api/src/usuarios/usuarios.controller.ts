@@ -10,11 +10,18 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { UsuariosService } from './usuarios.service';
+import { CreateUsuarioDto, UpdateUsuarioDto } from './dto/usuario.dto';
 import { Roles } from '../common/decorators/roles.decorator';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Role } from './usuario.entity';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import type { UserPayload } from '../common/decorators/current-user.decorator';
+
+/** O hash da senha nunca sai da API (antes GET /usuarios devolvia password_hash de todo mundo). */
+const semHash = <T extends { password_hash?: unknown }>(u: T) => {
+  const { password_hash: _ignorado, ...resto } = u;
+  return resto;
+};
 
 @Controller('usuarios')
 @UseGuards(RolesGuard)
@@ -23,31 +30,31 @@ export class UsuariosController {
 
   @Get()
   @Roles(Role.ADMIN, Role.SUPERVISOR)
-  listar(@CurrentUser() user: UserPayload) {
-    return this.usuariosService.listarTodos(user.companyId);
+  async listar(@CurrentUser() user: UserPayload) {
+    return (await this.usuariosService.listarTodos(user.companyId)).map(semHash);
   }
 
   @Get(':id')
   @Roles(Role.ADMIN, Role.SUPERVISOR)
-  buscar(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: UserPayload) {
-    return this.usuariosService.buscarPorId(id, user.companyId);
+  async buscar(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: UserPayload) {
+    return semHash(await this.usuariosService.buscarPorId(id, user.companyId));
   }
 
   @Post()
   @Roles(Role.ADMIN)
-  criar(@CurrentUser() user: UserPayload, @Body() dto: { nome: string; email: string; senha: string; role: Role }) {
-    return this.usuariosService.criar(user.companyId, dto);
+  async criar(@CurrentUser() user: UserPayload, @Body() dto: CreateUsuarioDto) {
+    return semHash(await this.usuariosService.criar(user.companyId, dto));
   }
 
   @Patch(':id')
   @Roles(Role.ADMIN)
-  atualizar(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: UserPayload, @Body() dto: any) {
-    return this.usuariosService.atualizar(id, user.companyId, dto);
+  async atualizar(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: UserPayload, @Body() dto: UpdateUsuarioDto) {
+    return semHash(await this.usuariosService.atualizar(id, user.companyId, dto));
   }
 
   @Delete(':id')
   @Roles(Role.ADMIN)
   remover(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: UserPayload) {
-    return this.usuariosService.remover(id, user.companyId);
+    return this.usuariosService.remover(id, user.companyId, user.id);
   }
 }
