@@ -37,12 +37,14 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
     if (!request.headers?.authorization && deviceId && deviceToken) {
       const dispositivo = await this.devicesService.validarDeviceToken(String(deviceId), String(deviceToken));
       if (!dispositivo) throw new UnauthorizedException('Dispositivo inválido ou revogado');
+      const companyId = dispositivo.machine.company_id;
       request.user = {
-        id: dispositivo.id,
-        companyId: dispositivo.machine.company_id,
+        id: await this.authService.idUsuarioDoAparelho(companyId), // usuário real (FK de paradas/auditoria)
+        companyId,
         role: 'operador',
         email: dispositivo.identifier,
         machineId: dispositivo.machine_id,
+        deviceId: dispositivo.id,
       };
       return true;
     }

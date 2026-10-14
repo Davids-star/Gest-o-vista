@@ -19,6 +19,22 @@ export class AuthService {
     private readonly companyRepo: Repository<Company>,
   ) {}
 
+  // companyId → id do usuário "Dispositivo (Totem/TV)" da empresa (cache: roda em toda requisição do aparelho).
+  private readonly usuarioDoAparelho = new Map<string, string>();
+
+  /**
+   * Usuário real que representa os aparelhos da empresa. Várias tabelas (paradas, auditoria,
+   * sessão) têm chave estrangeira para users(id): usar o id do próprio aparelho (que não é um
+   * usuário) dava "Internal server error" ao registrar uma parada pelo Totem.
+   */
+  async idUsuarioDoAparelho(companyId: string): Promise<string> {
+    const emCache = this.usuarioDoAparelho.get(companyId);
+    if (emCache) return emCache;
+    const usuario = await this.usuariosService.obterOuCriarUsuarioDispositivo(companyId);
+    this.usuarioDoAparelho.set(companyId, usuario.id);
+    return usuario.id;
+  }
+
   /** Contexto usado só no modo local sem token (ver modo-local.ts). */
   async obterContextoLocal() {
     const [empresa] = await this.companyRepo.find({ order: { created_at: 'ASC' }, take: 1 });

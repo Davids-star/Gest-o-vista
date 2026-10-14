@@ -7,6 +7,8 @@ export interface UserPayload {
   email: string;
   /** Só em credencial de aparelho (X-Device-Id): a única máquina que ele pode operar. */
   machineId?: string;
+  /** Só em credencial de aparelho: id do cadastro do dispositivo (o `id` acima é do usuário de aparelho da empresa). */
+  deviceId?: string;
 }
 
 /** Aparelho amarrado a uma máquina não opera outra. Usuário logado (sem machineId) passa. */
