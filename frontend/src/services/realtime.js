@@ -10,7 +10,7 @@
 import { ref } from 'vue';
 import { io } from 'socket.io-client';
 import { BASE_URL, getToken } from './api';
-import { DEVICE_ID, DEVICE_TOKEN } from '../config/env';
+import { getDeviceCredentials } from './deviceCredentials.js';
 
 let socket = null;
 
@@ -37,7 +37,8 @@ export function connectRealtime(handlers = {}) {
   // padrão. `auth: {}` é enviado nesse caso, não `undefined` — socket.io
   // manda `auth` como está, mas alguns proxies removem headers vazios.
   // Credencial do aparelho (APK do Totem) tem prioridade sobre qualquer JWT guardado.
-  const token = DEVICE_ID && DEVICE_TOKEN ? null : getToken();
+  const aparelho = getDeviceCredentials();
+  const token = aparelho ? null : getToken();
 
   // Evita conexões duplicadas ao trocar de tela
   if (socket) {
@@ -47,7 +48,7 @@ export function connectRealtime(handlers = {}) {
   realtimeAttempted.value = true;
 
   socket = io(BASE_URL, {
-    auth: token ? { token } : (DEVICE_ID && DEVICE_TOKEN ? { deviceId: DEVICE_ID, deviceToken: DEVICE_TOKEN } : {}),
+    auth: token ? { token } : (aparelho ? { deviceId: aparelho.id, deviceToken: aparelho.token } : {}),
     transports: ['websocket'],
     reconnection: true,
     reconnectionDelay: 1000,

@@ -32,7 +32,7 @@
             class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl p-3 focus:border-emerald-500 focus:outline-none text-sm font-semibold"
           >
             <option value="" disabled>Selecione...</option>
-            <option v-for="m in store.machines" :key="m.id" :value="m.id">
+            <option v-for="m in estacoesDisponiveis" :key="m.id" :value="m.id">
               Máquina {{ getMachineNumber(m) }}
             </option>
           </select>
@@ -59,6 +59,12 @@
           INICIAR TURNO →
         </button>
 
+        <div v-if="aparelho" class="pt-2 text-center">
+          <button type="button" class="text-xs text-slate-400 hover:text-emerald-400 underline" @click="trocarSensor">
+            Trocar sensor deste aparelho ({{ aparelho.machineCode || aparelho.id }})
+          </button>
+        </div>
+
         <div class="pt-2 text-center">
           <template v-if="!isNative"><router-link to="/mobile" class="text-xs text-slate-400 hover:text-emerald-400 transition-colors inline-flex items-center gap-1 font-medium">
             📱 Voltar ao Seletor Mobile / Instalar PWA
@@ -70,12 +76,13 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useProductionStore } from '../../stores/productionStore';
 import { getMachineNumber as getMachineNumberBase } from '../../composables/useMachineDisplay';
 import { travarPaisagem } from '../../composables/useLandscapeLock';
 import { isNativeApp } from '../../config/platform.js';
+import { getStoredDevice, clearDevice } from '../../services/deviceCredentials.js';
 
 // No APK o aparelho é o Totem: não existe seletor nem instalação de PWA.
 const isNative = isNativeApp();
@@ -90,6 +97,16 @@ const getMachineNumber = (m) => getMachineNumberBase(store.machines, m);
 // deixava esse campo em branco de novo, obrigando a redigitar toda vez.
 const OPERATOR_STORAGE_KEY = 'gp_totem_last_operator';
 
+// Aparelho ativado com o código: fica preso ao sensor (máquina) escolhido na ativação.
+const aparelho = getStoredDevice();
+const trocarSensor = () => {
+  clearDevice();
+  router.replace('/ativar');
+};
+
+// Aparelho ativado só enxerga o próprio sensor (a API também recusa as outras máquinas).
+const estacoesDisponiveis = computed(() => (aparelho?.machineId ? store.machines.filter((m) => m.id === aparelho.machineId) : store.machines));
+
 const selectedStationId = ref('');
 const operatorName = ref(localStorage.getItem(OPERATOR_STORAGE_KEY) || '');
 const errorMsg = ref('');
@@ -100,9 +117,10 @@ onMounted(async () => {
   if (!store.machines.length) {
     await store.fetchMachines();
   }
-  // Pré-seleciona a primeira disponível
+  // Pré-seleciona o sensor do aparelho ativado (ou a primeira disponível)
   if (store.machines.length && !selectedStationId.value) {
-    selectedStationId.value = store.machines[0].id;
+    const dele = aparelho?.machineId && store.machines.find((m) => m.id === aparelho.machineId);
+    selectedStationId.value = (dele || store.machines[0]).id;
   }
 });
 

@@ -12,6 +12,7 @@ import { useAuth } from '../composables/useAuth';
 const DEVICE_MODE_KEY = 'gp_device_mode';
 
 import { isNativeApp } from '../config/platform.js';
+import { getDeviceCredentials } from '../services/deviceCredentials.js';
 
 import LoginSupervisorView from '../views/supervisor/LoginSupervisorView.vue';
 import Dashboard from '../components/Dashboard.vue';
@@ -28,6 +29,8 @@ import ProducaoView from '../views/totem/ProducaoView.vue';
 import TvView from '../views/TvView.vue';
 import MobileSelectorView from '../views/mobile/MobileSelectorView.vue';
 import ConfigMobileView from '../views/mobile/ConfigMobileView.vue';
+import ActivationView from '../views/ActivationView.vue';
+import DownloadView from '../views/DownloadView.vue';
 
 const routes = [
   // Rota raiz → Celular e Desktop vão DIRETO para a Supervisão / Dashboard,
@@ -36,7 +39,8 @@ const routes = [
   // Totem sabe pra onde abrir, sem precisar de um segundo manifest.
   { path: '/', redirect: () => {
       // APK = aparelho de Totem: abre direto na tela do operador (sem seletor PWA).
-      if (isNativeApp()) return '/totem/login';
+      // Aparelho ainda não ativado: pede o código de pareamento e o sensor.
+      if (isNativeApp()) return getDeviceCredentials() ? '/totem/login' : '/ativar';
       if (localStorage.getItem(DEVICE_MODE_KEY) === 'totem') return '/totem/login';
       const { isLoggedIn } = useAuth();
       return isLoggedIn.value ? '/dashboard' : '/supervisor/login';
@@ -126,6 +130,10 @@ const routes = [
     meta: { requiresAuth: false },
   },
 
+  // ── Ativação do aparelho (código de pareamento) e página de download do app ──
+  { path: '/ativar', name: 'Ativar', component: ActivationView, meta: { requiresAuth: false } },
+  { path: '/baixar', name: 'Baixar', component: DownloadView, meta: { requiresAuth: false } },
+
   // ── Seletor PWA Opcional ───────────────────────────────────────
   {
     path: '/mobile',
@@ -161,6 +169,8 @@ function ativarDispositivoSeNecessario(to) {
 
 // ── Guard JWT ─────────────────────────────────────────────────────────────
 router.beforeEach((to, _from, next) => {
+  // App instalado sem ativação: telas do Totem só depois de ativar com o código.
+  if (isNativeApp() && to.path.startsWith('/totem') && !getDeviceCredentials()) return next('/ativar');
   if (ativarDispositivoSeNecessario(to)) {
     const { device_token, ...restoQuery } = to.query;
     return next({ path: to.path, query: restoQuery, params: to.params, replace: true });

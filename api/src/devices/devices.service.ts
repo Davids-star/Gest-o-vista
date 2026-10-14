@@ -1,10 +1,11 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import * as crypto from 'crypto';
 import { Device } from '../database/entities/device.entity';
 import { Machine } from '../database/entities/machine.entity';
+import { Company } from '../database/entities/company.entity';
 import { CreateDeviceDto } from './dto/create-device.dto';
 import { UpdateDeviceDto } from './dto/update-device.dto';
 
@@ -26,7 +27,52 @@ export class DevicesService {
     private readonly deviceRepo: Repository<Device>,
     @InjectRepository(Machine)
     private readonly machineRepo: Repository<Machine>,
+    @InjectRepository(Company)
+    private readonly companyRepo: Repository<Company>,
   ) {}
+
+  /**
+   * Confere o código de pareamento (variável CODIGO_PAREAMENTO do servidor) em tempo constante.
+   * Sem a variável definida, o pareamento fica desligado. Devolve a empresa (a primeira cadastrada).
+   */
+  private async empresaDoPareamento(codigo: string): Promise<Company> {
+    const esperado = process.env.CODIGO_PAREAMENTO?.trim();
+    if (!esperado) throw new ForbiddenException('Pareamento de aparelhos desativado neste servidor');
+    const hash = (v: string) => crypto.createHash('sha256').update(v).digest();
+    if (!crypto.timingSafeEqual(hash(codigo.trim()), hash(esperado))) {
+      throw new ForbiddenException('Código de pareamento inválido');
+    }
+    const [empresa] = await this.companyRepo.find({ order: { created_at: 'ASC' }, take: 1 });
+    if (!empresa) throw new NotFoundException('Nenhuma empresa cadastrada');
+    return empresa;
+  }
+
+  async maquinasParaPareamento(codigo: string) {
+    const empresa = await this.empresaDoPareamento(codigo);
+    const maquinas = await this.machineRepo.find({ where: { company_id: empresa.id, active: true }, order: { code: 'ASC' } });
+    return maquinas.map((m) => ({ id: m.id, code: m.code, name: m.name }));
+  }
+
+  /** Cria o aparelho (ligado à máquina escolhida) e devolve identificador + token — o token só aparece agora. */
+  async parearAparelho(codigo: string, machineId: string, nome?: string) {
+    const empresa = await this.empresaDoPareamento(codigo);
+    const machine = await this.machineRepo.findOne({ where: { id: machineId, company_id: empresa.id, active: true } });
+    if (!machine) throw new NotFoundException('Máquina não encontrada');
+
+    const identifier = `APP-${machine.code}-${crypto.randomBytes(3).toString('hex').toUpperCase()}`;
+    const rawToken = `dev_tok_${crypto.randomBytes(16).toString('hex')}`;
+    await this.deviceRepo.save(
+      this.deviceRepo.create({
+        machine_id: machine.id,
+        type: 'app',
+        identifier,
+        config: nome ? { nome: nome.trim() } : null,
+        secret_hash: await bcrypt.hash(rawToken, 10),
+        active: true,
+      }),
+    );
+    return { identifier, token: rawToken, machine: { id: machine.id, code: machine.code, name: machine.name } };
+  }
 
   async criarDevice(companyId: string, dto: CreateDeviceDto) {
     const machine = await this.machineRepo.findOne({

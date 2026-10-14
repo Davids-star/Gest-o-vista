@@ -8,7 +8,8 @@
  * - Pinia NUNCA é o banco de dados — toda escrita vai para a API
  */
 
-import { API_URL, DEVICE_ID, DEVICE_TOKEN } from '../config/env';
+import { API_URL } from '../config/env';
+import { getDeviceCredentials } from './deviceCredentials.js';
 
 export const BASE_URL = API_URL;
 
@@ -27,10 +28,10 @@ async function request(endpoint, options = {}) {
   // APK do Totem tem credencial própria do aparelho (definida no build): ela vale SEMPRE.
   // Antes um JWT velho guardado no localStorage (de login anterior ou de outra API) tinha
   // prioridade, dava 401 em tudo e o Totem ficava em "Nenhuma estação disponível".
-  const aparelho = DEVICE_ID && DEVICE_TOKEN;
+  const aparelho = getDeviceCredentials();
   const token = aparelho ? null : getToken();
   const credenciaisDoAparelho = aparelho
-    ? { 'X-Device-Id': DEVICE_ID, 'X-Device-Token': DEVICE_TOKEN }
+    ? { 'X-Device-Id': aparelho.id, 'X-Device-Token': aparelho.token }
     : {};
   const headers = {
     'Content-Type': 'application/json',
@@ -72,6 +73,14 @@ export const authApi = {
   login: (email, password) =>
     request('/auth/login', { method: 'POST', body: JSON.stringify({ email, password }) }),
   me: () => request('/auth/me'),
+};
+
+// ─── PAREAMENTO (ativar aparelho novo com o código) ────────────────────────
+// Públicas: só funcionam com o código definido no servidor (CODIGO_PAREAMENTO).
+export const pareamentoApi = {
+  maquinas: (codigo) => request('/pareamento/maquinas', { method: 'POST', body: JSON.stringify({ codigo }) }),
+  parear: (codigo, machineId, nome) =>
+    request('/pareamento', { method: 'POST', body: JSON.stringify({ codigo, machine_id: machineId, ...(nome ? { nome } : {}) }) }),
 };
 
 // ─── MÁQUINAS ──────────────────────────────────────────────────────────────
