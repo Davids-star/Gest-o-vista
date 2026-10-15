@@ -219,11 +219,15 @@ export class ApontamentoService {
     if (!sessionIds.length) return [];
     const possiveis = await this.possibleStopRepo.find({
       where: { session_id: In(sessionIds), status: In([PossibleStopStatus.PENDING, PossibleStopStatus.AUTO_RESOLVED]) },
-      relations: { machine: true },
+      relations: { machine: true, session: true },
     });
     return possiveis.map((ps) => {
       const inicio = new Date(ps.detected_at.getTime() - ps.duration_seconds * 1000);
-      const fim = ps.status === PossibleStopStatus.PENDING ? null : (ps.resolved_at ?? agora);
+      let fim: Date | null = ps.status === PossibleStopStatus.PENDING ? null : (ps.resolved_at ?? agora);
+      // Nunca passa do fim da sessão: suspeita pendente (ou resolvida bem depois) de uma sessão
+      // já encerrada não pode contar parado o tempo em que não havia produção em andamento.
+      const fimSessao = ps.session?.ended_at ?? null;
+      if (fimSessao && (!fim || fim.getTime() > fimSessao.getTime())) fim = fimSessao;
       return {
         id: `possivel-${ps.id}`,
         machine_id: ps.machine_id,
@@ -231,7 +235,7 @@ export class ApontamentoService {
         started_at: inicio,
         ended_at: fim,
         duration_seconds: fim ? Math.max(0, Math.round((fim.getTime() - inicio.getTime()) / 1000)) : null,
-        status: ps.status === PossibleStopStatus.PENDING ? 'open' : 'closed',
+        status: fim ? 'closed' : 'open',
         observation: ps.status === PossibleStopStatus.PENDING
           ? 'Sem produção — aguardando o operador classificar'
           : 'Sem produção (a produção voltou sem o operador classificar)',

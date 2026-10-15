@@ -599,3 +599,32 @@ describe('ApontamentoService.obter — tempo ocioso sem motivo conta como parada
     expect(r.resumo.tempo_parado_segundos).toBe(0);
   });
 });
+
+describe('ApontamentoService.obter — possível parada de sessão encerrada', () => {
+  it('suspeita pendente de sessão já encerrada só conta até o fim da sessão', async () => {
+    const agora = Date.now();
+    const sessao = {
+      id: 's1', machine_id: 'm1', product_id: 'p1', lot_id: 'l1', operator_id: 'o1', shift_id: null,
+      started_at: new Date(agora - 3_600_000), ended_at: new Date(agora - 1_800_000), status: 'closed',
+      machine: { id: 'm1', code: 'MQ-01', name: 'M1' }, product: { id: 'p1', name: 'B' },
+      lot: { id: 'l1', code: 'L' }, operator: { id: 'o1', name: 'Op' }, shift: null,
+    };
+    // detectada 40 min atrás (sem produção há 2 min naquele momento), sessão encerrou 30 min atrás
+    const possivel = {
+      id: 'ps', machine_id: 'm1', session_id: 's1', status: 'pending', session: sessao,
+      detected_at: new Date(agora - 2_400_000), duration_seconds: 120, resolved_at: null,
+    };
+    const qb: any = new Proxy({}, { get: (_t, prop) => (prop === 'getMany' ? jest.fn().mockResolvedValue([sessao]) : prop === 'getRawMany' ? jest.fn().mockResolvedValue([]) : jest.fn().mockReturnThis()) });
+    const service = new ApontamentoService(
+      { createQueryBuilder: () => qb } as any, { createQueryBuilder: () => ({ ...qb, leftJoin: jest.fn().mockReturnThis(), select: jest.fn().mockReturnThis(), addSelect: jest.fn().mockReturnThis(), where: jest.fn().mockReturnThis(), andWhere: jest.fn().mockReturnThis(), groupBy: jest.fn().mockReturnThis(), addGroupBy: jest.fn().mockReturnThis(), getRawMany: jest.fn().mockResolvedValue([]) }) } as any,
+      { find: jest.fn().mockResolvedValue([]), createQueryBuilder: () => ({ leftJoinAndSelect: jest.fn().mockReturnThis(), where: jest.fn().mockReturnThis(), andWhere: jest.fn().mockReturnThis(), getMany: jest.fn().mockResolvedValue([]) }) } as any,
+      { find: jest.fn().mockResolvedValue([]) } as any, { find: jest.fn().mockResolvedValue([]) } as any,
+      { find: jest.fn().mockResolvedValue([possivel]) } as any,
+    );
+    const r = await service.obter('c1', { date: undefined } as any);
+    // parada: começou 42 min atrás (detectada há 40 + 2 min sem produção) e vai só até o fim da
+    // sessão (30 min atrás) = 12 min. Sem o limite seria 42 min (até agora).
+    expect(r.resumo.tempo_parado_segundos).toBeGreaterThanOrEqual(12 * 60 - 5);
+    expect(r.resumo.tempo_parado_segundos).toBeLessThanOrEqual(12 * 60 + 5);
+  });
+});

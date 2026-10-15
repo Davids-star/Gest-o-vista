@@ -618,9 +618,11 @@ const openStop = computed(() => store.stops.find(
 // tempo demais) — ver PossibleStopDetectorService no backend. O operador
 // confirma (vira parada real, com motivo) ou descarta (falso alarme, ex.:
 // setup manual que não gera evento).
-const possibleStopPendente = computed(() => store.possibleStops.find(
+// Só enquanto há produção em andamento: sem sessão ativa não existe "parada de produção"
+// (antes, uma suspeita pendente de uma sessão já encerrada ficava aparecendo na tela).
+const possibleStopPendente = computed(() => (!store.activeSession ? null : store.possibleStops.find(
   (p) => p.machine_id === currentMachine.value?.id,
-) || null);
+) || null));
 const possibleStopReasonId = ref('');
 
 const handleConfirmarPossibleStop = async () => {
