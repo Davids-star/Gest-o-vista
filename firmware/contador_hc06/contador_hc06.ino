@@ -13,8 +13,8 @@ const int ECHO_PIN = 10;
 const int BUZZER_PIN = 8;
 
 // Parametros de deteccao
-const float DISTANCIA_DETECCAO = 4.0;
-const float DISTANCIA_LIBERACAO = 6.0;
+const float DISTANCIA_DETECCAO = 6.0;
+const float DISTANCIA_LIBERACAO = 8.0;
 
 const unsigned long INTERVALO_CONTAGEM = 300;
 const unsigned long TEMPO_LIMITE_ECO = 30000;
@@ -79,8 +79,8 @@ void processarComando(Stream &canal) {
     enviarMensagem("COUNT:" + String(quantidade));
   }
   else if (comando == "CALIBRAR") {
-    enviarMensagem("DISTANCIA_DETECCAO:4.0");
-    enviarMensagem("DISTANCIA_LIBERACAO:6.0");
+    enviarMensagem("DISTANCIA_DETECCAO:6.0");
+    enviarMensagem("DISTANCIA_LIBERACAO:8.0");
     enviarMensagem("OK:CALIBRAR");
   }
   else if (comando == "HELP") {
