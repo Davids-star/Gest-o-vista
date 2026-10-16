@@ -64,8 +64,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, nextTick, watch } from 'vue';
-import { useRoute } from 'vue-router';
+import { ref, onMounted } from 'vue';
 import AppSidebar from '../../components/AppSidebar.vue';
 import StopReasonsPanel from '../../components/StopReasonsPanel.vue';
 import { machinesApi } from '../../services/api';
@@ -129,17 +128,5 @@ const alternarAtiva = async (m) => {
   }
 };
 
-// Atalho "PARADAS" do menu: /maquinas?secao=paradas rola até os motivos de parada.
-const route = useRoute();
-const irParaSecao = async () => {
-  if (route.query.secao !== 'paradas') return;
-  await nextTick();
-  document.getElementById('paradas')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-};
-watch(() => route.query.secao, irParaSecao);
-
-onMounted(async () => {
-  await carregar();
-  irParaSecao();
-});
+onMounted(carregar);
 </script>
